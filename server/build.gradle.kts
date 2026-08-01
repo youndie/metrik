@@ -21,6 +21,7 @@ kotlin {
         commonMain.dependencies {
             implementation(projects.shared)
             implementation(ktorLibs.server.core)
+            implementation(ktorLibs.network)
             implementation(ktorLibs.server.cio)
             implementation(ktorLibs.server.di)
             implementation(ktorLibs.server.contentNegotiation)
