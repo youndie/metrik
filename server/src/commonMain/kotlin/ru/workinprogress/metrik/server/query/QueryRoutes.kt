@@ -12,6 +12,7 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import ru.workinprogress.metrik.api.Step
 import ru.workinprogress.metrik.server.ServerConfig
+import ru.workinprogress.metrik.server.alert.AlertWorker
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -152,4 +153,16 @@ private suspend fun ApplicationCall.serviceId(): Long? {
     val id = parameters["id"]?.toLongOrNull()
     if (id == null) respond(HttpStatusCode.BadRequest, "service id must be a number")
     return id
+}
+
+fun Route.alertRoutes(alerts: AlertWorker) {
+    get("/alerts") {
+        authenticated() ?: return@get
+        call.respond(alerts.active())
+    }
+
+    get("/alerts/history") {
+        authenticated() ?: return@get
+        call.respond(alerts.history())
+    }
 }

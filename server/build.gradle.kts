@@ -26,6 +26,7 @@ kotlin {
             implementation(ktorLibs.server.di)
             implementation(ktorLibs.server.contentNegotiation)
             implementation(ktorLibs.serialization.kotlinx.json)
+            implementation(ktorLibs.client.cio)
             implementation(libs.sqlx4k.sqlite)
             implementation(libs.okio)
         }

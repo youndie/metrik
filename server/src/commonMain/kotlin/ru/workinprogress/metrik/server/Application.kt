@@ -19,12 +19,17 @@ import kotlinx.coroutines.runBlocking
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import okio.SYSTEM
+import ru.workinprogress.metrik.server.alert.AlertNotifier
+import ru.workinprogress.metrik.server.alert.AlertWorker
+import ru.workinprogress.metrik.server.alert.NoopNotifier
+import ru.workinprogress.metrik.server.alert.TelegramNotifier
 import ru.workinprogress.metrik.server.db.migrateDb
 import ru.workinprogress.metrik.server.ingest.IngestService
 import ru.workinprogress.metrik.server.ingest.UdpReceiver
 import ru.workinprogress.metrik.server.query.AdminService
 import ru.workinprogress.metrik.server.query.QueryService
 import ru.workinprogress.metrik.server.query.adminRoutes
+import ru.workinprogress.metrik.server.query.alertRoutes
 import ru.workinprogress.metrik.server.query.queryRoutes
 import ru.workinprogress.metrik.wire.MetrikJson
 
@@ -75,6 +80,17 @@ fun Application.module(
     val receiver = UdpReceiver(config.udpPort, ingest)
     val query = QueryService(db, minuteRetentionMs = config.retentionHours * 60 * 60 * 1000)
     val admin = AdminService(db)
+    val notifier: AlertNotifier =
+        if (config.telegramToken.isNullOrBlank() || config.telegramChatId.isNullOrBlank()) {
+            // Без токена правила всё равно считаются и видны в UI, просто молча.
+            NoopNotifier
+        } else {
+            TelegramNotifier(config.telegramToken, config.telegramChatId)
+        }
+    val alerts = AlertWorker(db, admin, notifier)
+
+    alerts.start(this)
+    monitor.subscribe(ApplicationStopping) { alerts.stop() }
 
     receiver.start(this)
     monitor.subscribe(ApplicationStopping) { receiver.stop() }
@@ -93,6 +109,7 @@ fun Application.module(
             // нечем объяснить.
             get("/self") { call.respond(ingest.counters.snapshot()) }
 
+            alertRoutes(alerts)
             queryRoutes(query, config)
             adminRoutes(admin, config)
         }

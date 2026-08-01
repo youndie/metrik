@@ -13,6 +13,8 @@ class ServerConfig(
     /** Пусто — админ любой прошедший прокси: инсталляция принадлежит одной команде. */
     val admins: Set<String> = emptySet(),
     val retentionHours: Long = 48,
+    val telegramToken: String? = null,
+    val telegramChatId: String? = null,
 ) {
     companion object {
         fun fromEnv(): ServerConfig {
@@ -35,6 +37,8 @@ class ServerConfig(
                         .filter { it.isNotEmpty() }
                         .toSet(),
                 retentionHours = readEnv("METRIK_RETENTION_HOURS")?.toLongOrNull() ?: 48,
+                telegramToken = readEnv("METRIK_TELEGRAM_TOKEN"),
+                telegramChatId = readEnv("METRIK_TELEGRAM_CHAT_ID"),
             )
         }
     }
