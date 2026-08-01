@@ -3,7 +3,7 @@ id: metrik-web
 title: metrik-web (Compose Wasm)
 type: service
 status: draft
-module: :web
+module: :composeApp
 tech_stack: [Kotlin/Wasm, Compose Multiplatform, ktor-client-js, nginx]
 owner: unassigned
 depends_on:
@@ -26,6 +26,11 @@ SPA-дашборд: список сервисов, состояние алерт
 
 Отдельный контейнер с nginx, статика собрана `wasmJs` browser-дистрибутивом. `metrik-server`
 отдаёт только `/api/**`; разводка по путям — на ingress (Traefik или любой другой).
+
+У модуля есть второй таргет — **desktop-jvm** (`./gradlew :composeApp:run`). Он не деплоится и
+существует только ради скорости цикла: wasm-сборка идёт минуты, а UI отлаживается одинаково.
+Всё, что попадает в `commonMain`, обязано работать на обоих; платформенного кода в дашборде быть
+не должно.
 
 Причина, по которой дашборд **не** раздаётся самим сервером, — research §1.3/§Р5: из нативного
 Ktor нечем отдать бандл, а инлайнить мегабайты `.wasm` в бинарь бессмысленно.

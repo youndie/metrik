@@ -23,7 +23,7 @@ install(Metrik) {
 |---|---|---|
 | `metrik-agent` | Ktor-плагин: меряет, агрегирует в минутное окно, шлёт по UDP | Kotlin Multiplatform (JVM + Native) |
 | `metrik-server` | принимает, хранит, считает алерты, отдаёт JSON | Kotlin/Native, Ktor CIO, SQLite (sqlx4k) |
-| `metrik-web` | дашборд | Compose Multiplatform для Wasm, nginx |
+| `metrik-web` | дашборд | Compose Multiplatform: Wasm в проде, desktop для отладки; nginx |
 
 Ключевое решение: **агрегирует агент, а не сервер.** Сервис на 1000 rps шлёт один-два пакета в
 минуту вместо 60 000 датаграмм. Цена — приблизительные перцентили (±20 %), чего достаточно для
@@ -42,8 +42,9 @@ nginx auth_request), сервер доверяет заголовкам `X-Auth-
 
 ## Статус
 
-Кода нет. Есть проверенный по исходникам Ktor/sqlx4k research, описанные контракты и бэклог:
-[BACKLOG.md](BACKLOG.md). Начинать с M0.
+Каркас собран (M0): четыре модуля, сборка под jvm / linuxX64 / linuxArm64 / macosArm64 / wasm,
+CI, нативный бинарь с `/health`. Содержательного кода ещё нет — дальше M1 (протокол и кодек
+гистограммы), порядок работ в [BACKLOG.md](BACKLOG.md).
 
 Проект открытый, как [katcher](https://github.com/youndie/katcher). Лицензия ещё не выбрана —
 до первой публикации образа это надо закрыть (M-74), иначе формально код неиспользуем.
