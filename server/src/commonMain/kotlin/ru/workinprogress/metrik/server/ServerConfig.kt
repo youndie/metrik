@@ -10,6 +10,9 @@ class ServerConfig(
     val udpPort: Int,
     val dbPath: String,
     val ingestKey: String,
+    /** Пусто — админ любой прошедший прокси: инсталляция принадлежит одной команде. */
+    val admins: Set<String> = emptySet(),
+    val retentionHours: Long = 48,
 ) {
     companion object {
         fun fromEnv(): ServerConfig {
@@ -24,6 +27,14 @@ class ServerConfig(
                 udpPort = readEnv("METRIK_UDP_PORT")?.toIntOrNull() ?: DEFAULT_INGEST_PORT,
                 dbPath = readEnv("METRIK_DB_PATH") ?: "/data/metrik.db",
                 ingestKey = ingestKey,
+                admins =
+                    readEnv("METRIK_ADMINS")
+                        .orEmpty()
+                        .split(',')
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+                        .toSet(),
+                retentionHours = readEnv("METRIK_RETENTION_HOURS")?.toLongOrNull() ?: 48,
             )
         }
     }

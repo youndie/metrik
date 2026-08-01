@@ -22,6 +22,10 @@ import okio.SYSTEM
 import ru.workinprogress.metrik.server.db.migrateDb
 import ru.workinprogress.metrik.server.ingest.IngestService
 import ru.workinprogress.metrik.server.ingest.UdpReceiver
+import ru.workinprogress.metrik.server.query.AdminService
+import ru.workinprogress.metrik.server.query.QueryService
+import ru.workinprogress.metrik.server.query.adminRoutes
+import ru.workinprogress.metrik.server.query.queryRoutes
 import ru.workinprogress.metrik.wire.MetrikJson
 
 fun main() {
@@ -69,6 +73,8 @@ fun Application.module(
 ) {
     val ingest = IngestService(db, config.ingestKey)
     val receiver = UdpReceiver(config.udpPort, ingest)
+    val query = QueryService(db, minuteRetentionMs = config.retentionHours * 60 * 60 * 1000)
+    val admin = AdminService(db)
 
     receiver.start(this)
     monitor.subscribe(ApplicationStopping) { receiver.stop() }
@@ -86,6 +92,9 @@ fun Application.module(
             // Без этих счётчиков потери и отброшенные пакеты невидимы, а странные графики
             // нечем объяснить.
             get("/self") { call.respond(ingest.counters.snapshot()) }
+
+            queryRoutes(query, config)
+            adminRoutes(admin, config)
         }
     }
 }
