@@ -30,15 +30,23 @@ docs-подхода: `main` описывает то, что есть.
 конфиг читается. Проверено — бинарь поднимается за 1 мс, `/health` отвечает 200, без
 `METRIK_INGEST_KEY` падает намеренно.
 
-## M1 — протокол и общий код
+## M1 — протокол и общий код ✅
 
-- [ ] **M-10** `:shared`: модель `Frame`/`RouteSeries`/`SystemSnapshot`/`SlowSample` по
-      [protocol-ingest](docs/api/protocol-ingest.md), `ignoreUnknownKeys = true`.
-- [ ] **M-11** Кодек гистограммы: `durationToBucket`, `bucketBounds`, `percentile(sparse, q)`,
-      сложение гистограмм. **Тесты обязательны** — это единственное место, где ошибка
-      незаметно испортит все цифры продукта.
-- [ ] **M-12** Нарезка окна на пакеты ≤ 1200 байт (`q`/`n`), тест на серию, не влезающую в пакет,
-      и на окно из 300 серий.
+- [x] **M-10** `:shared`: модель `Frame`/`RouteSeries`/`SystemSnapshot`/`SlowSample` по
+      [protocol-ingest](docs/api/protocol-ingest.md), `ignoreUnknownKeys = true`; кодирование
+      статуса (`encodeStatus`, `statusClassOf`, `isServerError`).
+- [x] **M-11** Кодек гистограммы: `durationToBucket`, границы бакетов, `percentileMs` с
+      интерполяцией, сложение гистограмм, разреженная сериализация.
+- [x] **M-12** Нарезка окна на пакеты ≤ 1200 байт (`splitWindow`), включая раскладку
+      «системный срез в `q = 0`, сэмплы в последнем».
+
+28 тестов, зелёные и на JVM, и на macosArm64 (`:shared:jvmTest`, `:shared:macosArm64Test`).
+Ключевой из них — `percentile should stay within the documented error bound`: он проверяет
+обещание доки (погрешность ≤ 20 %) на 10 000 сэмплов, а не текущую реализацию.
+
+Серия, не влезающая в пакет в одиночку, не выбрасывается и не режется: пакет уходит как есть,
+а `WindowSplit.oversized` даёт агенту повод это заметить. Молча терять данные в системе, которая
+существует ради наблюдаемости, нельзя.
 
 ## M2 — агент
 
