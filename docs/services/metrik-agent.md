@@ -45,33 +45,50 @@ DNS, переполнен буфер — плагин молча считает 
 
 ## 2а. Ключевые файлы (якоря кода)
 
-Появятся в M2, планируемая раскладка:
-
 | Файл | Что там |
 |---|---|
-| `agent/src/commonMain/.../Metrik.kt` | `createApplicationPlugin`, конфиг, установка хуков |
-| `agent/src/commonMain/.../WindowAggregator.kt` | окно, `HashMap<SeriesKey, Bucket>`, ротация, лимит кардинальности |
-| `agent/src/commonMain/.../UdpSender.kt` | нарезка окна на пакеты ≤ 1200 байт, отправка |
-| `agent/src/commonMain/.../SystemSnapshot.kt` | `expect fun readSystemSnapshot()` |
-| `agent/src/jvmMain/.../SystemSnapshot.jvm.kt` | `Runtime` + `ProcessHandle`, опциональный JMX |
-| `agent/src/nativeMain/.../SystemSnapshot.native.kt` | `/proc/self/statm`, `/proc/self/stat` |
+| `agent/src/commonMain/.../Metrik.kt` | плагин, конфиг, хуки, разбор шаблона маршрута |
+| `agent/src/commonMain/.../MetrikAgent.kt` | канал замеров, цикл окон, счётчики потерь |
+| `agent/src/commonMain/.../WindowAggregator.kt` | серии окна, лимит кардинальности, медленные сэмплы |
+| `agent/src/commonMain/.../MetrikSender.kt` | интерфейс отправки + UDP-реализация |
+| `agent/src/commonMain/.../SystemMetrics.kt` | `expect fun readSystemMetrics()`, пересчёт CPU в промилле |
+| `agent/src/jvmMain/.../SystemMetrics.jvm.kt` | `Runtime` + `ProcessHandle`, опциональный JMX |
+| `agent/src/linuxMain/.../SystemMetrics.linux.kt` | `/proc/self/statm`, `/proc/self/stat`, лимит cgroup |
+| `agent/src/macosMain/.../SystemMetrics.macos.kt` | `getrusage` — платформа разработки, не деплоя |
 
 ## 3. Как устроен замер
 
-1. Хук `Metrics` (`io.ktor.server.application.hooks.Metrics`) — снимаем
-   `TimeSource.Monotonic.markNow()` и кладём в атрибуты вызова.
-2. Хук `ResponseSent` — считаем дельту, берём статус из `call.response.status()`, шаблон маршрута из
-   `call.attributes.getOrNull(RoutingRoot.routingCallKey)?.route` (см. research §1.1). Статус
+1. Хук `CallSetup` — снимаем `TimeSource.Monotonic.markNow()` и кладём в атрибуты вызова.
+   **Не `Metrics`**, хотя тот и предназначен ровно для замеров: в Ktor 3.5 он помечен
+   `@InternalAPI`. `CallSetup` — самая ранняя публичная фаза, разница в наносекундах.
+2. Событие `RoutingRoot.RoutingCallStarted` — кладём в атрибуты шаблон маршрута. Атрибут
+   `routingCallKey`, которым пользуется штатный `MicrometerMetrics`, тоже `internal`, а событие —
+   публичный API. Атрибуты `RoutingCall` общие с исходным вызовом, поэтому метка доезжает дальше.
+3. Хук `ResponseSent` — считаем дельту, берём статус из `call.response.status()`. Статус
    кодируется классом для 1xx–3xx и точным кодом для 4xx/5xx
    ([protocol-ingest](../api/protocol-ingest.md), «Кодирование статуса»).
-3. Хук `CallFailed` — та же серия со статусом `0`.
-4. Инкремент в текущем окне: `count++`, `sum += ms`, `max = maxOf(...)`, `buckets[idx]++`.
-5. Отдельная корутина по таймеру закрывает окно, атомарно подменяет его новым, сериализует
-   закрытое и отправляет.
+4. Хук `CallFailed` — та же серия со статусом `0`.
+5. Замер уходит в ограниченный `Channel`; единственная корутина-потребитель агрегирует его в окно
+   и по таймеру закрывает окно, снимает системный срез и отправляет.
 
-На горячем пути: одно чтение монотонных часов, один lookup в map, четыре арифметические операции.
-Никаких аллокаций строк (ключ серии кэшируется на маршрут), никакого IO, никаких suspend-вызовов
-в сеть. Бюджет — сотня наносекунд на запрос, проверяется бенчмарком (M-23).
+**Почему через канал, а не инкремент под локом.** Хуки исполняются на многих потоках, а окно —
+общее состояние. Канал делает потребителя однопоточным: на горячем пути нет ни локов, ни
+contention, а в агрегаторе — ни атомиков, ни синхронизации. Цена — один маленький объект замера
+на запрос.
+
+Канал **ограничен** (16 384): неограниченный под нагрузкой превращается в утечку памяти в чужом
+процессе. Переполнение — потеря замеров, но видимая (`AgentCounters.dropped`).
+
+Измерено бенчмарком (M-23, `HotPathBenchmarkTest`, JVM): **106 нс** на запрос в горячем пути
+(`MetrikAgent.record` — замер, объект, `trySend`) и 213 нс на агрегацию в фоне. Бюджет из research
+(«сотня наносекунд») выдержан.
+
+### Шаблон маршрута: грабля в `toString()`
+
+`RoutingNode.toString()` печатает не путь, а всю ветку селекторов: у `get("/users/{id}")`
+получается `/users/{id}/(method:GET)`, а при `authenticate {}` добавится ещё и это. Всё, что в
+скобках, отбрасывается (`pathTemplateOf`) — метод у серии отдельным полем, остальное к пути
+отношения не имеет.
 
 ## 4. Конфигурация
 

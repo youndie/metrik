@@ -27,15 +27,27 @@ Prometheus + Grafana + Alertmanager»: один бинарь, один файл 
 |---|---|
 | Хуки `CallSetup`, `Metrics`, `ResponseSent`, `CallFailed`, `MonitoringEvent` | `io/ktor/server/application/hooks/*.class` |
 | `Metrics` — отдельная ранняя фаза, предназначенная именно для замеров | там же |
-| Шаблон маршрута доступен через `RoutingRoot.routingCallKey: AttributeKey<RoutingCall>` в `call.attributes`, оттуда `.route` | `io/ktor/server/routing/RoutingRootKt.class`, используется штатным `MicrometerMetrics` |
+| Шаблон маршрута достаётся из события `RoutingRoot.RoutingCallStarted` (публичный `EventDefinition<RoutingCall>`), оттуда `.route` | `io/ktor/server/routing/RoutingRoot$Plugin.class` |
 | Штатный `MicrometerMetrics` **лениво проверяет** доступность JMX (`isManagementFactoryAvailable$delegate`) | `io/ktor/server/metrics/micrometer/MicrometerMetricsKt.class` |
 | `ktor-server-core`, `ktor-server-sse`, `ktor-server-websockets` опубликованы под `linuxx64`/`linuxarm64` | листинг `repo1.maven.org/maven2/io/ktor/` |
 | Актуальные версии: Ktor **3.5.2**, sqlx4k **1.13.0** | `maven-metadata.xml` обоих |
 
 **Следствие 1.** Метка серии — это `RoutingCall.route` (`/users/{id}`), а не `call.request.path()`
 (`/users/42`). В драфте был «путь запроса»; сырой путь взорвал бы кардинальность и сделал бы БД
-бесполезной. Если `routingCallKey` в атрибутах нет (запрос не сматчился ни на один маршрут → 404,
-или ответ выдан плагином до роутинга) — серия помечается `<unmatched>`.
+бесполезной. Если событие роутинга не пришло (запрос не сматчился ни на один маршрут → 404, или
+ответ выдан плагином до роутинга) — серия помечается `<unmatched>`.
+
+**Поправка, найденная при реализации M2** (изначально здесь стояло «взять `routingCallKey`, как
+делает `MicrometerMetrics`» — так нельзя):
+
+* `routingCallKey` и хук `Metrics` **закрыты**: первый `internal`, второй `@InternalAPI`. Штатным
+  плагинам Ktor это доступно, стороннему модулю — нет. Рабочая замена: событие
+  `RoutingRoot.RoutingCallStarted` для маршрута и хук `CallSetup` для отметки времени. Атрибуты
+  `RoutingCall` общие с исходным вызовом, поэтому метка доезжает до `ResponseSent`.
+* `RoutingNode.toString()` печатает **все** селекторы ветки, а не путь: у `get("/users/{id}")`
+  выходит `/users/{id}/(method:GET)`. Всё, что в скобках, приходится отбрасывать.
+* `Dispatchers.IO` на Kotlin/Native `internal` — в `commonMain` его нет. `SelectorManager()` без
+  аргументов сам выбирает диспетчер под платформу.
 
 **Следствие 2.** Ktor сам не считает JMX гарантированно доступным. Значит и мы не считаем: базовый
 набор системных метрик обязан работать без `java.management`.

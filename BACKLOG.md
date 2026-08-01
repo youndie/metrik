@@ -48,20 +48,23 @@ docs-подхода: `main` описывает то, что есть.
 а `WindowSplit.oversized` даёт агенту повод это заметить. Молча терять данные в системе, которая
 существует ради наблюдаемости, нельзя.
 
-## M2 — агент
+## M2 — агент ✅
 
-- [ ] **M-20** `install(Metrik)`: `createApplicationPlugin`, конфиг, хуки `Metrics` / `ResponseSent`
-      / `CallFailed`; шаблон маршрута из `RoutingRoot.routingCallKey`.
-- [ ] **M-21** `WindowAggregator`: окно, атомарная ротация, лимит `maxSeries` → `<other>`,
-      top-N медленных.
-- [ ] **M-22** `expect/actual` системных метрик: JVM (`Runtime` + `ProcessHandle`, опциональный
-      JMX через ленивую проверку), Linux native (`/proc/self/stat`, `/proc/self/statm`).
-      См. [feature-system-metrics](docs/features/feature-system-metrics.md) — раскладка по Native
-      там пока гипотеза, задача включает её проверку.
-- [ ] **M-23** Бенчмарк горячего пути: цена замера на запрос, цель ≤ ~100 нс, и подтверждение,
-      что при недоступном сервере латентность не растёт.
-- [ ] **M-24** `UdpSender` поверх `ktor-network`, полная изоляция ошибок: ни одно исключение
-      агента не всплывает в pipeline целевого сервиса.
+- [x] **M-20** `install(Metrik)`: хуки `CallSetup` / `ResponseSent` / `CallFailed` и событие
+      `RoutingRoot.RoutingCallStarted` для шаблона маршрута. Планировались хук `Metrics` и атрибут
+      `routingCallKey` — оба оказались закрытыми (`@InternalAPI` и `internal`), см. research §1.1.
+- [x] **M-21** `WindowAggregator`: серии окна, лимит `maxSeries` → `<other>` с сохранением класса
+      статуса, top-N медленных. Потокобезопасность решена каналом, а не локами.
+- [x] **M-22** `expect/actual` системных метрик: JVM (`Runtime` + `ProcessHandle`, GC — опционально
+      через ленивую проверку `java.management`), Linux (`/proc` + лимит cgroup), macOS
+      (`getrusage`). Гипотеза из research про `/proc` подтвердилась.
+- [x] **M-23** Бенчмарк горячего пути: **106 нс/запрос** (`MetrikAgent.record`), 213 нс на
+      агрегацию. Отдельный тест подтверждает, что при падающей отправке сервис отвечает штатно.
+- [x] **M-24** `UdpSender` поверх `ktor-network` с пересозданием сокета после ошибки; счётчики
+      `dropped` / `sendFailures` / `oversized`, чтобы потери были видимы.
+
+26 тестов (13 на JVM + 13 на macosArm64), включая `testApplication`-тесты плагина: они и доказали,
+что метка серии — шаблон, а не путь.
 
 ## M3 — сервер: приём и хранение
 
