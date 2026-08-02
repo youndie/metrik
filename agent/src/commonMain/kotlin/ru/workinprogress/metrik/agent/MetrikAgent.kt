@@ -1,14 +1,12 @@
 package ru.workinprogress.metrik.agent
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.selects.onTimeout
-import kotlinx.coroutines.selects.select
 import ru.workinprogress.metrik.wire.WindowHeader
 import ru.workinprogress.metrik.wire.splitWindow
 import kotlin.concurrent.atomics.AtomicInt
@@ -25,6 +23,9 @@ import kotlin.time.ExperimentalTime
  * [AgentCounters.dropped]), а не съеденная память целевого сервиса.
  */
 private const val INBOX_CAPACITY = 16_384
+
+/** Шаг опроса очереди. Окно минутное, так что точность здесь роли не играет. */
+private const val POLL_INTERVAL_MS = 200L
 
 private class Sample(
     val method: String,
@@ -108,7 +109,15 @@ class MetrikAgent(
         if (inbox.trySend(sample).isFailure) counters.droppedCounter.fetchAndIncrement()
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
+    /**
+     * Цикл окна: разобрать накопившиеся замеры и закрыть окно по времени.
+     *
+     * Намеренно **без `select { onTimeout }`**: на linuxX64 эта конструкция один раз вошла в
+     * ожидание и больше не просыпалась (на macOS и под эмуляцией в docker тот же бинарь работал —
+     * похоже на гонку, которую маскирует эмуляция). Здесь только `delay` и неблокирующий
+     * `tryReceive`: короткий шаг опроса стоит несколько пробуждений в секунду и не зависит
+     * от поведения таймера внутри select.
+     */
     private suspend fun run() {
         var windowStart = alignToWindow(nowMs())
 
@@ -124,20 +133,15 @@ class MetrikAgent(
                 continue
             }
 
-            // select, а не withTimeoutOrNull { receive() }: последний способен потерять уже
-            // полученный элемент, если таймаут выстрелит между получением и возвратом.
-            val sample =
-                select<Sample?> {
-                    inbox.onReceive { it }
-                    onTimeout(remaining) { null }
-                }
+            drainInbox()
+            delay(minOf(remaining, POLL_INTERVAL_MS))
+        }
+    }
 
-            if (sample == null) {
-                flush(windowStart)
-                windowStart = deadline
-            } else {
-                aggregator.record(sample.method, sample.route, sample.status, sample.durationMs, sample.timestampMs)
-            }
+    private fun drainInbox() {
+        while (true) {
+            val sample = inbox.tryReceive().getOrNull() ?: return
+            aggregator.record(sample.method, sample.route, sample.status, sample.durationMs, sample.timestampMs)
         }
     }
 
@@ -145,6 +149,10 @@ class MetrikAgent(
 
     private suspend fun flush(windowStart: Long) {
         counters.windowCounter.fetchAndIncrement()
+
+        // Забираем всё, что успело прийти между последним опросом и границей окна: иначе замер
+        // уехал бы в следующее окно, хотя запрос завершился в этом.
+        drainInbox()
 
         val data = aggregator.drain()
         val system =
