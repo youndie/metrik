@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.4.10"
 composeMultiplatform = "1.11.1"
-kotlinxCoroutines = "1.10.2"
+kotlinxCoroutines = "1.11.0"
 kotlinxSerializationJson = "1.11.0"
 okio = "3.18.1"
 sqlx4k = "1.13.0"
