@@ -13,6 +13,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import ru.workinprogress.metrik.wire.Frame
 import ru.workinprogress.metrik.wire.MetrikJson
+import ru.workinprogress.metrik.wire.RouteSeries
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -31,11 +32,26 @@ private class RecordingSender(
 }
 
 class MetrikPluginTest {
-    private suspend fun awaitFrames(sender: RecordingSender): List<Frame> {
-        withTimeout(10_000) {
-            while (sender.packets.isEmpty()) delay(10)
+    private fun frames(sender: RecordingSender): List<Frame> = sender.packets.map { MetrikJson.decodeFromString<Frame>(it) }
+
+    /**
+     * Ждёт, пока в отправленных окнах наберётся нужное число запросов по [route].
+     *
+     * Считать по всем окнам, а не по первому пришедшему, обязательно: окно в тесте короткое, и на
+     * загруженной машине запросы легко расходятся по двум окнам. Проверять надо инвариант «одна
+     * серия на шаблон, столько-то запросов всего», а не удачное попадание в одно окно.
+     */
+    private suspend fun awaitRouteCount(
+        sender: RecordingSender,
+        route: String,
+        expected: Int,
+    ): List<RouteSeries> {
+        withTimeout(20_000) {
+            while (frames(sender).flatMap { it.routes }.filter { it.route == route }.sumOf { it.count } < expected) {
+                delay(10)
+            }
         }
-        return sender.packets.map { MetrikJson.decodeFromString<Frame>(it) }
+        return frames(sender).flatMap { it.routes }.filter { it.route == route }
     }
 
     private fun ApplicationTestBuilder.installMetrik(sender: MetrikSender) {
@@ -69,12 +85,15 @@ class MetrikPluginTest {
             client.get("/users/2")
             client.get("/users/3")
 
-            // Then — одна серия, а не три.
-            val series = awaitFrames(sender).flatMap { it.routes }.filter { it.route != ROUTE_UNMATCHED }
-            assertEquals(1, series.size, "expected a single series, got ${series.map { it.route }}")
-            assertEquals("/users/{id}", series.single().route)
-            assertEquals(3, series.single().count)
-            assertEquals(2, series.single().status)
+            // Then — все три запроса попали в один шаблон, а не в три разные серии.
+            val series = awaitRouteCount(sender, "/users/{id}", expected = 3)
+            assertEquals(setOf("/users/{id}"), series.map { it.route }.toSet())
+            assertEquals(setOf(2), series.map { it.status }.toSet())
+            assertEquals(3, series.sumOf { it.count })
+            assertTrue(
+                frames(sender).flatMap { it.routes }.none { it.route == "/users/1" },
+                "сырой путь просочился в серию",
+            )
         }
 
     @Test
@@ -89,9 +108,9 @@ class MetrikPluginTest {
             client.get("/nope/2")
 
             // Then
-            val unmatched = awaitFrames(sender).flatMap { it.routes }.filter { it.route == ROUTE_UNMATCHED }
-            assertEquals(1, unmatched.size)
-            assertEquals(2, unmatched.single().count)
+            val unmatched = awaitRouteCount(sender, ROUTE_UNMATCHED, expected = 2)
+            assertEquals(setOf(ROUTE_UNMATCHED), unmatched.map { it.route }.toSet())
+            assertEquals(2, unmatched.sumOf { it.count })
         }
 
     @Test
@@ -122,7 +141,7 @@ class MetrikPluginTest {
             client.get("/users/1")
 
             // Then
-            val frame = awaitFrames(sender).first()
+            val frame = awaitRouteCount(sender, "/users/{id}", expected = 1).let { frames(sender).first() }
             assertEquals("test-service", frame.service)
             assertEquals("test-instance", frame.instance)
             assertEquals(150, frame.windowMs)
