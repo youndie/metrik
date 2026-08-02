@@ -62,6 +62,7 @@ class IngestCounters {
 @Serializable
 data class AgentStats(
     val loops: Int,
+    val exited: Int,
     val windows: Int,
     val dropped: Int,
     val sendFailures: Int,

@@ -3,6 +3,8 @@ package ru.workinprogress.metrik.agent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -45,6 +47,7 @@ class AgentCounters {
 
     internal val windowCounter = AtomicInt(0)
     internal val loopCounter = AtomicInt(0)
+    internal val exitCounter = AtomicInt(0)
 
     /** Замеры, не влезшие в очередь. */
     val dropped: Int get() = droppedCounter.load()
@@ -58,6 +61,9 @@ class AgentCounters {
      * Без этого различия «данных нет» диагностике не поддаётся.
      */
     val loops: Int get() = loopCounter.load()
+
+    /** Вышел ли цикл окон. Отличает «корутину отменили» от «залипли в ожидании». */
+    val exited: Int get() = exitCounter.load()
 
     /** Окна, которые не удалось отправить. */
     val sendFailures: Int get() = sendFailureCounter.load()
@@ -89,16 +95,18 @@ class MetrikAgent(
 
     val counters = AgentCounters()
 
-    fun start(scope: CoroutineScope) {
-        // Dispatchers.Default, а не диспетчер вызывающего: на диспетчере движка Ktor (CIO native)
-        // таймеры не срабатывают — корутина уходит в delay и не просыпается, пока нет сетевой
-        // активности. Job наследуется от scope, поэтому остановка хоста по-прежнему гасит агента.
-        job = scope.launch(Dispatchers.Default) { run() }
+    // Собственный scope, а не хостовый: агент не должен умирать оттого, что чужой Job отменили,
+    // и не должен зависеть от диспетчера HTTP-движка. Останавливается явно в stop().
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
+    fun start(host: CoroutineScope) {
+        job = scope.launch { run() }
     }
 
     fun stop() {
         job?.cancel()
         job = null
+        scope.cancel()
         sender.close()
     }
 
@@ -125,20 +133,24 @@ class MetrikAgent(
     private suspend fun run() {
         var windowStart = alignToWindow(nowMs())
 
-        while (currentScopeIsActive()) {
-            counters.loopCounter.fetchAndIncrement()
+        try {
+            while (currentScopeIsActive()) {
+                counters.loopCounter.fetchAndIncrement()
 
-            val deadline = windowStart + config.windowMs
-            val remaining = deadline - nowMs()
+                val deadline = windowStart + config.windowMs
+                val remaining = deadline - nowMs()
 
-            if (remaining <= 0) {
-                flush(windowStart)
-                windowStart = deadline
-                continue
+                if (remaining <= 0) {
+                    flush(windowStart)
+                    windowStart = deadline
+                    continue
+                }
+
+                drainInbox()
+                delay(minOf(remaining, POLL_INTERVAL_MS))
             }
-
-            drainInbox()
-            delay(minOf(remaining, POLL_INTERVAL_MS))
+        } finally {
+            counters.exitCounter.fetchAndIncrement()
         }
     }
 
