@@ -1,0 +1,36 @@
+name: Publish agent
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - agent/**
+      - shared/**
+      - .github/workflows/publish-agent.yaml
+
+jobs:
+  publish:
+    # macOS host: it is the only runner that can build every target the agent declares
+    # (jvm + linuxX64 + linuxArm64 + macosArm64). A Linux runner cannot produce the macos klib.
+    runs-on: macos-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v5
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+          cache: 'gradle'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Publish
+        # :shared is exposed through `api` from :agent, so both have to land in the repository.
+        run: |
+          ./gradlew :shared:publishAllPublicationsToWipRepository :agent:publishAllPublicationsToWipRepository --no-daemon
+        env:
+          ORG_GRADLE_PROJECT_BUILD_NUMBER: ${{ github.run_number }}
+          ORG_GRADLE_PROJECT_REPOSILITE_USER: ${{ secrets.REPOSILITE_USER }}
+          ORG_GRADLE_PROJECT_REPOSILITE_SECRET: ${{ secrets.REPOSILITE_SECRET }}
