@@ -5,10 +5,12 @@ import io.ktor.network.sockets.aSocket
 import io.ktor.utils.io.core.readText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.newSingleThreadContext
 import ru.workinprogress.metrik.wire.MAX_PACKET_BYTES
 
 /**
@@ -20,6 +22,7 @@ import ru.workinprogress.metrik.wire.MAX_PACKET_BYTES
  * Порт живёт **внутри кластера**: UDP не аутентифицируется, ключ в пакете отсекает случайное,
  * а не злонамеренное (docs/research/research-architecture.md §Р7).
  */
+@OptIn(DelicateCoroutinesApi::class)
 class UdpReceiver(
     private val port: Int,
     private val ingest: IngestService,
@@ -37,7 +40,12 @@ class UdpReceiver(
     }
 
     private suspend fun listen() {
-        val selector = SelectorManager()
+        // Собственный поток под select()-цикл, а не воркер Dispatchers.Default.
+        // Иначе селектор занимает воркер намертво: на машине с двумя ядрами двух селекторов
+        // достаточно, чтобы в пуле не осталось никого, кто возобновит корутину по таймеру —
+        // delay перестаёт срабатывать во всём процессе. Для агента это вдвойне неприемлемо:
+        // он обязан не влиять на сервис, в который встроен.
+        val selector = SelectorManager(newSingleThreadContext("metrik-ingest-udp"))
         val socket =
             aSocket(selector).udp().bind(
                 io.ktor.network.sockets
