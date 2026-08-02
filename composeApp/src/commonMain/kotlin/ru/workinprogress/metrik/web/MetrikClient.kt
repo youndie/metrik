@@ -9,6 +9,7 @@ import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import ru.workinprogress.metrik.api.AlertRuleView
 import ru.workinprogress.metrik.api.AlertView
 import ru.workinprogress.metrik.api.Overview
 import ru.workinprogress.metrik.api.RouteRow
@@ -84,6 +85,13 @@ class MetrikClient(
     suspend fun alerts(): List<AlertView> = client.get("$baseUrl/api/alerts").body()
 
     suspend fun alertHistory(): List<AlertView> = client.get("$baseUrl/api/alerts/history").body()
+
+    /**
+     * Пороги правил для сервиса — экран «Алерты», панель «Пороги». Админский эндпоинт: без
+     * `METRIK_ADMINS` доступен всем, кто прошёл прокси, иначе кто угодно вне списка получит 403 —
+     * вызывающий код обязан обрабатывать это как «нет доступа», а не как «нет данных».
+     */
+    suspend fun adminAlertRules(serviceId: Long): List<AlertRuleView> = client.get("$baseUrl/api/admin/services/$serviceId/alerts").body()
 }
 
 private fun io.ktor.client.request.HttpRequestBuilder.range(

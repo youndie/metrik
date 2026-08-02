@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700;8..144,800&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body { margin: 0; background: #07090b; }
+a { color: #9ECAFF; text-decoration: none; }
+a:hover { color: #D3E4FF; }
+@keyframes pulseDot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.55); opacity: .35; } }
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;gap:72px;padding:64px;font-family:'Roboto Flex',-apple-system,sans-serif;font-variation-settings:'opsz' 32;">
+
+  <svg width="0" height="0" style="position:absolute;">
+    <defs>
+      <linearGradient id="gPrimary" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#9ECAFF" stop-opacity="0.42"></stop>
+        <stop offset="100%" stop-color="#9ECAFF" stop-opacity="0"></stop>
+      </linearGradient>
+      <linearGradient id="gError" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#FFB4AB" stop-opacity="0.40"></stop>
+        <stop offset="100%" stop-color="#FFB4AB" stop-opacity="0"></stop>
+      </linearGradient>
+      <linearGradient id="gTertiary" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#D9BDE8" stop-opacity="0.38"></stop>
+        <stop offset="100%" stop-color="#D9BDE8" stop-opacity="0"></stop>
+      </linearGradient>
+      <linearGradient id="gHealthy" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#7BD69C" stop-opacity="0.38"></stop>
+        <stop offset="100%" stop-color="#7BD69C" stop-opacity="0"></stop>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div style="display:flex;flex-direction:column;gap:14px;max-width:900px;">
+    <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6E7780;">metrik · редизайн · Material 3 Expressive</div>
+    <div style="font-size:44px;line-height:50px;font-weight:700;letter-spacing:-0.02em;color:#E3E6EB;font-variation-settings:'opsz' 96;">Дашборд, который видно с другого конца комнаты</div>
+    <div style="font-size:17px;line-height:26px;color:#B9C2CC;max-width:720px;text-wrap:pretty;">Те же шесть экранов и тот же контракт данных, что в <a href="#">App.kt</a>. Изменились только форма и иерархия: состояние сервиса читается цветом и размером, а «элементы честности» из docs §4 стали видимыми чипами, а не мелкой серой подписью.</div>
+  </div>
+
+  <!-- ═══ DESKTOP · ОБЗОР ═══ -->
+  <div data-screen-label="Desktop · Обзор" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#6E7780;">DESKTOP 1440 × 1024 · ОБЗОР</div>
+    <div style="width:1440px;height:1024px;background:#0F1418;border-radius:28px;overflow:hidden;display:flex;box-sizing:border-box;">
+
+      <!-- rail -->
+      <div style="width:268px;flex:none;background:#0F1418;padding:24px 16px;display:flex;flex-direction:column;gap:28px;box-sizing:border-box;">
+        <div style="display:flex;align-items:center;gap:12px;padding:0 8px;">
+          <div style="width:40px;height:40px;border-radius:14px 14px 14px 22px;background:#9ECAFF;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#00325A;">m</div>
+          <div style="display:flex;flex-direction:column;">
+            <div style="font-size:20px;font-weight:700;letter-spacing:-0.01em;color:#E3E6EB;">metrik</div>
+            <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:#7BD69C;">обновлено 12 с назад</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="height:56px;border-radius:28px;background:#004A7C;display:flex;align-items:center;gap:14px;padding:0 20px;">
+            <div style="width:10px;height:10px;border-radius:3px;background:#D3E4FF;"></div>
+            <div style="font-size:15px;font-weight:600;color:#D3E4FF;">Обзор</div>
+          </div>
+          <div style="height:56px;border-radius:28px;display:flex;align-items:center;gap:14px;padding:0 20px;">
+            <div style="width:10px;height:10px;border-radius:50%;background:#FFB4AB;"></div>
+            <div style="font-size:15px;font-weight:500;color:#B9C2CC;flex:1;">Алерты</div>
+            <div style="min-width:24px;height:24px;border-radius:12px;background:#8C0009;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#FFDAD6;padding:0 7px;">3</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="font-family:'Roboto Mono',monospace;font-size:11px;letter-spacing:0.14em;color:#6E7780;padding:0 20px 8px;">СЕРВИСЫ · 6</div>
+          <sc-for list="{{ railServices }}" as="s" hint-placeholder-count="6">
+            <div style="height:44px;border-radius:22px;display:flex;align-items:center;gap:12px;padding:0 20px;">
+              <div style="width:8px;height:8px;border-radius:50%;background:{{ s.dot }};"></div>
+              <div style="font-family:'Roboto Mono',monospace;font-size:13px;color:#B9C2CC;flex:1;">{{ s.name }}</div>
+              <div style="font-family:'Roboto Mono',monospace;font-size:12px;color:#6E7780;">{{ s.rps }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top:auto;border-radius:24px;background:#161B1F;padding:16px 18px;display:flex;flex-direction:column;gap:6px;">
+          <div style="font-size:13px;font-weight:600;color:#D9BDE8;">Опрос раз в 30 с</div>
+          <div style="font-size:12px;line-height:17px;color:#8A939D;">Окно агрегации — минута, чаще спрашивать нечего.</div>
+        </div>
+      </div>
+
+      <!-- content -->
+      <div style="flex:1;background:#0A0E12;border-radius:28px 0 0 28px;padding:32px 36px;display:flex;flex-direction:column;gap:24px;overflow:hidden;box-sizing:border-box;">
+
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#6E7780;">6 СЕРВИСОВ · 24 ИНСТАНСА</div>
+            <div style="font-size:52px;line-height:56px;font-weight:700;letter-spacing:-0.025em;color:#E3E6EB;font-variation-settings:'opsz' 96;">Обзор</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="display:flex;background:#161B1F;border-radius:24px;padding:4px;gap:4px;">
+              <div style="height:40px;padding:0 22px;border-radius:20px;background:#9ECAFF;display:flex;align-items:center;font-size:14px;font-weight:700;color:#00325A;">{{ range }}</div>
+              <div style="height:40px;padding:0 20px;border-radius:20px;display:flex;align-items:center;font-size:14px;font-weight:500;color:#B9C2CC;">{{ rangeAlt1 }}</div>
+              <div style="height:40px;padding:0 20px;border-radius:20px;display:flex;align-items:center;font-size:14px;font-weight:500;color:#B9C2CC;">{{ rangeAlt2 }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- alerts hero -->
+        <div style="border-radius:32px 32px 32px 40px;background:#8C0009;padding:26px 30px;display:flex;gap:32px;align-items:stretch;">
+          <div style="display:flex;flex-direction:column;justify-content:space-between;min-width:200px;">
+            <div style="display:flex;align-items:baseline;gap:12px;">
+              <div style="font-size:84px;line-height:76px;font-weight:800;letter-spacing:-0.04em;color:#FFDAD6;font-variation-settings:'opsz' 144;">3</div>
+              <div style="display:flex;flex-direction:column;">
+                <div style="font-size:18px;font-weight:700;color:#FFDAD6;">алерта</div>
+                <div style="font-size:18px;font-weight:700;color:#FFDAD6;">горят</div>
+              </div>
+            </div>
+            <div style="font-size:12px;line-height:17px;color:#FFB4AB;max-width:190px;">Гистерезис 5 окон, кулдаун 15 мин. Всё уже ушло в Telegram.</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+            <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="3">
+              <div style="border-radius:22px;background:rgba(255,218,214,0.10);padding:14px 18px;display:flex;align-items:center;gap:16px;">
+                <div style="width:10px;height:10px;border-radius:50%;background:#FFDAD6;animation:pulseDot 1.8s ease-in-out infinite;"></div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:14px;font-weight:600;color:#FFDAD6;min-width:180px;">{{ a.service }}</div>
+                <div style="border-radius:10px;background:rgba(255,218,214,0.16);padding:4px 10px;font-family:'Roboto Mono',monospace;font-size:12px;color:#FFDAD6;">{{ a.rule }}</div>
+                <div style="font-size:14px;color:#FFDAD6;flex:1;">{{ a.detail }}</div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:12px;color:#FFB4AB;">{{ a.since }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- service grid -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;flex:1;min-height:0;">
+          <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+            <div style="border-radius:{{ c.radius }};background:{{ c.bg }};padding:22px 24px 18px;display:flex;flex-direction:column;gap:16px;min-height:214px;box-sizing:border-box;">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <div style="font-family:'Roboto Mono',monospace;font-size:15px;font-weight:600;letter-spacing:-0.01em;color:{{ c.fg }};">{{ c.name }}</div>
+                  <div style="display:flex;gap:6px;">
+                    <div style="border-radius:9px;background:{{ c.chipBg }};padding:3px 9px;font-size:11px;font-weight:600;color:{{ c.chipFg }};">{{ c.state }}</div>
+                    <div style="border-radius:9px;background:{{ c.chipBg }};padding:3px 9px;font-family:'Roboto Mono',monospace;font-size:11px;color:{{ c.chipFg }};">{{ c.inst }}</div>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;">
+                  <div style="font-size:38px;line-height:38px;font-weight:700;letter-spacing:-0.03em;color:{{ c.fg }};font-variation-settings:'opsz' 96;">{{ c.rps }}</div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:{{ c.dim }};">rps</div>
+                </div>
+              </div>
+
+              <div style="height:56px;border-radius:16px;overflow:hidden;">
+                <svg viewBox="0 0 380 56" preserveAspectRatio="none" width="100%" height="56" style="display:block;">
+                  <path d="{{ c.area }}" fill="{{ c.fill }}"></path>
+                  <path d="{{ c.line }}" stroke="{{ c.accent }}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+                </svg>
+              </div>
+
+              <div style="display:flex;gap:26px;align-items:flex-end;">
+                <div style="display:flex;flex-direction:column;">
+                  <div style="font-size:19px;font-weight:600;color:{{ c.errFg }};">{{ c.err }}</div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:{{ c.dim }};">ошибки</div>
+                </div>
+                <div style="display:flex;flex-direction:column;">
+                  <div style="font-size:19px;font-weight:600;color:{{ c.fg }};">{{ c.p95 }}</div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:{{ c.dim }};">p95 ≈ ±20 %</div>
+                </div>
+                <div style="margin-left:auto;font-size:12px;line-height:15px;color:{{ c.noteFg }};max-width:130px;text-align:right;">{{ c.note }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ DESKTOP · ГРАФИКИ ═══ -->
+  <div data-screen-label="Desktop · Сервис / Графики" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#6E7780;">DESKTOP 1440 × 1024 · СЕРВИС → ГРАФИКИ</div>
+    <div style="width:1440px;height:1024px;background:#0A0E12;border-radius:28px;overflow:hidden;display:flex;box-sizing:border-box;">
+      <div style="width:268px;flex:none;background:#0F1418;padding:24px 16px;display:flex;flex-direction:column;gap:28px;box-sizing:border-box;">
+        <div style="display:flex;align-items:center;gap:12px;padding:0 8px;">
+          <div style="width:40px;height:40px;border-radius:14px 14px 14px 22px;background:#9ECAFF;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#00325A;">m</div>
+          <div style="font-size:20px;font-weight:700;letter-spacing:-0.01em;color:#E3E6EB;">metrik</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="height:56px;border-radius:28px;display:flex;align-items:center;gap:14px;padding:0 20px;">
+            <div style="width:10px;height:10px;border-radius:3px;background:#B9C2CC;"></div>
+            <div style="font-size:15px;font-weight:500;color:#B9C2CC;">Обзор</div>
+          </div>
+          <div style="height:56px;border-radius:28px;display:flex;align-items:center;gap:14px;padding:0 20px;">
+            <div style="width:10px;height:10px;border-radius:50%;background:#FFB4AB;"></div>
+            <div style="font-size:15px;font-weight:500;color:#B9C2CC;flex:1;">Алерты</div>
+            <div style="min-width:24px;height:24px;border-radius:12px;background:#8C0009;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#FFDAD6;padding:0 7px;">3</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="font-family:'Roboto Mono',monospace;font-size:11px;letter-spacing:0.14em;color:#6E7780;padding:0 20px 8px;">СЕРВИСЫ · 6</div>
+          <sc-for list="{{ railServices2 }}" as="s" hint-placeholder-count="6">
+            <div style="height:44px;border-radius:22px;background:{{ s.bg }};display:flex;align-items:center;gap:12px;padding:0 20px;">
+              <div style="width:8px;height:8px;border-radius:50%;background:{{ s.dot }};"></div>
+              <div style="font-family:'Roboto Mono',monospace;font-size:13px;font-weight:{{ s.weight }};color:{{ s.fg }};flex:1;">{{ s.name }}</div>
+              <div style="font-family:'Roboto Mono',monospace;font-size:12px;color:{{ s.dim }};">{{ s.rps }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex:1;padding:32px 36px;display:flex;flex-direction:column;gap:20px;box-sizing:border-box;overflow:hidden;">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="height:26px;border-radius:13px;background:#8C0009;display:flex;align-items:center;gap:7px;padding:0 12px;">
+                <div style="width:7px;height:7px;border-radius:50%;background:#FFDAD6;animation:pulseDot 1.8s ease-in-out infinite;"></div>
+                <div style="font-size:12px;font-weight:700;color:#FFDAD6;">2 алерта горят</div>
+              </div>
+              <div style="height:26px;border-radius:13px;background:#35434F;display:flex;align-items:center;padding:0 12px;font-family:'Roboto Mono',monospace;font-size:12px;color:#D6E3F0;">3 инстанса</div>
+            </div>
+            <div style="font-family:'Roboto Mono',monospace;font-size:46px;line-height:50px;font-weight:600;letter-spacing:-0.03em;color:#E3E6EB;">payments-gateway</div>
+          </div>
+          <div style="display:flex;background:#161B1F;border-radius:24px;padding:4px;gap:4px;">
+            <div style="height:40px;padding:0 22px;border-radius:20px;background:#9ECAFF;display:flex;align-items:center;font-size:14px;font-weight:700;color:#00325A;">{{ range }}</div>
+            <div style="height:40px;padding:0 20px;border-radius:20px;display:flex;align-items:center;font-size:14px;font-weight:500;color:#B9C2CC;">{{ rangeAlt1 }}</div>
+            <div style="height:40px;padding:0 20px;border-radius:20px;display:flex;align-items:center;font-size:14px;font-weight:500;color:#B9C2CC;">{{ rangeAlt2 }}</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:6px;background:#0F1418;border-radius:26px;padding:5px;width:fit-content;">
+          <div style="height:42px;padding:0 26px;border-radius:21px;background:#004A7C;display:flex;align-items:center;font-size:14px;font-weight:600;color:#D3E4FF;">Графики</div>
+          <div style="height:42px;padding:0 24px;border-radius:21px;display:flex;align-items:center;font-size:14px;font-weight:500;color:#B9C2CC;">Маршруты</div>
+          <div style="height:42px;padding:0 24px;border-radius:21px;display:flex;align-items:center;font-size:14px;font-weight:500;color:#B9C2CC;">Медленные</div>
+          <div style="height:42px;padding:0 24px;border-radius:21px;display:flex;align-items:center;font-size:14px;font-weight:500;color:#B9C2CC;">Система</div>
+        </div>
+
+        <!-- hero chart -->
+        <div style="border-radius:36px;background:#0F1418;padding:26px 28px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#6E7780;">ЗАПРОСЫ В СЕКУНДУ</div>
+              <div style="display:flex;align-items:baseline;gap:10px;">
+                <div style="font-size:56px;line-height:58px;font-weight:700;letter-spacing:-0.03em;color:#9ECAFF;font-variation-settings:'opsz' 144;">{{ hero.last }}</div>
+                <div style="font-size:16px;font-weight:500;color:#8A939D;">rps сейчас · max {{ hero.max }}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div style="height:30px;border-radius:15px;background:#4E3E5A;display:flex;align-items:center;gap:8px;padding:0 13px;">
+                <div style="width:2px;height:12px;background:#F1DAFF;"></div>
+                <div style="font-size:12px;font-weight:600;color:#F1DAFF;">2 деплоя</div>
+              </div>
+              <div style="height:30px;border-radius:15px;background:#242A2F;display:flex;align-items:center;gap:8px;padding:0 13px;">
+                <div style="width:14px;height:2px;background:#B9C2CC;border-radius:1px;"></div>
+                <div style="font-size:12px;font-weight:600;color:#B9C2CC;">3 разрыва — неполные окна</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="position:relative;height:236px;">
+            <svg viewBox="0 0 1060 236" preserveAspectRatio="none" width="100%" height="236" style="display:block;">
+              <path d="{{ hero.grid }}" stroke="#232A31" stroke-width="1" fill="none"></path>
+              <path d="{{ hero.deployPath }}" stroke="#D9BDE8" stroke-width="2" stroke-dasharray="7 7" fill="none" opacity="0.75"></path>
+              <path d="{{ hero.area }}" fill="url(#gPrimary)"></path>
+              <path d="{{ hero.line }}" stroke="#9ECAFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+              <path d="{{ hero.gapPath }}" stroke="#39424A" stroke-width="2" stroke-dasharray="3 5" fill="none"></path>
+            </svg>
+            <sc-for list="{{ hero.deploys }}" as="d" hint-placeholder-count="2">
+              <div style="position:absolute;top:0;left:{{ d.left }};transform:translateX(-50%);">
+                <div style="border-radius:12px;background:#4E3E5A;padding:4px 11px;font-family:'Roboto Mono',monospace;font-size:11px;font-weight:600;color:#F1DAFF;white-space:nowrap;">{{ d.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;font-family:'Roboto Mono',monospace;font-size:11px;color:#6E7780;">
+            <div>{{ hero.t0 }}</div>
+            <div>{{ hero.t1 }}</div>
+            <div>{{ hero.t2 }}</div>
+            <div>{{ hero.t3 }}</div>
+            <div>сейчас</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+          <sc-for list="{{ small }}" as="c" hint-placeholder-count="3">
+            <div style="border-radius:28px;background:#0F1418;padding:20px 22px 16px;display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;">
+                <div style="font-family:'Roboto Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#6E7780;">{{ c.title }}</div>
+                <div style="border-radius:8px;background:#242A2F;padding:2px 8px;font-size:10px;font-weight:600;color:#B9C2CC;">{{ c.badge }}</div>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:8px;">
+                <div style="font-size:34px;line-height:36px;font-weight:700;letter-spacing:-0.02em;color:{{ c.accent }};font-variation-settings:'opsz' 96;">{{ c.last }}</div>
+                <div style="font-size:13px;color:#8A939D;">{{ c.unit }}</div>
+              </div>
+              <svg viewBox="0 0 340 96" preserveAspectRatio="none" width="100%" height="96" style="display:block;">
+                <path d="{{ c.deployPath }}" stroke="#D9BDE8" stroke-width="1.5" stroke-dasharray="5 5" fill="none" opacity="0.55"></path>
+                <path d="{{ c.area }}" fill="{{ c.fill }}"></path>
+                <path d="{{ c.line }}" stroke="{{ c.accent }}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+              </svg>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ DESKTOP · МАРШРУТЫ ═══ -->
+  <div data-screen-label="Desktop · Сервис / Маршруты" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#6E7780;">DESKTOP 1440 · СЕРВИС → МАРШРУТЫ</div>
+    <div style="width:1440px;background:#0A0E12;border-radius:28px;overflow:hidden;padding:32px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px;">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="width:48px;height:48px;border-radius:24px;background:#161B1F;display:flex;align-items:center;justify-content:center;font-size:20px;color:#B9C2CC;">←</div>
+        <div style="font-family:'Roboto Mono',monospace;font-size:34px;font-weight:600;letter-spacing:-0.02em;color:#E3E6EB;">payments-gateway</div>
+        <div style="margin-left:auto;display:flex;gap:6px;background:#0F1418;border-radius:26px;padding:5px;">
+          <div style="height:42px;padding:0 24px;border-radius:21px;display:flex;align-items:center;font-size:14px;font-weight:500;color:#B9C2CC;">Графики</div>
+          <div style="height:42px;padding:0 26px;border-radius:21px;background:#004A7C;display:flex;align-items:center;font-size:14px;font-weight:600;color:#D3E4FF;">Маршруты</div>
+          <div style="height:42px;padding:0 24px;border-radius:21px;display:flex;align-items:center;font-size:14px;font-weight:500;color:#B9C2CC;">Медленные</div>
+          <div style="height:42px;padding:0 24px;border-radius:21px;display:flex;align-items:center;font-size:14px;font-weight:500;color:#B9C2CC;">Система</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div style="border-radius:16px;background:#4E3E5A;padding:9px 16px;font-size:13px;font-weight:600;color:#F1DAFF;">p50 и p95 приблизительные: ±20 % — ширина бакета гистограммы</div>
+        <div style="border-radius:16px;background:#161B1F;padding:9px 16px;font-size:13px;color:#B9C2CC;">Разреза по инстансам здесь нет — данные так не хранятся</div>
+      </div>
+
+      <div style="border-radius:32px;background:#0F1418;padding:8px;display:flex;flex-direction:column;gap:4px;">
+        <div style="display:flex;align-items:center;padding:14px 22px 10px;gap:20px;">
+          <div style="flex:2.6;font-family:'Roboto Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#6E7780;">МАРШРУТ</div>
+          <div style="flex:0.7;font-family:'Roboto Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#6E7780;">СТАТУС</div>
+          <div style="flex:1.6;font-family:'Roboto Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#6E7780;">КОЛ-ВО</div>
+          <div style="flex:0.7;font-family:'Roboto Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#6E7780;text-align:right;">P50</div>
+          <div style="flex:1.8;font-family:'Roboto Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#6E7780;text-align:right;">P95</div>
+          <div style="flex:0.7;font-family:'Roboto Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#6E7780;text-align:right;">MAX</div>
+        </div>
+        <sc-for list="{{ routes }}" as="r" hint-placeholder-count="9">
+          <div style="display:flex;align-items:center;gap:20px;padding:14px 22px;border-radius:{{ r.radius }};background:{{ r.bg }};">
+            <div style="flex:2.6;display:flex;align-items:center;gap:12px;">
+              <div style="border-radius:8px;background:{{ r.methodBg }};padding:3px 9px;font-family:'Roboto Mono',monospace;font-size:11px;font-weight:700;color:{{ r.methodFg }};min-width:44px;text-align:center;">{{ r.method }}</div>
+              <div style="font-family:'Roboto Mono',monospace;font-size:14px;color:{{ r.fg }};">{{ r.route }}</div>
+            </div>
+            <div style="flex:0.7;">
+              <div style="display:inline-flex;border-radius:9px;background:{{ r.statusBg }};padding:3px 10px;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:{{ r.statusFg }};">{{ r.status }}</div>
+            </div>
+            <div style="flex:1.6;display:flex;align-items:center;gap:10px;">
+              <div style="flex:1;height:6px;border-radius:3px;background:#242A2F;overflow:hidden;">
+                <div style="height:6px;border-radius:3px;background:{{ r.barColor }};width:{{ r.barW }};"></div>
+              </div>
+              <div style="font-family:'Roboto Mono',monospace;font-size:13px;color:{{ r.fg }};min-width:56px;text-align:right;">{{ r.count }}</div>
+            </div>
+            <div style="flex:0.7;font-family:'Roboto Mono',monospace;font-size:13px;color:#B9C2CC;text-align:right;">{{ r.p50 }}</div>
+            <div style="flex:1.8;display:flex;align-items:center;justify-content:flex-end;gap:10px;">
+              <div style="width:120px;height:6px;border-radius:3px;background:#242A2F;overflow:hidden;">
+                <div style="height:6px;border-radius:3px;background:{{ r.p95Color }};width:{{ r.p95W }};"></div>
+              </div>
+              <div style="font-family:'Roboto Mono',monospace;font-size:14px;font-weight:600;color:{{ r.p95Fg }};min-width:52px;text-align:right;">{{ r.p95 }}</div>
+            </div>
+            <div style="flex:0.7;font-family:'Roboto Mono',monospace;font-size:13px;color:#8A939D;text-align:right;">{{ r.max }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ DESKTOP · МЕДЛЕННЫЕ + СИСТЕМА ═══ -->
+  <div data-screen-label="Desktop · Медленные и Система" style="display:flex;gap:32px;">
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#6E7780;">СЕРВИС → МЕДЛЕННЫЕ · 704 × AUTO</div>
+      <div style="width:704px;flex:none;background:#0A0E12;border-radius:28px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px;overflow:hidden;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#6E7780;">ПОСЛЕДНИЕ СЭМПЛЫ ЗА 24 Ч</div>
+          <div style="font-size:38px;line-height:42px;font-weight:700;letter-spacing:-0.025em;color:#E3E6EB;font-variation-settings:'opsz' 96;">Медленные</div>
+        </div>
+        <div style="border-radius:16px;background:#161B1F;padding:10px 16px;font-size:13px;line-height:18px;color:#B9C2CC;">Это отдельные запросы, а не перцентиль: сэмплируется хвост, поэтому список показывает поводы, а не долю.</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <sc-for list="{{ slow }}" as="s" hint-placeholder-count="10">
+            <div style="border-radius:20px;background:#0F1418;padding:14px 18px;display:flex;flex-direction:column;gap:9px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="border-radius:8px;background:{{ s.methodBg }};padding:3px 9px;font-family:'Roboto Mono',monospace;font-size:11px;font-weight:700;color:{{ s.methodFg }};">{{ s.method }}</div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:13px;color:#E3E6EB;flex:1;">{{ s.route }}</div>
+                <div style="border-radius:8px;background:{{ s.statusBg }};padding:3px 9px;font-family:'Roboto Mono',monospace;font-size:11px;font-weight:700;color:{{ s.statusFg }};">{{ s.status }}</div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:#6E7780;min-width:44px;text-align:right;">{{ s.at }}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="flex:1;height:8px;border-radius:4px;background:#1A1F24;overflow:hidden;">
+                  <div style="height:8px;border-radius:4px;background:{{ s.barColor }};width:{{ s.barW }};"></div>
+                </div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:15px;font-weight:700;color:{{ s.durFg }};min-width:78px;text-align:right;">{{ s.dur }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#6E7780;">СЕРВИС → СИСТЕМА · 704 × AUTO · ЕДИНСТВЕННЫЙ ЭКРАН С РАЗРЕЗОМ ПО ИНСТАНСАМ</div>
+      <div style="width:704px;flex:none;background:#0A0E12;border-radius:28px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px;overflow:hidden;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#6E7780;">3 ИНСТАНСА · БЕЗ JMX</div>
+          <div style="font-size:38px;line-height:42px;font-weight:700;letter-spacing:-0.025em;color:#E3E6EB;font-variation-settings:'opsz' 96;">Система</div>
+        </div>
+        <sc-for list="{{ instances }}" as="i" hint-placeholder-count="3">
+          <div style="border-radius:28px;background:#0F1418;padding:20px 22px;display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="font-family:'Roboto Mono',monospace;font-size:14px;font-weight:600;color:#E3E6EB;flex:1;">{{ i.name }}</div>
+              <div style="border-radius:9px;background:{{ i.kindBg }};padding:3px 10px;font-size:11px;font-weight:700;color:{{ i.kindFg }};">{{ i.kind }}</div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:center;">
+              <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:baseline;gap:8px;">
+                  <div style="font-size:32px;line-height:34px;font-weight:700;letter-spacing:-0.02em;color:{{ i.memFg }};font-variation-settings:'opsz' 96;">{{ i.mem }}</div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:12px;color:#8A939D;">{{ i.memLabel }}</div>
+                </div>
+                <div style="height:10px;border-radius:5px;background:#1A1F24;overflow:hidden;">
+                  <div style="height:10px;border-radius:5px;background:{{ i.memColor }};width:{{ i.memW }};"></div>
+                </div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:#6E7780;">{{ i.memNote }}</div>
+              </div>
+              <svg viewBox="0 0 200 64" preserveAspectRatio="none" width="200" height="64" style="display:block;">
+                <path d="{{ i.area }}" fill="{{ i.fill }}"></path>
+                <path d="{{ i.line }}" stroke="{{ i.memColor }}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+              </svg>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;border-radius:18px;background:#161B1F;padding:12px 14px;display:flex;flex-direction:column;gap:2px;">
+                <div style="font-size:20px;font-weight:700;color:#E3E6EB;">{{ i.cpu }}</div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:#8A939D;">CPU</div>
+              </div>
+              <div style="flex:1;border-radius:18px;background:#161B1F;padding:12px 14px;display:flex;flex-direction:column;gap:2px;">
+                <div style="font-size:20px;font-weight:700;color:#E3E6EB;">{{ i.threads }}</div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:#8A939D;">тредов</div>
+              </div>
+              <div style="flex:1.4;border-radius:18px;background:{{ i.gcBg }};padding:12px 14px;display:flex;flex-direction:column;gap:2px;">
+                <div style="font-size:20px;font-weight:700;color:{{ i.gcFg }};">{{ i.gc }}</div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:{{ i.gcDim }};">GC</div>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ DESKTOP · АЛЕРТЫ ═══ -->
+  <div data-screen-label="Desktop · Алерты" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#6E7780;">DESKTOP 1440 × 1024 · АЛЕРТЫ — ЕДИНСТВЕННАЯ ФОРМА С ЗАПИСЬЮ</div>
+    <div style="width:1440px;height:1024px;background:#0A0E12;border-radius:28px;overflow:hidden;padding:32px 36px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px;">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#6E7780;">TELEGRAM · КУЛДАУН 15 МИН</div>
+          <div style="font-size:52px;line-height:56px;font-weight:700;letter-spacing:-0.025em;color:#E3E6EB;font-variation-settings:'opsz' 96;">Алерты</div>
+        </div>
+        <div style="height:56px;border-radius:28px;background:#9ECAFF;display:flex;align-items:center;gap:10px;padding:0 26px;">
+          <div style="font-size:15px;font-weight:700;color:#00325A;">Отправить тестовое</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:20px;flex:1;min-height:0;">
+        <div style="display:flex;flex-direction:column;gap:16px;min-height:0;">
+          <div style="border-radius:32px 32px 32px 40px;background:#8C0009;padding:22px 24px;display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:baseline;gap:12px;">
+              <div style="font-size:20px;font-weight:700;color:#FFDAD6;">Горят сейчас</div>
+              <div style="font-family:'Roboto Mono',monospace;font-size:13px;color:#FFB4AB;">3 из 5 правил</div>
+            </div>
+            <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="3">
+              <div style="border-radius:22px;background:rgba(255,218,214,0.10);padding:16px 18px;display:flex;align-items:center;gap:16px;">
+                <div style="width:10px;height:10px;border-radius:50%;background:#FFDAD6;animation:pulseDot 1.8s ease-in-out infinite;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;flex:1;">
+                  <div style="font-family:'Roboto Mono',monospace;font-size:14px;font-weight:600;color:#FFDAD6;">{{ a.service }} · {{ a.rule }}</div>
+                  <div style="font-size:13px;color:#FFB4AB;">{{ a.detail }}</div>
+                </div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:12px;color:#FFB4AB;">{{ a.since }}</div>
+                <div style="height:36px;border-radius:18px;background:#FFDAD6;display:flex;align-items:center;padding:0 16px;font-size:13px;font-weight:700;color:#8C0009;">Заглушить</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="border-radius:32px;background:#0F1418;padding:22px 24px;display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;">
+            <div style="font-size:18px;font-weight:700;color:#E3E6EB;">История срабатываний</div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <sc-for list="{{ history }}" as="h" hint-placeholder-count="8">
+                <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:{{ h.radius }};background:#161B1F;">
+                  <div style="width:8px;height:8px;border-radius:{{ h.dotShape }};background:{{ h.dotColor }};"></div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:13px;color:#B9C2CC;flex:1;">{{ h.text }}</div>
+                  <div style="border-radius:8px;background:{{ h.stateBg }};padding:2px 9px;font-size:11px;font-weight:700;color:{{ h.stateFg }};">{{ h.state }}</div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:12px;color:#6E7780;min-width:96px;text-align:right;">{{ h.when }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-radius:32px;background:#0F1418;padding:24px;display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="font-size:18px;font-weight:700;color:#E3E6EB;">Пороги · payments-gateway</div>
+            <div style="font-size:13px;line-height:18px;color:#8A939D;">Пустое поле = значение инсталляции. Переопределение подсвечено.</div>
+          </div>
+          <sc-for list="{{ rules }}" as="r" hint-placeholder-count="5">
+            <div style="border-radius:24px;background:{{ r.bg }};padding:18px 20px;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
+                  <div style="font-family:'Roboto Mono',monospace;font-size:14px;font-weight:600;color:{{ r.fg }};">{{ r.id }}</div>
+                  <div style="font-size:12px;color:{{ r.dim }};">{{ r.note }}</div>
+                </div>
+                <div style="width:52px;height:32px;border-radius:16px;background:{{ r.trackBg }};padding:3px;box-sizing:border-box;display:flex;justify-content:{{ r.knobPos }};">
+                  <div style="width:26px;height:26px;border-radius:13px;background:{{ r.knobBg }};"></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <div style="flex:1;border-radius:16px;background:{{ r.fieldBg }};padding:10px 14px;display:flex;flex-direction:column;gap:2px;">
+                  <div style="font-family:'Roboto Mono',monospace;font-size:10px;letter-spacing:0.1em;color:{{ r.dim }};">ПОРОГ</div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:15px;font-weight:600;color:{{ r.fg }};">{{ r.threshold }}</div>
+                </div>
+                <div style="flex:1;border-radius:16px;background:{{ r.fieldBg }};padding:10px 14px;display:flex;flex-direction:column;gap:2px;">
+                  <div style="font-family:'Roboto Mono',monospace;font-size:10px;letter-spacing:0.1em;color:{{ r.dim }};">ОКОН</div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:15px;font-weight:600;color:{{ r.fg }};">{{ r.windows }}</div>
+                </div>
+                <div style="flex:1;border-radius:16px;background:{{ r.fieldBg }};padding:10px 14px;display:flex;flex-direction:column;gap:2px;">
+                  <div style="font-family:'Roboto Mono',monospace;font-size:10px;letter-spacing:0.1em;color:{{ r.dim }};">MIN COUNT</div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:15px;font-weight:600;color:{{ r.fg }};">{{ r.minCount }}</div>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MOBILE ═══ -->
+  <div data-screen-label="Mobile · три экрана" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="font-family:'Roboto Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#6E7780;">MOBILE 390 × 844 · ОБЗОР / ГРАФИКИ / АЛЕРТЫ</div>
+    <div style="display:flex;gap:40px;">
+
+      <!-- mobile: обзор -->
+      <div style="width:390px;height:844px;flex:none;background:#0A0E12;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box;position:relative;">
+        <div style="height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-family:'Roboto Mono',monospace;font-size:13px;font-weight:600;color:#E3E6EB;">
+          <div>9:41</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <div style="width:16px;height:9px;border-radius:2px;border:1.5px solid #E3E6EB;"></div>
+          </div>
+        </div>
+
+        <div style="flex:1;overflow:hidden;padding:0 16px 100px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;padding:8px 6px 0;">
+            <div style="font-size:40px;line-height:44px;font-weight:700;letter-spacing:-0.025em;color:#E3E6EB;font-variation-settings:'opsz' 96;">Обзор</div>
+            <div style="width:44px;height:44px;border-radius:22px;background:#161B1F;display:flex;align-items:center;justify-content:center;font-size:18px;color:#B9C2CC;">⟳</div>
+          </div>
+
+          <div style="border-radius:28px 28px 28px 36px;background:#8C0009;padding:18px 20px;display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;align-items:baseline;gap:10px;">
+              <div style="font-size:52px;line-height:48px;font-weight:800;letter-spacing:-0.04em;color:#FFDAD6;font-variation-settings:'opsz' 144;">3</div>
+              <div style="font-size:15px;font-weight:700;color:#FFDAD6;line-height:19px;">алерта<br>горят</div>
+              <div style="margin-left:auto;height:34px;border-radius:17px;background:#FFDAD6;display:flex;align-items:center;padding:0 16px;font-size:13px;font-weight:700;color:#8C0009;">Смотреть</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="border-radius:16px;background:rgba(255,218,214,0.10);padding:10px 14px;display:flex;align-items:center;gap:10px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#FFDAD6;animation:pulseDot 1.8s ease-in-out infinite;"></div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:12px;font-weight:600;color:#FFDAD6;flex:1;">payments-gateway</div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:#FFB4AB;">error_rate</div>
+              </div>
+              <div style="border-radius:16px;background:rgba(255,218,214,0.10);padding:10px 14px;display:flex;align-items:center;gap:10px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#FFDAD6;"></div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:12px;font-weight:600;color:#FFDAD6;flex:1;">notifier</div>
+                <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:#FFB4AB;">absent</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <sc-for list="{{ mobileCards }}" as="c" hint-placeholder-count="4">
+              <div style="border-radius:{{ c.radius }};background:{{ c.bg }};padding:16px 18px;display:flex;align-items:center;gap:14px;">
+                <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:0;">
+                  <div style="font-family:'Roboto Mono',monospace;font-size:14px;font-weight:600;color:{{ c.fg }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.name }}</div>
+                  <div style="display:flex;gap:12px;">
+                    <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:{{ c.dim }};">{{ c.err }} ош.</div>
+                    <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:{{ c.dim }};">p95 {{ c.p95 }}</div>
+                  </div>
+                </div>
+                <svg viewBox="0 0 90 40" preserveAspectRatio="none" width="90" height="40" style="display:block;flex:none;">
+                  <path d="{{ c.area }}" fill="{{ c.fill }}"></path>
+                  <path d="{{ c.line }}" stroke="{{ c.accent }}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+                </svg>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;flex:none;">
+                  <div style="font-size:26px;line-height:26px;font-weight:700;letter-spacing:-0.02em;color:{{ c.fg }};font-variation-settings:'opsz' 96;">{{ c.rps }}</div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:10px;color:{{ c.dim }};">rps</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="position:absolute;left:16px;right:16px;bottom:18px;height:68px;border-radius:34px;background:#1A1F24;display:flex;align-items:center;padding:6px;box-sizing:border-box;gap:4px;">
+          <div style="flex:1;height:56px;border-radius:28px;background:#004A7C;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+            <div style="width:12px;height:12px;border-radius:3px;background:#D3E4FF;"></div>
+            <div style="font-size:11px;font-weight:700;color:#D3E4FF;">Обзор</div>
+          </div>
+          <div style="flex:1;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;">
+            <div style="width:12px;height:12px;border-radius:50%;background:#B9C2CC;"></div>
+            <div style="font-size:11px;font-weight:500;color:#B9C2CC;">Алерты</div>
+            <div style="position:absolute;top:8px;right:22px;min-width:16px;height:16px;border-radius:8px;background:#8C0009;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FFDAD6;">3</div>
+          </div>
+          <div style="flex:1;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+            <div style="width:12px;height:12px;border-radius:3px;background:#B9C2CC;"></div>
+            <div style="font-size:11px;font-weight:500;color:#B9C2CC;">Сервисы</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- mobile: графики -->
+      <div style="width:390px;height:844px;flex:none;background:#0A0E12;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box;position:relative;">
+        <div style="height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-family:'Roboto Mono',monospace;font-size:13px;font-weight:600;color:#E3E6EB;">
+          <div>9:41</div>
+          <div style="width:16px;height:9px;border-radius:2px;border:1.5px solid #E3E6EB;"></div>
+        </div>
+
+        <div style="flex:1;overflow:hidden;padding:0 16px 100px;display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;align-items:center;gap:12px;padding-top:8px;">
+            <div style="width:40px;height:40px;border-radius:20px;background:#161B1F;display:flex;align-items:center;justify-content:center;font-size:17px;color:#B9C2CC;flex:none;">←</div>
+            <div style="font-family:'Roboto Mono',monospace;font-size:19px;font-weight:600;letter-spacing:-0.01em;color:#E3E6EB;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">payments-gateway</div>
+          </div>
+
+          <div style="display:flex;gap:6px;overflow:hidden;">
+            <div style="height:38px;padding:0 18px;border-radius:19px;background:#004A7C;display:flex;align-items:center;font-size:13px;font-weight:600;color:#D3E4FF;flex:none;">Графики</div>
+            <div style="height:38px;padding:0 16px;border-radius:19px;background:#161B1F;display:flex;align-items:center;font-size:13px;font-weight:500;color:#B9C2CC;flex:none;">Маршруты</div>
+            <div style="height:38px;padding:0 16px;border-radius:19px;background:#161B1F;display:flex;align-items:center;font-size:13px;font-weight:500;color:#B9C2CC;flex:none;">Медленные</div>
+          </div>
+
+          <div style="border-radius:28px;background:#0F1418;padding:18px 18px 14px;display:flex;flex-direction:column;gap:10px;">
+            <div style="font-family:'Roboto Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#6E7780;">ЗАПРОСЫ В СЕКУНДУ</div>
+            <div style="display:flex;align-items:baseline;gap:8px;">
+              <div style="font-size:44px;line-height:44px;font-weight:700;letter-spacing:-0.03em;color:#9ECAFF;font-variation-settings:'opsz' 144;">{{ hero.last }}</div>
+              <div style="font-size:13px;color:#8A939D;">max {{ hero.max }}</div>
+            </div>
+            <div style="position:relative;height:128px;">
+              <svg viewBox="0 0 320 128" preserveAspectRatio="none" width="100%" height="128" style="display:block;">
+                <path d="{{ mHero.deployPath }}" stroke="#D9BDE8" stroke-width="1.5" stroke-dasharray="5 5" fill="none" opacity="0.7"></path>
+                <path d="{{ mHero.area }}" fill="url(#gPrimary)"></path>
+                <path d="{{ mHero.line }}" stroke="#9ECAFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+              </svg>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <div style="border-radius:12px;background:#4E3E5A;padding:4px 10px;font-size:11px;font-weight:600;color:#F1DAFF;">2 деплоя</div>
+              <div style="border-radius:12px;background:#242A2F;padding:4px 10px;font-size:11px;font-weight:600;color:#B9C2CC;">3 разрыва</div>
+            </div>
+          </div>
+
+          <sc-for list="{{ mSmall }}" as="c" hint-placeholder-count="3">
+            <div style="border-radius:24px;background:#0F1418;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="display:flex;flex-direction:column;gap:3px;flex:none;min-width:104px;">
+                <div style="font-family:'Roboto Mono',monospace;font-size:10px;letter-spacing:0.1em;color:#6E7780;">{{ c.title }}</div>
+                <div style="display:flex;align-items:baseline;gap:5px;">
+                  <div style="font-size:26px;line-height:28px;font-weight:700;letter-spacing:-0.02em;color:{{ c.accent }};font-variation-settings:'opsz' 96;">{{ c.last }}</div>
+                  <div style="font-size:11px;color:#8A939D;">{{ c.unit }}</div>
+                </div>
+              </div>
+              <svg viewBox="0 0 200 56" preserveAspectRatio="none" width="100%" height="56" style="display:block;">
+                <path d="{{ c.area }}" fill="{{ c.fill }}"></path>
+                <path d="{{ c.line }}" stroke="{{ c.accent }}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+              </svg>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="position:absolute;left:16px;right:16px;bottom:18px;height:68px;border-radius:34px;background:#1A1F24;display:flex;align-items:center;padding:6px;box-sizing:border-box;gap:4px;">
+          <div style="flex:1;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+            <div style="width:12px;height:12px;border-radius:3px;background:#B9C2CC;"></div>
+            <div style="font-size:11px;font-weight:500;color:#B9C2CC;">Обзор</div>
+          </div>
+          <div style="flex:1;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;">
+            <div style="width:12px;height:12px;border-radius:50%;background:#B9C2CC;"></div>
+            <div style="font-size:11px;font-weight:500;color:#B9C2CC;">Алерты</div>
+            <div style="position:absolute;top:8px;right:22px;min-width:16px;height:16px;border-radius:8px;background:#8C0009;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FFDAD6;">3</div>
+          </div>
+          <div style="flex:1;height:56px;border-radius:28px;background:#004A7C;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+            <div style="width:12px;height:12px;border-radius:3px;background:#D3E4FF;"></div>
+            <div style="font-size:11px;font-weight:700;color:#D3E4FF;">Сервисы</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- mobile: алерты -->
+      <div style="width:390px;height:844px;flex:none;background:#0A0E12;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box;position:relative;">
+        <div style="height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-family:'Roboto Mono',monospace;font-size:13px;font-weight:600;color:#E3E6EB;">
+          <div>9:41</div>
+          <div style="width:16px;height:9px;border-radius:2px;border:1.5px solid #E3E6EB;"></div>
+        </div>
+
+        <div style="flex:1;overflow:hidden;padding:0 16px 100px;display:flex;flex-direction:column;gap:14px;">
+          <div style="font-size:40px;line-height:44px;font-weight:700;letter-spacing:-0.025em;color:#E3E6EB;padding:8px 6px 0;font-variation-settings:'opsz' 96;">Алерты</div>
+
+          <div style="border-radius:28px 28px 28px 36px;background:#8C0009;padding:18px;display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:15px;font-weight:700;color:#FFDAD6;">Горят сейчас · 3</div>
+            <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="3">
+              <div style="border-radius:20px;background:rgba(255,218,214,0.10);padding:14px 16px;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:9px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#FFDAD6;animation:pulseDot 1.8s ease-in-out infinite;"></div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:13px;font-weight:600;color:#FFDAD6;flex:1;">{{ a.service }}</div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:#FFB4AB;">{{ a.since }}</div>
+                </div>
+                <div style="font-size:13px;line-height:18px;color:#FFDAD6;">{{ a.detail }}</div>
+                <div style="display:flex;gap:6px;">
+                  <div style="height:32px;border-radius:16px;background:#FFDAD6;display:flex;align-items:center;padding:0 14px;font-size:12px;font-weight:700;color:#8C0009;">Заглушить 1 ч</div>
+                  <div style="height:32px;border-radius:16px;border:1px solid #FFB4AB;box-sizing:border-box;display:flex;align-items:center;padding:0 14px;font-size:12px;font-weight:600;color:#FFDAD6;">К сервису</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="border-radius:28px;background:#0F1418;padding:18px;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;overflow:hidden;">
+            <div style="font-size:15px;font-weight:700;color:#E3E6EB;">История</div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <sc-for list="{{ historyMobile }}" as="h" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:{{ h.radius }};background:#161B1F;">
+                  <div style="width:8px;height:8px;border-radius:{{ h.dotShape }};background:{{ h.dotColor }};flex:none;"></div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:#B9C2CC;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ h.text }}</div>
+                  <div style="font-family:'Roboto Mono',monospace;font-size:10px;color:#6E7780;flex:none;">{{ h.when }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="position:absolute;left:16px;right:16px;bottom:18px;height:68px;border-radius:34px;background:#1A1F24;display:flex;align-items:center;padding:6px;box-sizing:border-box;gap:4px;">
+          <div style="flex:1;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+            <div style="width:12px;height:12px;border-radius:3px;background:#B9C2CC;"></div>
+            <div style="font-size:11px;font-weight:500;color:#B9C2CC;">Обзор</div>
+          </div>
+          <div style="flex:1;height:56px;border-radius:28px;background:#8C0009;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+            <div style="width:12px;height:12px;border-radius:50%;background:#FFDAD6;"></div>
+            <div style="font-size:11px;font-weight:700;color:#FFDAD6;">Алерты</div>
+          </div>
+          <div style="flex:1;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+            <div style="width:12px;height:12px;border-radius:3px;background:#B9C2CC;"></div>
+            <div style="font-size:11px;font-weight:500;color:#B9C2CC;">Сервисы</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;timeRange&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;1 ч&quot;,&quot;24 ч&quot;,&quot;7 д&quot;],&quot;default&quot;:&quot;1 ч&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Данные&quot;}}">
+const C = {
+  fg: "#E3E6EB", dim: "#8A939D", muted: "#6E7780",
+  primary: "#9ECAFF", error: "#FFB4AB", tertiary: "#D9BDE8", healthy: "#7BD69C",
+  cardBg: "#0F1418", cardBgHi: "#161B1F",
+  errBg: "#8C0009", errFg: "#FFDAD6", errDim: "#FFB4AB",
+};
+
+function rng(seed) {
+  let s = seed >>> 0;
+  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+}
+
+function makeSeries(seed, base, amp, n, gaps) {
+  const r = rng(seed); const out = []; let v = base;
+  for (let i = 0; i < n; i++) {
+    v = Math.max(base * 0.25, v + (r() - 0.5) * amp);
+    out.push((gaps || []).indexOf(i) >= 0 ? null : v);
+  }
+  return out;
+}
+
+function fmt(v) {
+  if (v == null) return "—";
+  if (v >= 100) return String(Math.round(v));
+  if (v >= 10) return String(Math.round(v * 10) / 10);
+  return String(Math.round(v * 100) / 100);
+}
+
+/** Сглаженная линия + заливка, с разрывами на null. */
+function shape(vals, w, h, pad, deployIdx) {
+  const known = vals.filter(v => v != null);
+  const max = Math.max.apply(null, known.concat([0.0001])) * 1.18;
+  const x = i => (i / (vals.length - 1)) * w;
+  const y = v => h - pad - (v / max) * (h - pad * 2);
+
+  const segs = []; let cur = [];
+  vals.forEach((v, i) => {
+    if (v == null) { if (cur.length) segs.push(cur); cur = []; }
+    else cur.push([x(i), y(v)]);
+  });
+  if (cur.length) segs.push(cur);
+
+  const curve = pts => {
+    let d = "M" + pts[0][0].toFixed(1) + " " + pts[0][1].toFixed(1);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i === 0 ? 0 : i - 1], p1 = pts[i], p2 = pts[i + 1];
+      const p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+      const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += "C" + c1x.toFixed(1) + " " + c1y.toFixed(1) + "," + c2x.toFixed(1) + " " + c2y.toFixed(1) +
+        "," + p2[0].toFixed(1) + " " + p2[1].toFixed(1);
+    }
+    return d;
+  };
+
+  const usable = segs.filter(s => s.length > 1);
+  const line = usable.map(curve).join(" ");
+  const area = usable.map(s => curve(s) + "L" + s[s.length - 1][0].toFixed(1) + " " + h + "L" + s[0][0].toFixed(1) + " " + h + "Z").join(" ");
+
+  const gaps = [];
+  for (let i = 0; i < usable.length - 1; i++) {
+    const a = usable[i][usable[i].length - 1], b = usable[i + 1][0];
+    gaps.push("M" + a[0].toFixed(1) + " " + a[1].toFixed(1) + "L" + b[0].toFixed(1) + " " + b[1].toFixed(1));
+  }
+
+  const deployPath = (deployIdx || []).map(i => "M" + x(i).toFixed(1) + " 0V" + h).join("");
+  const grid = [0.25, 0.5, 0.75].map(f => "M0 " + (h * f).toFixed(1) + "H" + w).join("");
+
+  return {
+    line, area, gapPath: gaps.join(" "), deployPath, grid,
+    last: fmt(vals[vals.length - 1]), max: fmt(max / 1.18),
+    lefts: (deployIdx || []).map(i => ((i / (vals.length - 1)) * 100).toFixed(2) + "%"),
+  };
+}
+
+const N = 60;
+const GAPS = [21, 22, 40];
+const DEPLOYS = [14, 47];
+
+class Component extends DCLogic {
+  renderVals() {
+    const rangeIdx = ["1 ч", "24 ч", "7 д"].indexOf(this.props.timeRange ?? "1 ч");
+    const range = ["1 ч", "24 ч", "7 д"][rangeIdx < 0 ? 0 : rangeIdx];
+    const others = ["1 ч", "24 ч", "7 д"].filter(r => r !== range);
+
+    const heroVals = makeSeries(7, 38, 13, N, GAPS);
+    const hero = shape(heroVals, 1060, 236, 12, DEPLOYS);
+    hero.deploys = [
+      { left: hero.lefts[0], label: "v1.4.209" },
+      { left: hero.lefts[1], label: "v1.4.212" },
+    ];
+    Object.assign(hero, { t0: "−60 мин", t1: "−45", t2: "−30", t3: "−15" });
+
+    const mHero = shape(heroVals, 320, 128, 8, DEPLOYS);
+
+    const smallDefs = [
+      ["P95, МС", "p95", 19, 480, 240, C.error, "url(#gError)", "мс · ±20 %", "приблизительно"],
+      ["P50, МС", "p50", 31, 92, 38, C.primary, "url(#gPrimary)", "мс · ±20 %", "приблизительно"],
+      ["ДОЛЯ ОШИБОК", "err", 53, 3.4, 3.0, C.error, "url(#gError)", "%", "порог 2 %"],
+    ];
+    const small = smallDefs.map(d => {
+      const s = shape(makeSeries(d[2], d[3], d[4], N, GAPS), 340, 96, 8, DEPLOYS);
+      return Object.assign(s, { title: d[0], accent: d[5], fill: d[6], unit: d[7], badge: d[8] });
+    });
+    const mSmall = smallDefs.slice(0, 3).map(d => {
+      const s = shape(makeSeries(d[2], d[3], d[4], N, GAPS), 200, 56, 6, null);
+      return Object.assign(s, { title: d[0], accent: d[5], fill: d[6], unit: d[7] });
+    });
+
+    const railServices = [
+      { name: "catalog-api", rps: "311", dot: C.healthy },
+      { name: "orders-api", rps: "142", dot: C.healthy },
+      { name: "auth-service", rps: "76.9", dot: C.tertiary },
+      { name: "payments-gateway", rps: "38.2", dot: C.error },
+      { name: "notifier", rps: "—", dot: C.error },
+      { name: "metrik-server", rps: "1.24", dot: C.healthy },
+    ];
+    const railServices2 = railServices.map(s => {
+      const on = s.name === "payments-gateway";
+      return Object.assign({}, s, {
+        bg: on ? "#004A7C" : "transparent",
+        fg: on ? "#D3E4FF" : "#B9C2CC",
+        dim: on ? "#9ECAFF" : "#6E7780",
+        weight: on ? "600" : "400",
+      });
+    });
+
+    const alerts = [
+      { service: "payments-gateway", rule: "error_rate", detail: "4.7 % ошибок пять окон подряд, порог 2 %", since: "17 мин" },
+      { service: "payments-gateway", rule: "latency_p95", detail: "p95 612 мс, порог 400 мс", since: "12 мин" },
+      { service: "notifier", rule: "absent", detail: "нет пакетов 7 минут от обоих инстансов", since: "7 мин" },
+    ];
+
+    const cardDefs = [
+      ["catalog-api", "8 инст.", "311", "0.12 %", "41 мс", "ок", "healthy", "", 61, 310, 90],
+      ["orders-api", "6 инст.", "142", "0.81 %", "84 мс", "ок", "healthy", "", 73, 142, 40],
+      ["payments-gateway", "3 инст.", "38.2", "4.70 %", "612 мс", "2 алерта", "firing", "error_rate, latency_p95", 89, 38, 14],
+      ["auth-service", "4 инст.", "76.9", "0.34 %", "58 мс", "часы", "skew", "часы инстанса разъехались — часть окон отброшена", 97, 77, 22],
+      ["notifier", "2 инст.", "—", "—", "—", "молчит", "firing", "нет пакетов 7 минут", 103, 4, 2],
+      ["metrik-server", "1 инст.", "1.24", "0.0 %", "12 мс", "ок", "healthy", "самонаблюдение", 109, 1.2, 0.5],
+    ];
+    const palette = {
+      healthy: { bg: "#0F1418", fg: C.fg, dim: C.muted, chipBg: "#1E4B33", chipFg: "#A6F0C0", accent: C.healthy, fill: "url(#gHealthy)", errFg: C.fg, noteFg: C.muted, radius: "28px" },
+      firing: { bg: "#8C0009", fg: C.errFg, dim: C.errDim, chipBg: "rgba(255,218,214,0.16)", chipFg: C.errFg, accent: C.errFg, fill: "url(#gError)", errFg: C.errFg, noteFg: C.errDim, radius: "28px 28px 28px 40px" },
+      skew: { bg: "#0F1418", fg: C.fg, dim: C.muted, chipBg: "#4E3E5A", chipFg: "#F1DAFF", accent: C.tertiary, fill: "url(#gTertiary)", errFg: C.fg, noteFg: C.tertiary, radius: "28px" },
+    };
+    const cards = cardDefs.map(d => {
+      const p = palette[d[6]];
+      const s = shape(makeSeries(d[8], d[9], d[10], 40, d[6] === "firing" ? [30, 31] : null), 380, 56, 4, null);
+      return Object.assign({}, p, {
+        name: d[0], inst: d[1], rps: d[2], err: d[3], p95: d[4], state: d[5], note: d[7],
+        area: s.area, line: s.line,
+      });
+    });
+    const mobileCards = cards.slice(0, 4).map(c => {
+      const s = shape(makeSeries(c.name.length * 13 + 5, 40, 16, 26, null), 90, 40, 4, null);
+      return Object.assign({}, c, { area: s.area, line: s.line });
+    });
+
+    const rawRoutes = [
+      ["POST", "/payments/{id}/capture", 200, 184203, 88.4, 612, 2140],
+      ["POST", "/payments/{id}/capture", 502, 1841, 141, 890, 3010],
+      ["GET", "/payments/{id}", 200, 96204, 24.1, 71, 480],
+      ["GET", "/payments/{id}", 404, 3120, 12.4, 38, 210],
+      ["POST", "/refunds", 200, 12408, 141, 704, 4120],
+      ["POST", "/refunds", 409, 812, 61.2, 190, 640],
+      ["GET", "/accounts/{id}/methods", 200, 41022, 18.2, 54, 320],
+      ["POST", "/webhooks/acquirer", 401, 2401, 3.4, 11, 96],
+      ["GET", "/health", 200, 43200, 0.84, 2.1, 44],
+    ];
+    const maxCount = 184203, maxP95 = 890;
+    const routes = rawRoutes.map((r, i) => {
+      const bad = r[2] >= 500, warn = r[2] >= 400;
+      const slowRoute = r[5] >= 400;
+      return {
+        method: r[0], route: r[1], status: r[2],
+        count: r[3].toLocaleString("ru-RU"), p50: fmt(r[4]), p95: fmt(r[5]), max: String(r[6]),
+        radius: i === 0 ? "26px 26px 12px 12px" : i === rawRoutes.length - 1 ? "12px 12px 26px 26px" : "12px",
+        bg: bad ? "#3A0A0A" : "#161B1F",
+        fg: bad ? C.errFg : C.fg,
+        methodBg: r[0] === "POST" ? "#004A7C" : "#35434F",
+        methodFg: r[0] === "POST" ? "#D3E4FF" : "#D6E3F0",
+        statusBg: bad ? "#8C0009" : warn ? "#4E3E5A" : "#1E4B33",
+        statusFg: bad ? C.errFg : warn ? "#F1DAFF" : "#A6F0C0",
+        barColor: bad ? C.error : C.primary,
+        barW: Math.max(3, (r[3] / maxCount) * 100).toFixed(1) + "%",
+        p95Color: slowRoute ? C.error : C.primary,
+        p95Fg: slowRoute ? C.error : C.fg,
+        p95W: Math.max(3, (r[5] / maxP95) * 100).toFixed(1) + "%",
+      };
+    });
+
+    const rawSlow = [
+      ["POST", "/refunds", 500, 8412, "12:41"], ["POST", "/payments/{id}/capture", 502, 6180, "12:39"],
+      ["POST", "/refunds", 200, 4120, "12:38"], ["POST", "/payments/{id}/capture", 200, 3140, "12:36"],
+      ["GET", "/accounts/{id}/methods", 200, 2810, "12:31"], ["POST", "/payments/{id}/capture", 502, 2402, "12:28"],
+      ["POST", "/refunds", 409, 1980, "12:22"], ["GET", "/payments/{id}", 200, 1640, "12:17"],
+      ["POST", "/payments/{id}/capture", 200, 1420, "12:09"], ["GET", "/payments/{id}", 404, 980, "11:58"],
+    ];
+    const slow = rawSlow.map(s => {
+      const bad = s[2] >= 500, warn = s[2] >= 400;
+      return {
+        method: s[0], route: s[1], status: s[2], at: s[4],
+        dur: s[3].toLocaleString("ru-RU") + " мс",
+        durFg: s[3] >= 3000 ? C.error : C.fg,
+        barColor: s[3] >= 3000 ? C.error : s[3] >= 1500 ? C.tertiary : C.primary,
+        barW: ((s[3] / 8412) * 100).toFixed(1) + "%",
+        methodBg: s[0] === "POST" ? "#004A7C" : "#35434F",
+        methodFg: s[0] === "POST" ? "#D3E4FF" : "#D6E3F0",
+        statusBg: bad ? "#8C0009" : warn ? "#4E3E5A" : "#1E4B33",
+        statusFg: bad ? C.errFg : warn ? "#F1DAFF" : "#A6F0C0",
+      };
+    });
+
+    const instDefs = [
+      ["payments-gateway-7d4f9c-x2k1", "JVM", 412, 768, 141, 0.184, 62, "1 284"],
+      ["payments-gateway-7d4f9c-m9p3", "JVM", 690, 768, 149, 0.412, 64, "2 902"],
+      ["payments-gateway-native-a1", "Kotlin/Native", 38, null, 157, 0.061, 9, null],
+    ];
+    const instances = instDefs.map(d => {
+      const native = d[3] == null;
+      const ratio = native ? 0.34 : d[2] / d[3];
+      const hot = ratio > 0.85;
+      const s = shape(makeSeries(d[6] * 7 + 3, d[2], d[2] * 0.22, 30, null), 200, 64, 4, null);
+      return {
+        name: d[1], kind: native ? "Kotlin/Native" : "JVM",
+        kindBg: native ? "#4E3E5A" : "#35434F", kindFg: native ? "#F1DAFF" : "#D6E3F0",
+        mem: d[2] + " МБ", memLabel: native ? "RSS процесса" : "heap / " + d[3] + " МБ",
+        memFg: hot ? C.error : C.fg, memColor: hot ? C.error : C.primary,
+        memW: (ratio * 100).toFixed(0) + "%",
+        memNote: native ? "у нативного процесса нет максимума heap — это RSS" : Math.round(ratio * 100) + " % от лимита",
+        cpu: (d[5] * 100).toFixed(1) + " %", threads: String(d[6]),
+        gc: d[7] == null ? "нет данных" : d[7],
+        gcBg: d[7] == null ? "#4E3E5A" : "#161B1F",
+        gcFg: d[7] == null ? "#F1DAFF" : C.fg,
+        gcDim: d[7] == null ? "#D9BDE8" : C.dim,
+        area: s.area, line: s.line, fill: hot ? "url(#gError)" : "url(#gPrimary)",
+      };
+    });
+    instances[0].name = instDefs[0][0];
+    instances[1].name = instDefs[1][0];
+    instances[2].name = instDefs[2][0];
+
+    const rawHistory = [
+      ["payments-gateway · error_rate", "горит", "17 мин назад", true],
+      ["payments-gateway · latency_p95", "горит", "12 мин назад", true],
+      ["notifier · absent", "горит", "7 мин назад", true],
+      ["orders-api · latency_p95", "погас", "сегодня 09:14", false],
+      ["catalog-api · error_rate", "погас", "вчера 22:41", false],
+      ["payments-gateway · memory", "погас", "вчера 18:02", false],
+      ["auth-service · absent", "погас", "вчера 11:35", false],
+      ["orders-api · error_rate", "погас", "2 дня назад", false],
+    ];
+    const history = rawHistory.map((h, i) => ({
+      text: h[0], state: h[1], when: h[2],
+      radius: i === 0 ? "20px 20px 8px 8px" : i === rawHistory.length - 1 ? "8px 8px 20px 20px" : "8px",
+      dotColor: h[3] ? C.error : "#4A545E",
+      dotShape: h[3] ? "50%" : "2px",
+      stateBg: h[3] ? "#8C0009" : "#242A2F",
+      stateFg: h[3] ? C.errFg : "#B9C2CC",
+    }));
+
+    const ruleDefs = [
+      ["error_rate", "доля 5xx за окно", "2 %", "5", "50", true, true],
+      ["latency_p95", "p95 по сервису", "400 мс", "5", "50", true, true],
+      ["absent", "нет пакетов", "5 мин", "—", "—", true, false],
+      ["memory", "heap / RSS от лимита", "85 %", "3", "—", true, false],
+      ["cpu", "CPU инстанса", "90 %", "3", "—", false, false],
+    ];
+    const rules = ruleDefs.map(r => {
+      const on = r[5], override = r[6];
+      return {
+        id: r[0], note: r[1], threshold: r[2], windows: r[3], minCount: r[4],
+        bg: override ? "#004A7C" : "#161B1F",
+        fg: override ? "#D3E4FF" : (on ? C.fg : C.muted),
+        dim: override ? "#9ECAFF" : C.dim,
+        fieldBg: override ? "rgba(211,228,255,0.12)" : "#1A1F24",
+        trackBg: on ? (override ? "#9ECAFF" : "#9ECAFF") : "#3A424A",
+        knobBg: on ? "#00325A" : "#8A939D",
+        knobPos: on ? "flex-end" : "flex-start",
+      };
+    });
+
+    return {
+      range, rangeAlt1: others[0], rangeAlt2: others[1],
+      hero, mHero, small, mSmall,
+      railServices, railServices2, alerts, cards, mobileCards,
+      routes, slow, instances, history, rules,
+      historyMobile: history.slice(0, 4).map((h, i) => Object.assign({}, h, {
+        radius: i === 0 ? "20px 20px 8px 8px" : i === 3 ? "8px 8px 20px 20px" : "8px",
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>
