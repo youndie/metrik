@@ -2,7 +2,7 @@
 id: feature-system-metrics
 title: Системные метрики процесса
 type: feature
-status: draft
+status: active
 owner: unassigned
 involved_services: [metrik-agent, metrik-server, metrik-web]
 api: [protocol-ingest]

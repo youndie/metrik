@@ -2,7 +2,7 @@
 id: metrik-agent
 title: metrik-agent (Ktor-плагин)
 type: service
-status: draft
+status: active
 module: :agent
 tech_stack: [Kotlin Multiplatform, Ktor server plugin, ktor-network, kotlinx.serialization]
 targets: [jvm, linuxX64, linuxArm64, macosArm64]

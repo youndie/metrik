@@ -2,7 +2,7 @@
 id: metrik-web
 title: metrik-web (Compose Wasm)
 type: service
-status: draft
+status: active
 module: :composeApp
 tech_stack: [Kotlin/Wasm, Compose Multiplatform, ktor-client-js, nginx]
 owner: unassigned

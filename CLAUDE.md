@@ -7,9 +7,9 @@ Guidance for working in this repository.
 **metrik** — мониторинг Ktor-сервисов: KMP-плагин-агент, нативный сервер с SQLite, дашборд на
 Compose. Подробности — [README.md](README.md).
 
-Каркас собран (M0), содержательного кода почти нет: у сервера только `/health`, у агента — пустой
-скелет плагина, у дашборда — заглушка вместо экранов. Что делать дальше и в каком порядке —
-[BACKLOG.md](BACKLOG.md), M1 → M7.
+M0–M7 написаны: провод и кодек гистограммы, агент, приём и хранение, API чтения, дашборд,
+алертинг, роллапы и деплой. Открыт только выбор лицензии (M-74). Подробности и то, что сознательно
+отложено, — [BACKLOG.md](BACKLOG.md).
 
 ## С чего начинать сессию
 
@@ -35,18 +35,25 @@ Compose. Подробности — [README.md](README.md).
 ## Команды
 
 ```bash
-./gradlew build                      # всё: компиляция всех таргетов, ktlintCheck, тесты
-./gradlew :server:build              # только сервер
-./gradlew :composeApp:run            # дашборд на desktop — быстрый цикл по UI
-./gradlew :server:nativeTest         # тесты нативного сервера
+./gradlew build                        # всё: компиляция всех таргетов, ktlintCheck, тесты
+./gradlew :server:macosArm64Test       # тесты сервера (native — единственный настоящий таргет)
+./gradlew :shared:jvmTest              # быстрый прогон общего кода
+./gradlew :composeApp:run              # дашборд на desktop — быстрый цикл по UI
+./gradlew :composeApp:wasmJsBrowserDistribution   # прод-бандл дашборда
 ```
+
+Если wasm-сборка падает с «Lock file was changed» — `./gradlew kotlinWasmUpgradeYarnLock`
+и закоммитить `kotlin-js-store/`.
 
 Запуск нативного сервера локально (`METRIK_INGEST_KEY` обязателен, без него процесс падает
 намеренно):
 
 ```bash
-METRIK_INGEST_KEY=dev-key METRIK_DB_PATH=/tmp/metrik.db ./server/build/bin/macosArm64/releaseExecutable/server.kexe
+METRIK_INGEST_KEY=dev-key METRIK_DB_PATH=/tmp/metrik.db METRIK_SELF_SERVICE=metrik-server ./server/build/bin/macosArm64/releaseExecutable/server.kexe
 ```
+
+`METRIK_SELF_SERVICE` включает самонаблюдение — удобно для ручной проверки: через минуту сервер
+появится в собственном `/api/services`.
 
 Полная сборка с нуля идёт минуты: `linuxX64`/`linuxArm64` на macOS кросс-компилируются, а wasm
 собирает webpack. В обычном цикле собирай конкретный модуль и таргет, а не `build`.

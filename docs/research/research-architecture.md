@@ -1,7 +1,7 @@
 ---
 id: research-architecture
 title: metrik — архитектурный research
-status: draft
+status: active
 date: 2026-08-01
 ---
 

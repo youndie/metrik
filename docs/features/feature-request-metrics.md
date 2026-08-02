@@ -2,7 +2,7 @@
 id: feature-request-metrics
 title: Метрики HTTP-запросов
 type: feature
-status: draft
+status: active
 owner: unassigned
 involved_services: [metrik-agent, metrik-server, metrik-web]
 api: [protocol-ingest, endpoint-query]

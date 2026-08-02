@@ -1,7 +1,7 @@
 ---
 id: endpoint-query
 title: HTTP API дашборда
-status: draft
+status: active
 layer: api
 involved_services: [metrik-server, metrik-web]
 contract_source: :shared (ru.workinprogress.metrik.api)

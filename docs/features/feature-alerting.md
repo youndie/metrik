@@ -2,7 +2,7 @@
 id: feature-alerting
 title: Алертинг в Telegram
 type: feature
-status: draft
+status: active
 owner: unassigned
 involved_services: [metrik-server, metrik-web]
 api: [endpoint-query]
