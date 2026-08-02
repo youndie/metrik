@@ -47,6 +47,12 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/metrik
+          # latest=auto ориентируется на дефолтную ветку репозитория, а она тут не main,
+          # поэтому тег latest проставляется явно — README обещает именно его.
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - uses: docker/build-push-action@v6
         with:
@@ -60,6 +66,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/metrik-web
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - uses: docker/build-push-action@v6
         with:
