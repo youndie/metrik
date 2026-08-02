@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -149,9 +150,13 @@ fun MobileServicesListScreen(
     services: List<ServiceSummary>,
     selectedServiceId: Long?,
     onSelect: (ServiceSummary) -> Unit,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        // Паддинг применяется ПОСЛЕ verticalScroll и потому едет вместе с контентом. Если
+        // повесить его снаружи (на контейнер шелла), вьюпорт сужается, и контент режется по
+        // внутренней границе — выглядит так, будто он скроллится внутри рамки.
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text(

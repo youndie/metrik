@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,6 +42,15 @@ internal const val REFRESH_MS = 30_000L
  * это уже полноценное десктопное окно, просто маленькое.
  */
 private val MOBILE_MAX_WIDTH: Dp = 760.dp
+
+/**
+ * Отступы контента экранов.
+ *
+ * Передаются внутрь прокрутки, а не вешаются на контейнер: снаружи они сужают вьюпорт, и контент
+ * обрезается по внутренней границе вместо того, чтобы уезжать под край.
+ */
+private val DesktopContentPadding = PaddingValues(horizontal = Spacing.xxl, vertical = Spacing.xl)
+private val MobileContentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.lg)
 
 /** Верхнеуровневый маршрут дашборда — что показано в области контента справа от рельса (десктоп)
  * или под нижней навигацией (мобильная раскладка). */
@@ -164,37 +174,47 @@ private fun DesktopShell(
             onSelectService = { service -> onRouteChange(Route.Service(service)) },
         )
 
+        // Паддинга здесь нет намеренно: он уходит внутрь прокрутки каждого экрана
+        // (contentPadding). Снаружи он сужал бы вьюпорт, и контент обрезался бы по внутренней
+        // границе — выглядело так, будто экран скроллится внутри рамки.
         Column(
             Modifier
                 .weight(1f)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(topStart = 28.dp))
-                .background(MaterialTheme.colorScheme.surfaceDim)
-                .padding(horizontal = Spacing.xxl, vertical = Spacing.xl),
+                .background(MaterialTheme.colorScheme.surfaceDim),
         ) {
             if (error != null) {
-                ErrorBanner(error)
+                Box(Modifier.padding(horizontal = Spacing.xxl, vertical = Spacing.md)) { ErrorBanner(error) }
             }
 
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (val current = route) {
                     Route.Overview -> {
-                        OverviewScreen(client, alerts, nowTick) { service ->
-                            onRouteChange(Route.Service(service))
-                        }
+                        OverviewScreen(
+                            client = client,
+                            alerts = alerts,
+                            nowMs = nowTick,
+                            contentPadding = DesktopContentPadding,
+                            onSelect = { service -> onRouteChange(Route.Service(service)) },
+                        )
                     }
 
                     Route.Alerts -> {
-                        AlertsScreen(client, services, alerts, nowMs = nowTick)
+                        AlertsScreen(client, services, alerts, nowMs = nowTick, contentPadding = DesktopContentPadding)
                     }
 
                     // На десктопе список сервисов всегда в рельсе, отдельного экрана для него нет —
                     // но `route` переживает смену раскладки: можно открыть «Сервисы» в узком окне и
                     // расширить его, не переключая вкладку. Показываем Обзор как разумный дефолт.
                     Route.Services -> {
-                        OverviewScreen(client, alerts, nowTick) { service ->
-                            onRouteChange(Route.Service(service))
-                        }
+                        OverviewScreen(
+                            client = client,
+                            alerts = alerts,
+                            nowMs = nowTick,
+                            contentPadding = DesktopContentPadding,
+                            onSelect = { service -> onRouteChange(Route.Service(service)) },
+                        )
                     }
 
                     is Route.Service -> {
@@ -203,9 +223,15 @@ private fun DesktopShell(
                         // сервис вдруг пропал из списка, используем последнюю известную,
                         // чтобы экран не схлопывался в пустоту посреди просмотра.
                         val fresh = services.firstOrNull { it.id == current.summary.id } ?: current.summary
-                        ServiceScreen(client, fresh, alerts, nowTick, current.tab) { newTab ->
-                            onRouteChange(current.copy(summary = fresh, tab = newTab))
-                        }
+                        ServiceScreen(
+                            client = client,
+                            service = fresh,
+                            alerts = alerts,
+                            nowMs = nowTick,
+                            tab = current.tab,
+                            contentPadding = DesktopContentPadding,
+                            onTabChange = { newTab -> onRouteChange(current.copy(summary = fresh, tab = newTab)) },
+                        )
                     }
                 }
             }
@@ -232,14 +258,9 @@ private fun MobileShell(
         }
 
     Column(Modifier.fillMaxSize()) {
-        Column(
-            Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
-        ) {
+        Column(Modifier.weight(1f).fillMaxWidth()) {
             if (error != null) {
-                ErrorBanner(error)
+                Box(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) { ErrorBanner(error) }
             }
 
             Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -250,19 +271,23 @@ private fun MobileShell(
                             alerts = alerts,
                             nowMs = nowTick,
                             compact = true,
+                            contentPadding = MobileContentPadding,
                             onSelect = { service -> onRouteChange(Route.Service(service)) },
                             onOpenAlerts = { onRouteChange(Route.Alerts) },
                         )
                     }
 
                     Route.Alerts -> {
-                        AlertsScreen(client, services, alerts, compact = true, nowMs = nowTick)
+                        AlertsScreen(client, services, alerts, compact = true, nowMs = nowTick, contentPadding = MobileContentPadding)
                     }
 
                     Route.Services -> {
-                        MobileServicesListScreen(services, selectedServiceId = null) { service ->
-                            onRouteChange(Route.Service(service))
-                        }
+                        MobileServicesListScreen(
+                            services = services,
+                            selectedServiceId = null,
+                            contentPadding = MobileContentPadding,
+                            onSelect = { service -> onRouteChange(Route.Service(service)) },
+                        )
                     }
 
                     is Route.Service -> {
@@ -274,6 +299,7 @@ private fun MobileShell(
                             nowMs = nowTick,
                             tab = current.tab,
                             compact = true,
+                            contentPadding = MobileContentPadding,
                             onBack = { onRouteChange(Route.Services) },
                             onTabChange = { newTab -> onRouteChange(current.copy(summary = fresh, tab = newTab)) },
                         )

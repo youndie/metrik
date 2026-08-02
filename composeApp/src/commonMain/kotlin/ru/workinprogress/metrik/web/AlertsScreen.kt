@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -69,6 +70,7 @@ fun AlertsScreen(
     alerts: List<AlertView>,
     compact: Boolean = false,
     nowMs: () -> Long,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val scope = rememberCoroutineScope()
     val zone = remember { TimeZone.currentSystemDefault() }
@@ -153,7 +155,10 @@ fun AlertsScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        // Паддинг применяется ПОСЛЕ verticalScroll и потому едет вместе с контентом. Если
+        // повесить его снаружи (на контейнер шелла), вьюпорт сужается, и контент режется по
+        // внутренней границе — выглядит так, будто он скроллится внутри рамки.
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(if (compact) Spacing.md else Spacing.xl),
     ) {
         if (compact) {

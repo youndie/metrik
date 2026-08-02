@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -166,6 +167,7 @@ fun ServiceScreen(
     compact: Boolean = false,
     onBack: () -> Unit = {},
     onTabChange: (Int) -> Unit,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     var range by remember(service.id) { mutableStateOf(Range.HOUR) }
     var series by remember { mutableStateOf<TimeSeries?>(null) }
@@ -198,7 +200,10 @@ fun ServiceScreen(
     // содержимое активной вкладки; теперь всё, включая шапку, едет вместе (то же решение, что и на
     // «Обзоре»/«Алертах» — см. итоговый отчёт задания).
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        // Паддинг применяется ПОСЛЕ verticalScroll и потому едет вместе с контентом. Если
+        // повесить его снаружи (на контейнер шелла), вьюпорт сужается, и контент режется по
+        // внутренней границе — выглядит так, будто он скроллится внутри рамки.
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         if (compact) {
