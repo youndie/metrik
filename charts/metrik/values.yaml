@@ -1,0 +1,40 @@
+image:
+  repository: ghcr.io/youndie/metrik
+  tag: latest
+  pullPolicy: IfNotPresent
+
+web:
+  repository: ghcr.io/youndie/metrik-web
+  tag: latest
+
+# Ingest-key инсталляции. Один на всю установку; сервер не стартует без него.
+# В проде подставляется из существующего секрета: existingSecret + secretKey.
+ingestKey: ""
+existingSecret: ""
+secretKey: ingest-key
+
+telegram:
+  token: ""
+  chatId: ""
+
+# Пусто — админ любой, кто прошёл reverse proxy.
+admins: ""
+
+retentionHours: 48
+
+persistence:
+  size: 5Gi
+  storageClass: ""
+
+ingress:
+  enabled: false
+  className: ""
+  host: metrik.example.com
+  annotations: {}
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 256Mi

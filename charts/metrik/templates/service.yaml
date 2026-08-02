@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-metrik
+spec:
+  selector:
+    app: {{ .Release.Name }}-metrik
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+    - name: web
+      port: 80
+      targetPort: web
+---
+# Отдельный Service под UDP: ingress его не проксирует и не должен — порт остаётся
+# внутрикластерным, агенты ходят на metrik-ingest:9999 (docs/research §Р7).
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-metrik-ingest
+spec:
+  selector:
+    app: {{ .Release.Name }}-metrik
+  ports:
+    - name: ingest
+      port: 9999
+      targetPort: ingest
+      protocol: UDP

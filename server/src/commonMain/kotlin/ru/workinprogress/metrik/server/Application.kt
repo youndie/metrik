@@ -19,6 +19,7 @@ import kotlinx.coroutines.runBlocking
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import okio.SYSTEM
+import ru.workinprogress.metrik.agent.Metrik
 import ru.workinprogress.metrik.server.alert.AlertNotifier
 import ru.workinprogress.metrik.server.alert.AlertWorker
 import ru.workinprogress.metrik.server.alert.NoopNotifier
@@ -31,6 +32,7 @@ import ru.workinprogress.metrik.server.query.QueryService
 import ru.workinprogress.metrik.server.query.adminRoutes
 import ru.workinprogress.metrik.server.query.alertRoutes
 import ru.workinprogress.metrik.server.query.queryRoutes
+import ru.workinprogress.metrik.server.retention.RetentionWorker
 import ru.workinprogress.metrik.wire.MetrikJson
 
 fun main() {
@@ -89,11 +91,27 @@ fun Application.module(
         }
     val alerts = AlertWorker(db, admin, notifier)
 
+    val retention = RetentionWorker(db, minuteRetentionMs = config.retentionHours * 60 * 60 * 1000)
+
     alerts.start(this)
-    monitor.subscribe(ApplicationStopping) { alerts.stop() }
+    retention.start(this)
+    monitor.subscribe(ApplicationStopping) {
+        alerts.stop()
+        retention.stop()
+    }
 
     receiver.start(this)
     monitor.subscribe(ApplicationStopping) { receiver.stop() }
+
+    // Dogfooding: сервер мониторинга, которого не видно, — плохой сервер мониторинга.
+    // Метрики уходят в собственный UDP-порт тем же агентом, что и у чужих сервисов.
+    config.selfService?.let { name ->
+        install(Metrik) {
+            service = name
+            apiKey = config.ingestKey
+            endpoint = "127.0.0.1:${config.udpPort}"
+        }
+    }
 
     install(ContentNegotiation) { json(MetrikJson) }
 

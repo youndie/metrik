@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-metrik
+spec:
+  replicas: 1
+  # База — файл на диске: второй экземпляр писал бы в неё же. Обновление только Recreate.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-metrik
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-metrik
+    spec:
+      containers:
+        - name: server
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: ingest
+              containerPort: 9999
+              protocol: UDP
+          env:
+            - name: METRIK_INGEST_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret | default (printf "%s-metrik" .Release.Name) }}
+                  key: {{ .Values.secretKey }}
+            - name: METRIK_RETENTION_HOURS
+              value: {{ .Values.retentionHours | quote }}
+            - name: METRIK_ADMINS
+              value: {{ .Values.admins | quote }}
+            {{- with .Values.telegram.token }}
+            - name: METRIK_TELEGRAM_TOKEN
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.telegram.chatId }}
+            - name: METRIK_TELEGRAM_CHAT_ID
+              value: {{ . | quote }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+        - name: web
+          image: "{{ .Values.web.repository }}:{{ .Values.web.tag }}"
+          ports:
+            - name: web
+              containerPort: 80
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-metrik-data

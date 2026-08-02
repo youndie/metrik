@@ -108,6 +108,8 @@ method, route, status)`.
 | `METRIK_TELEGRAM_CHAT_ID` | — | чат по умолчанию; на сервис можно переопределить |
 | `METRIK_RETENTION_HOURS` | `48` | минутные окна |
 | `METRIK_ALERT_*` | см. [feature-alerting](../features/feature-alerting.md) | дефолтные пороги правил |
+| `METRIK_ADMINS` | пусто | email'ы админов через запятую; пусто = админ любой прошедший прокси |
+| `METRIK_SELF_SERVICE` | пусто | имя, под которым сервер мониторит сам себя; пусто = выключено |
 
 ### Как заводится сервис
 

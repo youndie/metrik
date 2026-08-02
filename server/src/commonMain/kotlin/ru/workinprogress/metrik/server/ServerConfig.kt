@@ -15,6 +15,8 @@ class ServerConfig(
     val retentionHours: Long = 48,
     val telegramToken: String? = null,
     val telegramChatId: String? = null,
+    /** Имя, под которым metrik-server мониторит сам себя. `null` — самонаблюдение выключено. */
+    val selfService: String? = null,
 ) {
     companion object {
         fun fromEnv(): ServerConfig {
@@ -39,6 +41,7 @@ class ServerConfig(
                 retentionHours = readEnv("METRIK_RETENTION_HOURS")?.toLongOrNull() ?: 48,
                 telegramToken = readEnv("METRIK_TELEGRAM_TOKEN"),
                 telegramChatId = readEnv("METRIK_TELEGRAM_CHAT_ID"),
+                selfService = readEnv("METRIK_SELF_SERVICE"),
             )
         }
     }
