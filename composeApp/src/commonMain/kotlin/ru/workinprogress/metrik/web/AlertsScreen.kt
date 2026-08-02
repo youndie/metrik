@@ -1,6 +1,7 @@
 package ru.workinprogress.metrik.web
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -217,12 +218,15 @@ private fun TestAlertButton(client: MetrikClient) {
     val scope = rememberCoroutineScope()
     var state by remember { mutableStateOf<TestAlertState>(TestAlertState.Idle) }
 
+    // Кнопка намеренно тихая: обвод вместо заливки, обычный вес, компактная высота.
+    // Это служебная проверка настройки, которую нажимают раз в жизни, — заливка primary
+    // делала её самым громким элементом экрана, где главное всё-таки горящие алерты.
     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Box(
             Modifier
-                .height(56.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(MaterialTheme.colorScheme.primary)
+                .height(36.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
                 .clickable(enabled = state != TestAlertState.Sending) {
                     state = TestAlertState.Sending
                     scope.launch {
@@ -233,14 +237,13 @@ private fun TestAlertButton(client: MetrikClient) {
                                     onFailure = { e -> TestAlertState.Failed(e.message ?: "нет связи с сервером") },
                                 )
                     }
-                }.padding(horizontal = Spacing.xl + Spacing.xs),
+                }.padding(horizontal = Spacing.lg),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 if (state == TestAlertState.Sending) "Отправляем…" else "Отправить тестовое",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimary,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         when (val s = state) {

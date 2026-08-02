@@ -124,6 +124,17 @@ data class AlertView(
     val mutedUntil: Long? = null,
 )
 
+/**
+ * Ответ на `POST /api/admin/alerts/test`.
+ *
+ * Живёт здесь, а не копией в клиенте: копия контракта не только протухает, но и ломается —
+ * Ktor подбирает сериализатор по типу, и для приватного класса на wasm этот поиск падает.
+ */
+@Serializable
+data class TestNotificationResult(
+    val delivered: Boolean,
+)
+
 /** Порог правила: либо дефолт инсталляции, либо переопределение сервиса. */
 @Serializable
 data class AlertRuleView(

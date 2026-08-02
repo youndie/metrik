@@ -12,6 +12,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import ru.workinprogress.metrik.api.Step
+import ru.workinprogress.metrik.api.TestNotificationResult
 import ru.workinprogress.metrik.server.ServerConfig
 import ru.workinprogress.metrik.server.alert.AlertWorker
 import kotlin.time.Clock
@@ -186,11 +187,6 @@ fun Route.alertTestRoute(
         call.respond(TestNotificationResult(delivered = delivered))
     }
 }
-
-@kotlinx.serialization.Serializable
-data class TestNotificationResult(
-    val delivered: Boolean,
-)
 
 private suspend fun ApplicationCall.serviceId(): Long? {
     val id = parameters["id"]?.toLongOrNull()

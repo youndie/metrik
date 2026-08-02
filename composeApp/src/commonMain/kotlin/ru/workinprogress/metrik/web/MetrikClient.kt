@@ -14,7 +14,6 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import ru.workinprogress.metrik.api.AlertRuleView
 import ru.workinprogress.metrik.api.AlertView
@@ -24,6 +23,7 @@ import ru.workinprogress.metrik.api.ServiceSummary
 import ru.workinprogress.metrik.api.SlowRow
 import ru.workinprogress.metrik.api.Step
 import ru.workinprogress.metrik.api.SystemPoint
+import ru.workinprogress.metrik.api.TestNotificationResult
 import ru.workinprogress.metrik.api.TimeSeries
 
 /**
@@ -161,12 +161,6 @@ class MetrikClient(
      */
     suspend fun sendTestAlert(): Boolean = client.post("$baseUrl/api/admin/alerts/test").body<TestNotificationResult>().delivered
 }
-
-/** Локальная копия ответа `POST /admin/alerts/test` — DTO живёт только на сервере, трогать server/ нельзя. */
-@Serializable
-private data class TestNotificationResult(
-    val delivered: Boolean,
-)
 
 private fun io.ktor.client.request.HttpRequestBuilder.range(
     from: Long,

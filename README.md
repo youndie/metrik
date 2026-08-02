@@ -7,6 +7,7 @@
 [![wasm](https://img.shields.io/badge/Wasm-purple?logoColor=white)](https://kotlinlang.org)
 [![metrik agent](https://reposilite.kotlin.website/api/badge/latest/snapshots/ru/workinprogress/metrik/agent?name=agent&color=40c14a&prefix=v)](https://reposilite.kotlin.website/#/snapshots/ru/workinprogress/metrik/agent)
 [![Docker Image Version](https://img.shields.io/badge/server-latest-blue?logo=docker)](https://github.com/youndie/metrik/pkgs/container/metrik)
+[![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Lightweight monitoring for Ktor services, written in Kotlin with a focus on portability and extremely
 low overhead.
@@ -155,3 +156,7 @@ with BDD scenarios, the wire protocol, and per-service documentation. Written in
 
 The research document is worth reading before changing anything: several decisions here are
 counter-intuitive and were made against evidence, not taste.
+
+## License
+
+[MIT](LICENSE).
