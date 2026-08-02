@@ -26,11 +26,22 @@ persistence:
   size: 5Gi
   storageClass: ""
 
+# Вариант 1: обычный Ingress.
 ingress:
   enabled: false
   className: ""
   host: metrik.example.com
   annotations: {}
+
+# Вариант 2: Traefik IngressRoute (контур с oauth2-proxy).
+# Аутентификации у metrik нет — authMiddleware обязателен, иначе дашборд открыт всем.
+traefik:
+  enabled: false
+  hostname: metrik.example.com
+  certResolver: cloudflare
+  authMiddleware:
+    name: ""
+  middlewares: []
 
 resources:
   requests:

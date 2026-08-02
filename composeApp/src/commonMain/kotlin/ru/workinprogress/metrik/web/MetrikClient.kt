@@ -3,7 +3,9 @@ package ru.workinprogress.metrik.web
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -20,14 +22,21 @@ import ru.workinprogress.metrik.api.TimeSeries
  * Клиент к metrik-server.
  *
  * Base URL пустой в проде: дашборд и API стоят за одним хостом, разводка по путям на ingress.
- * Для отладки на desktop его задаёт [MetrikClient] явно.
+ * Для отладки на desktop его задаёт вызывающий.
+ *
+ * [user] тоже нужен только для отладки: в проде заголовок `X-Auth-Request-User` проставляет
+ * reverse proxy, а при локальном запуске прокси нет и сервер отвечал бы 401 на всё.
  */
 class MetrikClient(
     private val baseUrl: String = "",
+    user: String? = null,
     private val client: HttpClient =
         HttpClient {
             install(ContentNegotiation) {
                 json(Json { ignoreUnknownKeys = true })
+            }
+            if (user != null) {
+                defaultRequest { header("X-Auth-Request-User", user) }
             }
         },
 ) {

@@ -14,11 +14,12 @@ import kotlin.time.ExperimentalTime
 @OptIn(ExperimentalTime::class)
 fun main() {
     val baseUrl = System.getenv("METRIK_URL") ?: "http://127.0.0.1:8080"
+    val user = System.getenv("METRIK_USER") ?: "local"
 
     application {
         Window(onCloseRequest = ::exitApplication, title = "metrik") {
             App(
-                client = MetrikClient(baseUrl),
+                client = MetrikClient(baseUrl, user),
                 nowMs = { Clock.System.now().toEpochMilliseconds() },
             )
         }
