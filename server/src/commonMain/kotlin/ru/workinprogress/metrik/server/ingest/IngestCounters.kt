@@ -61,6 +61,7 @@ class IngestCounters {
 /** Счётчики агента внутри этого же процесса — только при включённом самонаблюдении. */
 @Serializable
 data class AgentStats(
+    val loops: Int,
     val windows: Int,
     val dropped: Int,
     val sendFailures: Int,

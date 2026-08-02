@@ -42,12 +42,20 @@ class AgentCounters {
     internal val oversizedCounter = AtomicInt(0)
 
     internal val windowCounter = AtomicInt(0)
+    internal val loopCounter = AtomicInt(0)
 
     /** Замеры, не влезшие в очередь. */
     val dropped: Int get() = droppedCounter.load()
 
-    /** Сколько окон агент закрыл и попытался отправить. Ноль здесь означает, что цикл не крутится. */
+    /** Сколько окон агент закрыл и попытался отправить. */
     val windows: Int get() = windowCounter.load()
+
+    /**
+     * Итерации цикла окон. Ноль означает, что корутина агента вообще не получила выполнения;
+     * ненулевое значение при нулевых [windows] — что не срабатывает таймер окна.
+     * Без этого различия «данных нет» диагностике не поддаётся.
+     */
+    val loops: Int get() = loopCounter.load()
 
     /** Окна, которые не удалось отправить. */
     val sendFailures: Int get() = sendFailureCounter.load()
@@ -105,6 +113,8 @@ class MetrikAgent(
         var windowStart = alignToWindow(nowMs())
 
         while (currentScopeIsActive()) {
+            counters.loopCounter.fetchAndIncrement()
+
             val deadline = windowStart + config.windowMs
             val remaining = deadline - nowMs()
 

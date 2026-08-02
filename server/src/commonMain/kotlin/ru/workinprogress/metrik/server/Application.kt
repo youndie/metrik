@@ -136,6 +136,7 @@ fun Application.module(
                         agent =
                             agentCounters?.let {
                                 AgentStats(
+                                    loops = it.loops,
                                     windows = it.windows,
                                     dropped = it.dropped,
                                     sendFailures = it.sendFailures,
