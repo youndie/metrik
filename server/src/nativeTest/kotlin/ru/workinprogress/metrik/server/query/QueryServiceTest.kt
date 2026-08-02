@@ -104,6 +104,21 @@ class QueryServiceTest {
         }
 
     @Test
+    fun `the service list should honour the requested period`() =
+        runTest {
+            // Given
+            send(windowStart = WINDOW)
+
+            // When — узкий интервал окно не захватывает, широкий захватывает.
+            val narrow = query.services(from = now - MINUTE, to = now)
+            val wide = query.services(from = WINDOW - MINUTE, to = now)
+
+            // Then — переключатель диапазона на дашборде обязан что-то менять.
+            assertEquals(0.0, narrow.single().requestsPerSecond)
+            assertTrue(wide.single().requestsPerSecond > 0)
+        }
+
+    @Test
     fun `error rate should count only server errors`() =
         runTest {
             // Given — 60 успешных и 40 пятисоток.

@@ -6,20 +6,23 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,70 +36,153 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import ru.workinprogress.metrik.api.AlertView
 import ru.workinprogress.metrik.api.ServiceSummary
 
 /**
  * Обзор: hero горящих алертов (если есть) и сетка карточек сервисов.
  *
- * Спарклайны карточек приходят отдельным поштучным опросом `timeseries` по каждому сервису — см.
- * [App] — поэтому это карта id → точки, а не часть [ServiceSummary].
+ * Экран сам себе хозяин по данным сервисов: в отличие от рельса (который всегда «живой», последние
+ * 5 минут — см. [MetrikClient.services]) здесь есть переключатель диапазона, и он обязан реально
+ * перезапрашивать `/api/services` и спарклайны за выбранный период, а не просто перекрашивать кнопку
+ * (см. итоговый отчёт задания). Алерты по-прежнему общие с остальным приложением — `/api/alerts`
+ * периода не принимает.
  */
 @Composable
 fun OverviewScreen(
-    services: List<ServiceSummary>,
+    client: MetrikClient,
     alerts: List<AlertView>,
-    sparklines: Map<Long, List<ChartPoint>>,
-    loaded: Boolean,
+    nowMs: () -> Long,
+    compact: Boolean = false,
+    onOpenAlerts: () -> Unit = {},
     onSelect: (ServiceSummary) -> Unit,
 ) {
-    if (!loaded) {
-        LoadingState("загружаем список сервисов…")
-        return
-    }
-    if (services.isEmpty()) {
-        EmptyState("Пока ни один сервис не прислал метрик")
-        return
-    }
+    var range by remember { mutableStateOf(Range.HOUR) }
+    var services by remember { mutableStateOf<List<ServiceSummary>>(emptyList()) }
+    var sparklines by remember { mutableStateOf<Map<Long, List<ChartPoint>>>(emptyMap()) }
+    // Не привязан к range: иначе смена диапазона на мгновение схлопывала бы весь экран в спиннер
+    // вместо того, чтобы держать старые цифры до прихода новых (тот же приём, что и в App.kt).
+    var loaded by remember { mutableStateOf(false) }
 
-    val firing = alerts.filter { it.state.equals("firing", ignoreCase = true) }
-    val totalInstances = services.sumOf { it.instances }
-    // Селектор диапазона визуальный: /api/services всегда отдаёт последние 5 минут и период не
-    // принимает (docs/api/endpoint-query.md) — переключение здесь ничего не запросит заново.
-    var cosmeticRange by remember { mutableStateOf(Range.HOUR) }
-
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Text(
-                    "${services.size} " + pluralRu(services.size, "СЕРВИС", "СЕРВИСА", "СЕРВИСОВ") +
-                        " · $totalInstances " + pluralRu(totalInstances, "ИНСТАНС", "ИНСТАНСА", "ИНСТАНСОВ"),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-                Text(
-                    "Обзор",
-                    style = MaterialTheme.typography.displayLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+    LaunchedEffect(range) {
+        while (true) {
+            runCatching {
+                val to = nowMs()
+                val from = to - range.ms
+                val freshServices = client.services(from, to)
+                val deferredByService =
+                    coroutineScope {
+                        freshServices.map { service ->
+                            service.id to
+                                async {
+                                    runCatching { client.timeSeries(service.id, from, to, range.step) }.getOrNull()
+                                }
+                        }
+                    }
+                val freshSparklines = LinkedHashMap<Long, List<ChartPoint>>()
+                for ((serviceId, deferred) in deferredByService) {
+                    val points = deferred.await()?.points?.toChart { it.requestsPerSecond } ?: emptyList()
+                    freshSparklines[serviceId] = points
+                }
+                services = freshServices
+                sparklines = freshSparklines
             }
-            RangeSelector(cosmeticRange, { cosmeticRange = it })
+            loaded = true
+            delay(REFRESH_MS)
+        }
+    }
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(if (compact) Spacing.md else Spacing.xl),
+    ) {
+        if (!loaded) {
+            LoadingState("загружаем список сервисов…")
+            return@Column
+        }
+        if (services.isEmpty()) {
+            EmptyState("Пока ни один сервис не прислал метрик")
+            return@Column
+        }
+
+        val firing = alerts.filter { it.state.equals("firing", ignoreCase = true) }
+        val totalInstances = services.sumOf { it.instances }
+
+        if (compact) {
+            Text(
+                "Обзор",
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            RangeSelector(range, { range = it }, Modifier.fillMaxWidth())
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(
+                        "${services.size} " + pluralRu(services.size, "СЕРВИС", "СЕРВИСА", "СЕРВИСОВ") +
+                            " · $totalInstances " + pluralRu(totalInstances, "ИНСТАНС", "ИНСТАНСА", "ИНСТАНСОВ"),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    Text(
+                        "Обзор",
+                        style = MaterialTheme.typography.displayLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                RangeSelector(range, { range = it })
+            }
         }
 
         if (firing.isNotEmpty()) {
-            AlertsHero(firing)
+            if (compact) {
+                AlertsHeroCompact(firing, onOpenAlerts)
+            } else {
+                AlertsHero(firing)
+            }
         }
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
-        ) {
-            items(services, key = { it.id }) { service ->
-                ServiceGridCard(service, alerts, sparklines[service.id]) { onSelect(service) }
+        if (compact) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                services.forEach { service ->
+                    MobileServiceRow(service, alerts, sparklines[service.id]) { onSelect(service) }
+                }
+            }
+        } else {
+            ServiceGrid(services, alerts, sparklines, onSelect)
+        }
+    }
+}
+
+/**
+ * Сетка карточек сервисов — обычный `Column` из `Row`, а не `LazyVerticalGrid`: экран целиком
+ * теперь одна прокручиваемая область ([OverviewScreen]), а вложенный ленивый скролл внутри чужого
+ * `verticalScroll` либо падает с «measured with an infinity maximum height», либо требует
+ * фиксированной высоты, которую тут взять неоткуда. Сервисов на инсталляцию — единицы-десятки
+ * (см. комментарий в [NavRail]), так что обычная раскладка ничего не стоит по производительности.
+ */
+@Composable
+private fun ServiceGrid(
+    services: List<ServiceSummary>,
+    alerts: List<AlertView>,
+    sparklines: Map<Long, List<ChartPoint>>,
+    onSelect: (ServiceSummary) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+        services.chunked(3).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                row.forEach { service ->
+                    Box(Modifier.weight(1f)) {
+                        ServiceGridCard(service, alerts, sparklines[service.id]) { onSelect(service) }
+                    }
+                }
+                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
@@ -144,6 +230,92 @@ private fun AlertsHero(firing: List<AlertView>) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             firing.forEach { alert -> FiringAlertRow(alert) }
         }
+    }
+}
+
+/**
+ * Компактный hero для мобильной раскладки (`docs/design/metrik-expressive.html`, «mobile: обзор»):
+ * число+подпись в одной строке с кнопкой «Смотреть», список алертов ниже. В отличие от макета кнопка
+ * не декоративная — переводит на экран «Алерты» ([onOpenAlerts]), эндпоинт для этого не нужен.
+ */
+@Composable
+private fun AlertsHeroCompact(
+    firing: List<AlertView>,
+    onOpenAlerts: () -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomEnd = 28.dp, bottomStart = 36.dp))
+            .background(MaterialTheme.colorScheme.errorContainer)
+            .padding(horizontal = Spacing.xl - Spacing.xs, vertical = Spacing.lg + Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Text(
+                firing.size.toString(),
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Text(
+                pluralRu(firing.size, "алерт", "алерта", "алертов") + "\nгорят",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Box(
+                Modifier
+                    .weight(1f, fill = false)
+                    .height(34.dp)
+                    .clip(RoundedCornerShape(17.dp))
+                    .background(MaterialTheme.colorScheme.onErrorContainer)
+                    .clickable(onClick = onOpenAlerts)
+                    .padding(horizontal = Spacing.lg),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "Смотреть",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.errorContainer,
+                )
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            firing.forEach { alert -> FiringAlertRowCompact(alert) }
+        }
+    }
+}
+
+@Composable
+private fun FiringAlertRowCompact(alert: AlertView) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.10f))
+            .padding(horizontal = Spacing.md + Spacing.xs, vertical = Spacing.sm + Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm + Spacing.xs),
+    ) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onErrorContainer))
+        Text(
+            alert.service,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            alert.ruleId,
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.error,
+        )
     }
 }
 
@@ -333,6 +505,76 @@ private fun ServiceGridCard(
                     modifier = Modifier.weight(1f),
                 )
             }
+        }
+    }
+}
+
+/**
+ * Строка сервиса для мобильной раскладки («mobile: обзор» в макете) — имя+ошибки/p95 слева,
+ * спарклайн, rps справа. Те же данные, что в [ServiceGridCard], просто в один ряд вместо карточки:
+ * на 390dp ширины трёхколоночная сетка не помещается.
+ */
+@Composable
+private fun MobileServiceRow(
+    service: ServiceSummary,
+    alerts: List<AlertView>,
+    sparkline: List<ChartPoint>?,
+    onClick: () -> Unit,
+) {
+    val firing = service.firingAlerts.isNotEmpty()
+    val shape =
+        if (firing) {
+            RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomEnd = 20.dp, bottomStart = 28.dp)
+        } else {
+            RoundedCornerShape(20.dp)
+        }
+    val bg = if (firing) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surface
+    val fg = if (firing) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface
+    val dim = if (firing) MaterialTheme.colorScheme.error else MetrikExtra.dim
+    val accent =
+        when {
+            firing -> MaterialTheme.colorScheme.onErrorContainer
+            service.clockSkew -> MaterialTheme.colorScheme.tertiary
+            else -> MetrikExtra.healthy
+        }
+    val neverSeen = service.lastSeenAt == null
+    val rpsLabel = if (neverSeen) "—" else format(service.requestsPerSecond)
+    val errLabel = if (neverSeen) "—" else "${format(service.errorRate * 100)} %"
+    val p95Label = if (neverSeen) "—" else "${format(service.p95Ms)} мс"
+
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(horizontal = Spacing.lg + Spacing.xs, vertical = Spacing.md + Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md + Spacing.xs),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(
+                service.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.SemiBold,
+                color = fg,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Text("$errLabel ош.", style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = dim)
+                Text("p95 $p95Label", style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = dim)
+            }
+        }
+        Box(Modifier.width(72.dp).height(32.dp)) {
+            if (!sparkline.isNullOrEmpty() && sparkline.any { it.value != null }) {
+                Sparkline(sparkline, accent, Modifier.fillMaxSize())
+            }
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text(rpsLabel, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = fg)
+            Text("rps", style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = dim)
         }
     }
 }

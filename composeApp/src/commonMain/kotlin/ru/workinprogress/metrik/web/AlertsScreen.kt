@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -40,12 +39,22 @@ import ru.workinprogress.metrik.api.ServiceSummary
  * Ни то, ни другое не подключено: под них нет эндпоинтов в docs/api/endpoint-query.md (единственная
  * мутация в контракте — `PUT .../alerts` для порогов, и то админская). Кнопки нарисованы по
  * макету, но не имеют действия — см. итоговый отчёт.
+ *
+ * Весь экран — одна прокручиваемая область: «Горят сейчас», «История срабатываний» и «Пороги»
+ * раньше скроллились независимо внутри своих карточек, теперь один `verticalScroll` на весь Column,
+ * а карточки просто растут по контенту.
+ *
+ * На мобильной раскладке ([compact]) панели «Пороги» нет вовсе — в макете (`docs/design/
+ * metrik-expressive.html`, «mobile: алерты») её тоже нет, редактирование порогов — desktop/admin
+ * сценарий, а кнопка «Отправить тестовое» на мобильном не поместилась бы рядом с заголовком без
+ * потери читаемости, поэтому там тоже её нет.
  */
 @Composable
 fun AlertsScreen(
     client: MetrikClient,
     services: List<ServiceSummary>,
     alerts: List<AlertView>,
+    compact: Boolean = false,
     nowMs: () -> Long,
 ) {
     val firing = alerts.filter { it.state.equals("firing", ignoreCase = true) }
@@ -63,59 +72,79 @@ fun AlertsScreen(
     var rules by remember { mutableStateOf<List<AlertRuleView>?>(null) }
     var rulesDenied by remember { mutableStateOf(false) }
 
-    LaunchedEffect(rulesService?.id) {
+    LaunchedEffect(rulesService?.id, compact) {
         rules = null
         rulesDenied = false
+        if (compact) return@LaunchedEffect
         val id = rulesService?.id ?: return@LaunchedEffect
         runCatching { client.adminAlertRules(id) }
             .onSuccess { rules = it }
             .onFailure { rulesDenied = true }
     }
 
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Text(
-                    "TELEGRAM · КУЛДАУН 15 МИН",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-                Text(
-                    "Алерты",
-                    style = MaterialTheme.typography.displayLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            // Декоративная кнопка — эндпоинта «отправить тестовое сообщение» в контракте нет.
-            Box(
-                Modifier
-                    .height(56.dp)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(MaterialTheme.colorScheme.primary)
-                    .padding(horizontal = Spacing.xl + Spacing.xs),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    "Отправить тестовое",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(if (compact) Spacing.md else Spacing.xl),
+    ) {
+        if (compact) {
+            Text(
+                "Алерты",
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(
+                        "TELEGRAM · КУЛДАУН 15 МИН",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    Text(
+                        "Алерты",
+                        style = MaterialTheme.typography.displayLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                // Декоративная кнопка — эндпоинта «отправить тестовое сообщение» в контракте нет.
+                Box(
+                    Modifier
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(horizontal = Spacing.xl + Spacing.xs),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Отправить тестовое",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
             }
         }
 
-        Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(Spacing.xl - Spacing.xs)) {
-            Column(Modifier.weight(1.25f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                if (firing.isNotEmpty()) {
-                    FiringRulesCard(firing, totalRules, nowMs)
-                }
-                HistoryCard(alerts, nowMs, Modifier.weight(1f))
+        if (compact) {
+            if (firing.isNotEmpty()) {
+                FiringRulesCard(firing, totalRules, nowMs, compact = true)
             }
+            HistoryCard(alerts, nowMs)
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xl - Spacing.xs)) {
+                Column(Modifier.weight(1.25f), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                    if (firing.isNotEmpty()) {
+                        FiringRulesCard(firing, totalRules, nowMs, compact = false)
+                    }
+                    HistoryCard(alerts, nowMs)
+                }
 
-            Column(Modifier.weight(1f).fillMaxHeight()) {
-                ThresholdsCard(rulesService, rules, rulesDenied)
+                Column(Modifier.weight(1f)) {
+                    ThresholdsCard(rulesService, rules, rulesDenied)
+                }
             }
         }
     }
@@ -126,30 +155,48 @@ private fun FiringRulesCard(
     firing: List<AlertView>,
     totalRules: Int,
     nowMs: () -> Long,
+    compact: Boolean,
 ) {
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomEnd = 32.dp, bottomStart = 40.dp))
-            .background(MaterialTheme.colorScheme.errorContainer)
-            .padding(horizontal = Spacing.xl, vertical = Spacing.xl - Spacing.sm),
+            .clip(
+                RoundedCornerShape(
+                    topStart = if (compact) 28.dp else 32.dp,
+                    topEnd = if (compact) 28.dp else 32.dp,
+                    bottomEnd = if (compact) 28.dp else 32.dp,
+                    bottomStart = if (compact) 36.dp else 40.dp,
+                ),
+            ).background(MaterialTheme.colorScheme.errorContainer)
+            .padding(horizontal = if (compact) Spacing.lg + Spacing.xs else Spacing.xl, vertical = Spacing.xl - Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        if (compact) {
             Text(
-                "Горят сейчас",
-                style = MaterialTheme.typography.titleLarge,
+                "Горят сейчас · ${firing.size}",
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )
-            Text(
-                "${firing.size} из $totalRules правил",
-                style = MaterialTheme.typography.labelMedium,
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.error,
-            )
+        } else {
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Text(
+                    "Горят сейчас",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                Text(
+                    "${firing.size} из $totalRules правил",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
-        firing.forEach { alert -> FiringRuleRow(alert, nowMs) }
+        firing.forEach { alert ->
+            if (compact) FiringRuleRowCompact(alert, nowMs) else FiringRuleRow(alert, nowMs)
+        }
     }
 }
 
@@ -207,14 +254,86 @@ private fun FiringRuleRow(
     }
 }
 
+/** Компактная строка горящего правила — «mobile: алерты»: детали в две строки, кнопки под ними. */
+@Composable
+private fun FiringRuleRowCompact(
+    alert: AlertView,
+    nowMs: () -> Long,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.10f))
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md + Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm + Spacing.xs)) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onErrorContainer))
+            Text(
+                alert.service,
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                relativeAgo(nowMs(), alert.since),
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        Text(
+            alert.detail ?: "",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            // Обе кнопки декоративные — см. заголовок файла: mute- и переходного эндпоинтов нет,
+            // а «к сервису» в макете подразумевает переход, для которого этому экрану неоткуда
+            // взять callback навигации по сервису (алерт хранит только имя, не id).
+            Box(
+                Modifier
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.onErrorContainer)
+                    .padding(horizontal = Spacing.md + Spacing.xs),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "Заглушить 1 ч",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.errorContainer,
+                )
+            }
+            Box(
+                Modifier
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .padding(horizontal = Spacing.md + Spacing.xs),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "К сервису",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun HistoryCard(
     alerts: List<AlertView>,
     nowMs: () -> Long,
-    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier
+        Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(32.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
@@ -230,10 +349,7 @@ private fun HistoryCard(
         if (alerts.isEmpty()) {
             EmptyState("нет данных")
         } else {
-            Column(
-                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 val sorted = alerts.sortedByDescending { it.since }
                 sorted.forEachIndexed { index, alert ->
                     HistoryRow(alert, nowMs(), historyRowShape(index, sorted.size))
@@ -308,7 +424,6 @@ private fun ThresholdsCard(
     Column(
         Modifier
             .fillMaxWidth()
-            .fillMaxHeight()
             .clip(RoundedCornerShape(32.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .padding(Spacing.xl),
@@ -346,7 +461,7 @@ private fun ThresholdsCard(
             }
 
             else -> {
-                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     rules.forEach { rule -> ThresholdCard(rule) }
                 }
             }

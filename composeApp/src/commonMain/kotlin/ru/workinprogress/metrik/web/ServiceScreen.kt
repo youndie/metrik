@@ -2,6 +2,7 @@ package ru.workinprogress.metrik.web
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -37,6 +38,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -109,23 +111,28 @@ private val ServiceTabTitles = listOf("Графики", "Маршруты", "М�
 private fun ServiceTabBar(
     selected: Int,
     onSelect: (Int) -> Unit,
+    compact: Boolean = false,
 ) {
+    // На мобильной ширине четыре вкладки в полный размер не помещаются (макет показывает урезанный
+    // ряд с overflow:hidden) — вместо того чтобы тихо прятать «Система», делаем ряд горизонтально
+    // прокручиваемым: все вкладки остаются достижимы, просто не все видны одновременно.
+    val rowModifier = if (compact) Modifier.horizontalScroll(rememberScrollState()) else Modifier
     Row(
-        Modifier
-            .clip(RoundedCornerShape(26.dp))
+        rowModifier
+            .clip(RoundedCornerShape(if (compact) 19.dp else 26.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .padding(5.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(if (compact) 4.dp else 5.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp),
     ) {
         ServiceTabTitles.forEachIndexed { index, title ->
             val active = index == selected
             Box(
                 Modifier
-                    .height(42.dp)
-                    .clip(RoundedCornerShape(21.dp))
+                    .height(if (compact) 38.dp else 42.dp)
+                    .clip(RoundedCornerShape(if (compact) 19.dp else 21.dp))
                     .background(if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
                     .clickable { onSelect(index) }
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = if (compact) 18.dp else 24.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -145,8 +152,9 @@ private fun ServiceTabBar(
 }
 
 /**
- * Экран одного сервиса: четыре вкладки поверх общего заголовка. «Назад» больше нет — рельс
- * (см. [NavRail]) сам заменяет переход к обзору или к другому сервису.
+ * Экран одного сервиса: четыре вкладки поверх общего заголовка. На десктопе «назад» нет — рельс
+ * (см. [NavRail]) сам заменяет переход к обзору или к другому сервису. На мобильной раскладке
+ * рельса нет вовсе, поэтому там читается [onBack] — стрелка возвращает на мобильный список сервисов.
  */
 @Composable
 fun ServiceScreen(
@@ -155,6 +163,8 @@ fun ServiceScreen(
     alerts: List<AlertView>,
     nowMs: () -> Long,
     tab: Int,
+    compact: Boolean = false,
+    onBack: () -> Unit = {},
     onTabChange: (Int) -> Unit,
 ) {
     var range by remember(service.id) { mutableStateOf(Range.HOUR) }
@@ -183,35 +193,71 @@ fun ServiceScreen(
 
     val firingCount = service.firingAlerts.size
 
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                if (firingCount > 0 || service.instances > 0) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        if (firingCount > 0) FiringCountPill(firingCount)
-                        InstancesPill(service.instances)
-                    }
+    // Один скролл на весь экран — заголовок и вкладки раньше были прибиты, а прокручивалось только
+    // содержимое активной вкладки; теперь всё, включая шапку, едет вместе (то же решение, что и на
+    // «Обзоре»/«Алертах» — см. итоговый отчёт задания).
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+    ) {
+        if (compact) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Box(
+                    Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .clickable(onClick = onBack),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("←", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text(
                     service.name,
                     fontFamily = FontFamily.Monospace,
-                    style = MaterialTheme.typography.displaySmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
             }
-            RangeSelector(range, { range = it })
+            if (firingCount > 0 || service.instances > 0) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    if (firingCount > 0) FiringCountPill(firingCount)
+                    InstancesPill(service.instances)
+                }
+            }
+            RangeSelector(range, { range = it }, Modifier.fillMaxWidth())
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    if (firingCount > 0 || service.instances > 0) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            if (firingCount > 0) FiringCountPill(firingCount)
+                            InstancesPill(service.instances)
+                        }
+                    }
+                    Text(
+                        service.name,
+                        fontFamily = FontFamily.Monospace,
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                RangeSelector(range, { range = it })
+            }
         }
 
-        ServiceTabBar(tab, onTabChange)
+        ServiceTabBar(tab, onTabChange, compact)
 
-        Box(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            when (tab) {
-                0 -> ChartsTab(series, loaded, range)
-                1 -> RoutesTab(routes, loaded)
-                2 -> SlowTab(slow, loaded, nowMs)
-                else -> SystemTab(system, loaded)
-            }
+        when (tab) {
+            0 -> ChartsTab(series, loaded, range, compact)
+            1 -> RoutesTab(routes, loaded)
+            2 -> SlowTab(slow, loaded, nowMs)
+            else -> SystemTab(system, loaded)
         }
     }
 }
@@ -263,6 +309,7 @@ private fun ChartsTab(
     series: TimeSeries?,
     loaded: Boolean,
     range: Range,
+    compact: Boolean = false,
 ) {
     if (series == null) {
         if (loaded) EmptyState("нет данных") else LoadingState("загружаем графики…")
@@ -274,6 +321,7 @@ private fun ChartsTab(
     val lastRps = points.lastOrNull()?.takeUnless { it.partial }?.requestsPerSecond
     val maxRps = points.filterNot { it.partial }.maxOfOrNull { it.requestsPerSecond } ?: 0.0
     val partialCount = points.count { it.partial }
+    val heroHeight = if (compact) 128.dp else 236.dp
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         if (series.step != Step.MINUTE) {
@@ -320,7 +368,7 @@ private fun ChartsTab(
                 }
             }
 
-            Box(Modifier.fillMaxWidth().height(236.dp)) {
+            Box(Modifier.fillMaxWidth().height(heroHeight)) {
                 LineChart(
                     title = "",
                     points = rpsPoints,
@@ -328,7 +376,7 @@ private fun ChartsTab(
                     color = MaterialTheme.colorScheme.primary,
                     showGrid = true,
                     showHeader = false,
-                    height = 236.dp,
+                    height = heroHeight,
                 )
                 DeployLabelsOverlay(rpsPoints, series.deploys, Modifier.matchParentSize())
             }
@@ -349,34 +397,68 @@ private fun ChartsTab(
             }
         }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-            SmallMetricChart(
-                "P95, МС",
-                points.toChart { it.p95Ms },
-                MaterialTheme.colorScheme.error,
-                "мс · ±20 %",
-                "приблизительно",
-                series.deploys,
-                Modifier.weight(1f),
-            )
-            SmallMetricChart(
-                "P50, МС",
-                points.toChart { it.p50Ms },
-                MaterialTheme.colorScheme.primary,
-                "мс · ±20 %",
-                "приблизительно",
-                series.deploys,
-                Modifier.weight(1f),
-            )
-            SmallMetricChart(
-                "ДОЛЯ ОШИБОК",
-                points.toChart { it.errorRate * 100 },
-                MaterialTheme.colorScheme.error,
-                "%",
-                "порог 2 %",
-                series.deploys,
-                Modifier.weight(1f),
-            )
+        // На десктопе — три колонки в ряд (по макету); на мобильной ширине они не влезают
+        // читаемо, поэтому вместо weight(1f) в Row складываем их в одну колонку на всю ширину.
+        if (compact) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                SmallMetricChart(
+                    "P95, МС",
+                    points.toChart { it.p95Ms },
+                    MaterialTheme.colorScheme.error,
+                    "мс · ±20 %",
+                    "приблизительно",
+                    series.deploys,
+                    Modifier.fillMaxWidth(),
+                )
+                SmallMetricChart(
+                    "P50, МС",
+                    points.toChart { it.p50Ms },
+                    MaterialTheme.colorScheme.primary,
+                    "мс · ±20 %",
+                    "приблизительно",
+                    series.deploys,
+                    Modifier.fillMaxWidth(),
+                )
+                SmallMetricChart(
+                    "ДОЛЯ ОШИБОК",
+                    points.toChart { it.errorRate * 100 },
+                    MaterialTheme.colorScheme.error,
+                    "%",
+                    "порог 2 %",
+                    series.deploys,
+                    Modifier.fillMaxWidth(),
+                )
+            }
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                SmallMetricChart(
+                    "P95, МС",
+                    points.toChart { it.p95Ms },
+                    MaterialTheme.colorScheme.error,
+                    "мс · ±20 %",
+                    "приблизительно",
+                    series.deploys,
+                    Modifier.weight(1f),
+                )
+                SmallMetricChart(
+                    "P50, МС",
+                    points.toChart { it.p50Ms },
+                    MaterialTheme.colorScheme.primary,
+                    "мс · ±20 %",
+                    "приблизительно",
+                    series.deploys,
+                    Modifier.weight(1f),
+                )
+                SmallMetricChart(
+                    "ДОЛЯ ОШИБОК",
+                    points.toChart { it.errorRate * 100 },
+                    MaterialTheme.colorScheme.error,
+                    "%",
+                    "порог 2 %",
+                    series.deploys,
+                    Modifier.weight(1f),
+                )
+            }
         }
 
         if (partialCount > 0) {

@@ -41,7 +41,19 @@ class MetrikClient(
             }
         },
 ) {
-    suspend fun services(): List<ServiceSummary> = client.get("$baseUrl/api/services").body()
+    /**
+     * Список сервисов за период. `from`/`to` — миллисекунды эпохи; без них сервер сам берёт
+     * последние 5 минут (см. `docs/api/endpoint-query.md`) — так вызывает рельс, которому нужен
+     * «живой» список, а не срез за выбранный на Обзоре диапазон.
+     */
+    suspend fun services(
+        from: Long? = null,
+        to: Long? = null,
+    ): List<ServiceSummary> =
+        client
+            .get("$baseUrl/api/services") {
+                if (from != null && to != null) range(from, to)
+            }.body()
 
     suspend fun overview(
         serviceId: Long,

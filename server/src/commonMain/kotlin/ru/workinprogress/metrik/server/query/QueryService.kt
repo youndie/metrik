@@ -49,14 +49,22 @@ class QueryService(
     private val minuteRetentionMs: Long = 48 * HOUR_MS,
     private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
-    suspend fun services(): List<ServiceSummary> {
-        val now = nowMs()
-        val from = now - 5 * MINUTE_MS
+    /**
+     * Сводка по сервисам за интервал.
+     *
+     * Период — параметр, а не константа: на дашборде есть переключатель диапазона, и он обязан
+     * что-то менять. Переключатель, который ничего не делает, врёт не хуже неправильной цифры.
+     */
+    suspend fun services(
+        from: Long = nowMs() - 5 * MINUTE_MS,
+        to: Long = nowMs(),
+    ): List<ServiceSummary> {
+        val spanSeconds = ((to - from).coerceAtLeast(1_000L)) / 1000.0
 
         return rows("SELECT id, name FROM services ORDER BY name").map { row ->
             val id = row.get("id").asLong()
             val name = row.get("name").asString()
-            val windows = windowRows(id, from, now)
+            val windows = windowRows(id, from, to)
             val merged = merge(windows)
             val instanceRow =
                 rows(
@@ -72,7 +80,7 @@ class QueryService(
             ServiceSummary(
                 id = id,
                 name = name,
-                requestsPerSecond = merged.count.toDouble() / ((now - from) / 1000.0),
+                requestsPerSecond = merged.count.toDouble() / spanSeconds,
                 errorRate = merged.errorRate,
                 p95Ms = merged.histogram.percentileMs(0.95),
                 lastSeenAt = instanceRow.get("seen").asLongOrNull(),

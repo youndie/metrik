@@ -74,7 +74,9 @@ fun Route.queryRoutes(
 ) {
     get("/services") {
         authenticated() ?: return@get
-        call.respond(query.services())
+        // Дефолт — последние пять минут: столько нужно, чтобы «сейчас» было честным при минутном окне.
+        val (from, to) = call.range(defaultSpanMs = 5 * 60 * 1000)
+        call.respond(query.services(from, to))
     }
 
     route("/services/{id}") {
