@@ -35,6 +35,11 @@ spec:
               value: {{ .Values.retentionHours | quote }}
             - name: METRIK_ADMINS
               value: {{ .Values.admins | quote }}
+            {{- with .Values.selfService }}
+            # Сервер мониторит сам себя тем же агентом: мониторинг, которого не видно, бесполезен.
+            - name: METRIK_SELF_SERVICE
+              value: {{ . | quote }}
+            {{- end }}
             {{- with .Values.telegram.token }}
             - name: METRIK_TELEGRAM_TOKEN
               value: {{ . | quote }}

@@ -22,6 +22,9 @@ admins: ""
 
 retentionHours: 48
 
+# Имя, под которым metrik мониторит сам себя. Пусто — самонаблюдение выключено.
+selfService: metrik-server
+
 persistence:
   size: 5Gi
   storageClass: ""
