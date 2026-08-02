@@ -8,7 +8,7 @@ import io.ktor.network.sockets.aSocket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.io.Buffer
 import okio.FileSystem
@@ -75,9 +75,12 @@ class UdpReceiverTest {
             .get(0)
             .asLong()
 
+    // runBlocking, а не runTest: тест ждёт настоящий сокет и настоящее время. В runTest время
+    // виртуальное, delay пропускается мгновенно, и withTimeout «истекает» раньше, чем датаграмма
+    // успевает долететь — на быстрой машине гонка выигрывалась, на загруженном раннере нет.
     @Test
     fun `a datagram sent over the wire should reach storage`() =
-        runTest {
+        runBlocking {
             // Given
             val scope = CoroutineScope(coroutineContext + Job())
             val receiver = UdpReceiver(PORT, ingest, host = "127.0.0.1")
@@ -103,7 +106,7 @@ class UdpReceiverTest {
 
     @Test
     fun `ingesting many windows should stay fast enough for a minute of traffic`() =
-        runTest {
+        runBlocking {
             // Given — 50 сервисов по 10 инстансов: столько окон приходит раз в минуту.
             val frames =
                 (1..50)
