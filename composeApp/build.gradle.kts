@@ -24,10 +24,15 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            // Шрифты макета (RobotoFlex.ttf, RobotoMono.ttf) как compose-ресурсы — см. Theme.kt.
+            implementation(compose.components.resources)
             implementation(ktorLibs.client.core)
             implementation(ktorLibs.client.contentNegotiation)
             implementation(ktorLibs.serialization.kotlinx.json)
             implementation(libs.material.kolor)
+            // Абсолютное время в локальной зоне пользователя (M-83) — без неё пришлось бы либо
+            // тащить java.time (недоступен на wasmJs), либо считать по UTC и выдавать за локальное.
+            implementation(libs.kotlinx.datetime)
         }
         val desktopMain by getting {
             dependencies {
@@ -40,6 +45,10 @@ kotlin {
             implementation(ktorLibs.client.js)
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "ru.workinprogress.metrik.web.generated.resources"
 }
 
 compose.desktop {

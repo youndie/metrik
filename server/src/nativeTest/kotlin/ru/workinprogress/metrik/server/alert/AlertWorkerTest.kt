@@ -16,6 +16,7 @@ import ru.workinprogress.metrik.wire.encodeStatus
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 private const val KEY = "alert-test-key"
@@ -29,16 +30,17 @@ private class RecordingNotifier : AlertNotifier {
     override suspend fun notify(
         text: String,
         chatId: String?,
-    ) {
+    ): Boolean {
         if (failing) throw IllegalStateException("telegram is down")
         messages += text
+        return true
     }
 }
 
 class AlertWorkerTest {
     private val dbPath = "/tmp/metrik-alert-test.db"
     private val db = openDatabase(dbPath)
-    private val admin = AdminService(db)
+    private val admin = AdminService(db, nowMs = { clock })
     private val notifier = RecordingNotifier()
     private var clock = WINDOW + MINUTE
 
@@ -181,6 +183,82 @@ class AlertWorkerTest {
             val fired = notifier.messages.filter { it.contains("error_rate") }
             assertEquals(1, fired.size, "fired: $fired")
             assertTrue(fired.single().contains("orders-api"))
+        }
+
+    @Test
+    fun `a muted rule should stay visible but stop notifying`() =
+        runTest {
+            // Given — правило горит и заглушено на час.
+            ingest(okCount = 60, errorCount = 40)
+            val id =
+                db
+                    .fetchAll("SELECT id FROM services WHERE name = 'orders-api'")
+                    .getOrThrow()
+                    .rows
+                    .first()
+                    .get("id")
+                    .asString()
+                    .toLong()
+            admin.mute(id, AlertRuleIds.ERROR_RATE, clock + 60 * MINUTE)
+
+            // When
+            val alerts = worker()
+            alerts.tick()
+
+            // Then — уведомления молчат, но алерт горит: «заглушил» это «не буди», а не «всё хорошо».
+            assertTrue(notifier.messages.none { it.contains("error_rate") }, "muted rule notified: ${notifier.messages}")
+            assertTrue(alerts.active().any { it.ruleId == AlertRuleIds.ERROR_RATE })
+            assertTrue(alerts.active().first { it.ruleId == AlertRuleIds.ERROR_RATE }.mutedUntil != null)
+        }
+
+    @Test
+    fun `an expired mute should not silence anything`() =
+        runTest {
+            // Given — заглушение уже истекло.
+            ingest(okCount = 60, errorCount = 40)
+            val id =
+                db
+                    .fetchAll("SELECT id FROM services WHERE name = 'orders-api'")
+                    .getOrThrow()
+                    .rows
+                    .first()
+                    .get("id")
+                    .asString()
+                    .toLong()
+            admin.mute(id, AlertRuleIds.ERROR_RATE, clock - MINUTE)
+
+            // When
+            worker().tick()
+
+            // Then
+            assertTrue(notifier.messages.any { it.contains("error_rate") })
+        }
+
+    @Test
+    fun `a test notification without a configured notifier should report not delivered`() =
+        runTest {
+            // Given — токена нет, доставлять некуда.
+            val silent = AlertWorker(db, admin, NoopNotifier, nowMs = { clock })
+
+            // When / Then — «отправлено» здесь было бы враньём ровно там, где проверяют настройку.
+            assertFalse(silent.sendTest())
+        }
+
+    @Test
+    fun `a test notification should report whether it was delivered`() =
+        runTest {
+            // Given / When
+            val ok = worker().sendTest()
+
+            // Then
+            assertTrue(ok)
+            assertTrue(notifier.messages.any { it.contains("тестовое") })
+
+            // Given — доставка сломана.
+            notifier.failing = true
+
+            // When / Then — UI обязан узнать правду, а не бодрое «отправлено».
+            assertFalse(worker().sendTest())
         }
 
     @Test

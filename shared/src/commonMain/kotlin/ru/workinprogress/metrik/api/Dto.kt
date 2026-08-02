@@ -115,6 +115,13 @@ data class AlertView(
     val state: String,
     val since: Long,
     val detail: String? = null,
+    /**
+     * До какого момента правило заглушено.
+     *
+     * Заглушение молчит только в уведомлениях: правило продолжает считаться и гореть в UI.
+     * Иначе «заглушил» превратилось бы в «сделал вид, что проблемы нет».
+     */
+    val mutedUntil: Long? = null,
 )
 
 /** Порог правила: либо дефолт инсталляции, либо переопределение сервиса. */
@@ -127,4 +134,5 @@ data class AlertRuleView(
     val enabled: Boolean,
     val telegramChatId: String? = null,
     val inherited: Boolean = true,
+    val mutedUntil: Long? = null,
 )

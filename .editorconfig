@@ -5,3 +5,8 @@ ktlint_code_style = ktlint_official
 ktlint_function_naming_ignore_when_annotated_with=Composable
 
 ij_kotlin_packages_to_use_import_on_demand = false
+# Сгенерированный код (compose-ресурсы) переписывается на каждой сборке, править его нельзя,
+# а ktlint на нём ронял бы CI. Штатный способ исключения у ktlint — именно .editorconfig:
+# фильтры gradle-плагина сюда не достают, потому что он фиксирует список файлов раньше.
+[**/build/**.kt]
+ktlint = disabled

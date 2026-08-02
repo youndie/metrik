@@ -26,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -91,7 +90,7 @@ fun NavRail(
                 Text(
                     updatedAgoLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = MetrikMono,
                     color = MetrikExtra.healthy,
                 )
             }
@@ -128,7 +127,7 @@ fun NavRail(
             Text(
                 "СЕРВИСЫ · ${services.size}",
                 style = MaterialTheme.typography.labelSmall,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = MetrikMono,
                 letterSpacing = 1.5.sp,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.xs),
@@ -254,7 +253,7 @@ private fun ServiceRailRow(
         Text(
             service.name,
             style = MaterialTheme.typography.bodyMedium,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MetrikMono,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -264,7 +263,7 @@ private fun ServiceRailRow(
         Text(
             rpsLabel,
             style = MaterialTheme.typography.labelSmall,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MetrikMono,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
         )
     }

@@ -33,6 +33,7 @@ import ru.workinprogress.metrik.server.query.AdminService
 import ru.workinprogress.metrik.server.query.QueryService
 import ru.workinprogress.metrik.server.query.adminRoutes
 import ru.workinprogress.metrik.server.query.alertRoutes
+import ru.workinprogress.metrik.server.query.alertTestRoute
 import ru.workinprogress.metrik.server.query.queryRoutes
 import ru.workinprogress.metrik.server.retention.RetentionWorker
 import ru.workinprogress.metrik.wire.MetrikJson
@@ -149,6 +150,7 @@ fun Application.module(
             }
 
             alertRoutes(alerts)
+            alertTestRoute(alerts, config)
             queryRoutes(query, config)
             adminRoutes(admin, config)
         }

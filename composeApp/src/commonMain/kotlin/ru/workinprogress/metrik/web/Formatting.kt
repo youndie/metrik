@@ -3,15 +3,15 @@ package ru.workinprogress.metrik.web
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 /**
- * Относительное «N назад» вместо часов настенных часов.
- *
- * В commonMain (jvm + wasmJs) нет библиотеки дат — добавлять её ради форматирования запрещено
- * условиями задачи. Вывести из epoch-миллисекунд человеческое «12:41» означало бы либо тащить
- * java.time (недоступен на wasmJs), либо считать по UTC и выдавать это за локальное время — а это
- * уже нечестно перед пользователем в другом часовом поясе. Относительное «N мин назад» этой
- * проблемы не имеет и для мониторинга ничем не хуже.
+ * Относительное «N назад» — там, где это уместнее абсолютного (M-83): «обновлено N с назад» в
+ * рельсе и «горит N мин» в активных алертах — длительность текущего состояния, а не запись в
+ * истории, секунды/минуты точнее передают «прямо сейчас», чем часы настенных часов.
  */
 fun relativeAgo(
     nowMs: Long,
@@ -25,6 +25,35 @@ fun relativeAgo(
         else -> "${diffSeconds / 86_400} дн"
     }
 }
+
+/**
+ * Абсолютное время в локальной зоне пользователя (M-83) — «12:41» сегодня, «вчера 09:14», «N дней
+ * назад» для совсем старых записей; [labelToday] включает префикс «сегодня» и там, где день не
+ * очевиден из контекста (история срабатываний вперемешку с записями за прошлые дни).
+ *
+ * `kotlinx-datetime`, а не `java.time`: `java.time` недоступен на wasmJs. Считать по UTC и выдавать
+ * это за локальное время было бы ровно тем сортом вранья, который продукт запрещает себе в цифрах —
+ * поэтому зона обязательный параметр, а не тихий дефолт на UTC.
+ */
+@OptIn(ExperimentalTime::class)
+fun absoluteAgo(
+    nowMs: Long,
+    atMs: Long,
+    zone: TimeZone,
+    labelToday: Boolean = false,
+): String {
+    val at = Instant.fromEpochMilliseconds(atMs).toLocalDateTime(zone)
+    val now = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(zone)
+    val time = "${at.hour.pad2()}:${at.minute.pad2()}"
+    val daysBetween = (now.date.toEpochDays() - at.date.toEpochDays()).toInt().coerceAtLeast(0)
+    return when {
+        daysBetween == 0 -> if (labelToday) "сегодня $time" else time
+        daysBetween == 1 -> "вчера $time"
+        else -> "$daysBetween " + pluralRu(daysBetween, "день", "дня", "дней") + " назад"
+    }
+}
+
+private fun Int.pad2(): String = if (this < 10) "0$this" else toString()
 
 /**
  * Русское число + слово в нужной форме («1 алерт», «2 алерта», «5 алертов»).

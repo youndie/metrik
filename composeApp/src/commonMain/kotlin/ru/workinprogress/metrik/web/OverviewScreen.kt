@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -126,7 +125,7 @@ fun OverviewScreen(
                         "${services.size} " + pluralRu(services.size, "СЕРВИС", "СЕРВИСА", "СЕРВИСОВ") +
                             " · $totalInstances " + pluralRu(totalInstances, "ИНСТАНС", "ИНСТАНСА", "ИНСТАНСОВ"),
                         style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = MetrikMono,
                         color = MaterialTheme.colorScheme.outline,
                     )
                     Text(
@@ -303,7 +302,7 @@ private fun FiringAlertRowCompact(alert: AlertView) {
         Text(
             alert.service,
             style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MetrikMono,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onErrorContainer,
             maxLines = 1,
@@ -313,7 +312,7 @@ private fun FiringAlertRowCompact(alert: AlertView) {
         Text(
             alert.ruleId,
             style = MaterialTheme.typography.labelSmall,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MetrikMono,
             color = MaterialTheme.colorScheme.error,
         )
     }
@@ -340,7 +339,7 @@ private fun FiringAlertRow(alert: AlertView) {
         Text(
             alert.service,
             style = MaterialTheme.typography.bodyMedium,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MetrikMono,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onErrorContainer,
             modifier = Modifier.widthIn(min = 160.dp),
@@ -354,7 +353,7 @@ private fun FiringAlertRow(alert: AlertView) {
             Text(
                 alert.ruleId,
                 style = MaterialTheme.typography.labelMedium,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = MetrikMono,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )
         }
@@ -449,7 +448,7 @@ private fun ServiceGridCard(
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(
                     service.name,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = MetrikMono,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = fg,
@@ -462,7 +461,7 @@ private fun ServiceGridCard(
                         Text(
                             "${service.instances} инст.",
                             style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = MetrikMono,
                             color = chipFg,
                         )
                     }
@@ -470,7 +469,7 @@ private fun ServiceGridCard(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(rpsLabel, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = fg)
-                Text("rps", style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = dim)
+                Text("rps", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
             }
         }
 
@@ -488,11 +487,11 @@ private fun ServiceGridCard(
         ) {
             Column {
                 Text(errLabel, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = fg)
-                Text("ошибки", style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = dim)
+                Text("ошибки", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
             }
             Column {
                 Text(p95Label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = fg)
-                Text("p95 ≈ ±20 %", style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = dim)
+                Text("p95 ≈ ±20 %", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
             }
             if (note != null) {
                 Text(
@@ -556,15 +555,15 @@ private fun MobileServiceRow(
             Text(
                 service.name,
                 style = MaterialTheme.typography.bodyMedium,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = MetrikMono,
                 fontWeight = FontWeight.SemiBold,
                 color = fg,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Text("$errLabel ош.", style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = dim)
-                Text("p95 $p95Label", style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = dim)
+                Text("$errLabel ош.", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
+                Text("p95 $p95Label", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
             }
         }
         Box(Modifier.width(72.dp).height(32.dp)) {
@@ -574,7 +573,7 @@ private fun MobileServiceRow(
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(rpsLabel, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = fg)
-            Text("rps", style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = dim)
+            Text("rps", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
         }
     }
 }

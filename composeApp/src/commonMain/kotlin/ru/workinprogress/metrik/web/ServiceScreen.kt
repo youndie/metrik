@@ -36,12 +36,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlinx.datetime.TimeZone
 import ru.workinprogress.metrik.api.AlertView
 import ru.workinprogress.metrik.api.DeployMarker
 import ru.workinprogress.metrik.api.RouteRow
@@ -173,6 +173,7 @@ fun ServiceScreen(
     var slow by remember { mutableStateOf<List<SlowRow>>(emptyList()) }
     var system by remember { mutableStateOf<List<SystemPoint>>(emptyList()) }
     var loaded by remember(service.id, range) { mutableStateOf(false) }
+    val zone = remember { TimeZone.currentSystemDefault() }
 
     LaunchedEffect(service.id, range) {
         while (true) {
@@ -181,9 +182,9 @@ fun ServiceScreen(
             runCatching {
                 series = client.timeSeries(service.id, from, to, range.step)
                 routes = client.routes(service.id, from, to)
-                // /slow не принимает период — сервер всегда отдаёт последние 24 часа
-                // (docs/api/endpoint-query.md), поэтому диапазон здесь не участвует.
-                slow = client.slow(service.id)
+                // M-85: /slow теперь принимает период, как и остальные вкладки — раньше сервер
+                // всегда отдавал последние 24 часа независимо от выбранного диапазона.
+                slow = client.slow(service.id, from, to)
                 system = client.system(service.id, from, to)
             }
             loaded = true
@@ -214,7 +215,7 @@ fun ServiceScreen(
                 }
                 Text(
                     service.name,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = MetrikMono,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -241,7 +242,7 @@ fun ServiceScreen(
                     }
                     Text(
                         service.name,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = MetrikMono,
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -255,9 +256,9 @@ fun ServiceScreen(
 
         when (tab) {
             0 -> ChartsTab(series, loaded, range, compact)
-            1 -> RoutesTab(routes, loaded)
-            2 -> SlowTab(slow, loaded, nowMs)
-            else -> SystemTab(system, loaded)
+            1 -> RoutesTab(routes, loaded, compact)
+            2 -> SlowTab(slow, loaded, nowMs, zone, compact)
+            else -> SystemTab(system, loaded, compact)
         }
     }
 }
@@ -295,7 +296,7 @@ private fun InstancesPill(count: Int) {
     ) {
         Text(
             "$count " + pluralRu(count, "инстанс", "инстанса", "инстансов"),
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MetrikMono,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
@@ -345,7 +346,7 @@ private fun ChartsTab(
                     Text(
                         "ЗАПРОСЫ В СЕКУНДУ",
                         style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = MetrikMono,
                         color = MaterialTheme.colorScheme.outline,
                     )
                     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -385,13 +386,13 @@ private fun ChartsTab(
                 Text(
                     "− ${range.label}",
                     style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = MetrikMono,
                     color = MaterialTheme.colorScheme.outline,
                 )
                 Text(
                     "сейчас",
                     style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = MetrikMono,
                     color = MaterialTheme.colorScheme.outline,
                 )
             }
@@ -493,7 +494,7 @@ private fun SmallMetricChart(
             Text(
                 title,
                 style = MaterialTheme.typography.labelSmall,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = MetrikMono,
                 color = MaterialTheme.colorScheme.outline,
             )
             Box(
@@ -590,7 +591,7 @@ private fun DeployLabelsOverlay(
                     Text(
                         deploy.release,
                         style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = MetrikMono,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                         maxLines = 1,
@@ -607,6 +608,7 @@ private fun DeployLabelsOverlay(
 private fun RoutesTab(
     routes: List<RouteRow>,
     loaded: Boolean,
+    compact: Boolean = false,
 ) {
     if (routes.isEmpty()) {
         if (loaded) EmptyState("нет данных") else LoadingState("загружаем маршруты…")
@@ -617,32 +619,188 @@ private fun RoutesTab(
     val maxP95 = routes.maxOf { it.p95Ms }.coerceAtLeast(1.0)
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            HonestyChip(
-                "p50 и p95 приблизительные: ±20 % — ширина бакета гистограммы",
-                MaterialTheme.colorScheme.tertiaryContainer,
-                MaterialTheme.colorScheme.onTertiaryContainer,
-                fontWeight = FontWeight.SemiBold,
-            )
-            HonestyChip(
-                "Разреза по инстансам здесь нет — данные так не хранятся",
-                MaterialTheme.colorScheme.surfaceContainerLow,
-                MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        if (compact) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                HonestyChip(
+                    "p50 и p95 приблизительные: ±20 %",
+                    MaterialTheme.colorScheme.tertiaryContainer,
+                    MaterialTheme.colorScheme.onTertiaryContainer,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                HonestyChip(
+                    "Разреза по инстансам здесь нет",
+                    MaterialTheme.colorScheme.surfaceContainerLow,
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                HonestyChip(
+                    "p50 и p95 приблизительные: ±20 % — ширина бакета гистограммы",
+                    MaterialTheme.colorScheme.tertiaryContainer,
+                    MaterialTheme.colorScheme.onTertiaryContainer,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                HonestyChip(
+                    "Разреза по инстансам здесь нет — данные так не хранятся",
+                    MaterialTheme.colorScheme.surfaceContainerLow,
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(32.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
-        ) {
-            RouteHeaderRow()
-            routes.forEachIndexed { index, row ->
-                RouteRowItem(row, maxCount, maxP95, routeRowShape(index, routes.size))
+        if (compact) {
+            // Шесть колонок таблицы на 390dp нечитаемы (M-89) — карточка на маршрут: метод+путь
+            // первой строкой, статус и цифры второй, бары длительности как на десктопе.
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                routes.forEach { row -> RouteCardItem(row, maxCount, maxP95) }
             }
+        } else {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+            ) {
+                RouteHeaderRow()
+                routes.forEachIndexed { index, row ->
+                    RouteRowItem(row, maxCount, maxP95, routeRowShape(index, routes.size))
+                }
+            }
+        }
+    }
+}
+
+/** Карточка маршрута для узкого экрана (M-89) — та же честность, что и в таблице, другая раскладка. */
+@Composable
+private fun RouteCardItem(
+    row: RouteRow,
+    maxCount: Long,
+    maxP95: Double,
+) {
+    val bad = row.status >= 500
+    val warn = row.status in 400..499
+    val bg = if (bad) MetrikExtra.criticalRowBackground else MaterialTheme.colorScheme.surfaceContainerLow
+    val fg = if (bad) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface
+    val statusBg =
+        when {
+            bad -> MaterialTheme.colorScheme.errorContainer
+            warn -> MaterialTheme.colorScheme.tertiaryContainer
+            else -> MetrikExtra.healthyContainer
+        }
+    val statusFg =
+        when {
+            bad -> MaterialTheme.colorScheme.onErrorContainer
+            warn -> MaterialTheme.colorScheme.onTertiaryContainer
+            else -> MetrikExtra.onHealthyContainer
+        }
+    val methodBg = if (row.method == "POST") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+    val methodFg =
+        if (row.method == "POST") {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        }
+    val slow = row.p95Ms >= 400
+    val barColor = if (bad) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    val p95Color = if (slow) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    val p95Fg = if (slow) MaterialTheme.colorScheme.error else fg
+    val trackColor = MaterialTheme.colorScheme.surfaceContainerHigh
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(bg)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md + Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        // Первая строка — метод и маршрут, как требует задание.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Box(
+                Modifier.clip(RoundedCornerShape(8.dp)).background(methodBg).padding(horizontal = 9.dp, vertical = 3.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    row.method,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = MetrikMono,
+                    fontWeight = FontWeight.Bold,
+                    color = methodFg,
+                )
+            }
+            Text(
+                row.route,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = MetrikMono,
+                color = fg,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        // Вторая строка — статус и цифры (кол-во, p50, max), как требует задание.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Box(Modifier.clip(RoundedCornerShape(9.dp)).background(statusBg).padding(horizontal = 10.dp, vertical = 3.dp)) {
+                Text(
+                    row.status.toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontFamily = MetrikMono,
+                    fontWeight = FontWeight.Bold,
+                    color = statusFg,
+                )
+            }
+            Text(
+                "${row.count} · p50 ${format(row.p50Ms)} · max ${row.maxMs}",
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = MetrikMono,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        // Бары длительности — те же, что на десктопе: количество запросов и p95.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(trackColor),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth((row.count.toFloat() / maxCount).coerceIn(0.03f, 1f))
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(barColor),
+                )
+            }
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(trackColor),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth((row.p95Ms / maxP95).toFloat().coerceIn(0.03f, 1f))
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(p95Color),
+                )
+            }
+            Text(
+                "p95 ${format(row.p95Ms)}",
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = MetrikMono,
+                fontWeight = FontWeight.Bold,
+                color = p95Fg,
+            )
         }
     }
 }
@@ -681,7 +839,7 @@ private fun RowScope.RouteHeaderCell(
     Text(
         text,
         style = MaterialTheme.typography.labelSmall,
-        fontFamily = FontFamily.Monospace,
+        fontFamily = MetrikMono,
         color = MaterialTheme.colorScheme.outline,
         modifier = Modifier.weight(weight),
     )
@@ -745,12 +903,12 @@ private fun RouteRowItem(
                 Text(
                     row.method,
                     style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = MetrikMono,
                     fontWeight = FontWeight.Bold,
                     color = methodFg,
                 )
             }
-            Text(row.route, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, color = fg)
+            Text(row.route, style = MaterialTheme.typography.bodySmall, fontFamily = MetrikMono, color = fg)
         }
         Box(Modifier.weight(0.7f)) {
             Box(
@@ -759,7 +917,7 @@ private fun RouteRowItem(
                 Text(
                     row.status.toString(),
                     style = MaterialTheme.typography.labelMedium,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = MetrikMono,
                     fontWeight = FontWeight.Bold,
                     color = statusFg,
                 )
@@ -785,12 +943,12 @@ private fun RouteRowItem(
                         .background(barColor),
                 )
             }
-            Text(row.count.toString(), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, color = fg)
+            Text(row.count.toString(), style = MaterialTheme.typography.bodySmall, fontFamily = MetrikMono, color = fg)
         }
         Text(
             format(row.p50Ms),
             style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MetrikMono,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(0.7f),
         )
@@ -817,7 +975,7 @@ private fun RouteRowItem(
             Text(
                 format(row.p95Ms),
                 style = MaterialTheme.typography.bodyMedium,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = MetrikMono,
                 fontWeight = FontWeight.Bold,
                 color = p95Fg,
             )
@@ -825,7 +983,7 @@ private fun RouteRowItem(
         Text(
             row.maxMs.toString(),
             style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MetrikMono,
             color = MetrikExtra.dim,
             modifier = Modifier.weight(0.7f),
         )
@@ -839,6 +997,8 @@ private fun SlowTab(
     slow: List<SlowRow>,
     loaded: Boolean,
     nowMs: () -> Long,
+    zone: TimeZone,
+    compact: Boolean = false,
 ) {
     if (slow.isEmpty()) {
         if (loaded) EmptyState("нет данных") else LoadingState("загружаем медленные запросы…")
@@ -855,7 +1015,7 @@ private fun SlowTab(
             MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            slow.forEach { row -> SlowRowItem(row, maxDuration, now) }
+            slow.forEach { row -> SlowRowItem(row, maxDuration, now, zone, compact) }
         }
     }
 }
@@ -865,6 +1025,8 @@ private fun SlowRowItem(
     row: SlowRow,
     maxDuration: Int,
     nowMs: Long,
+    zone: TimeZone,
+    compact: Boolean = false,
 ) {
     val hot = row.durationMs >= 3000
     val warm = row.durationMs >= 1500
@@ -894,6 +1056,10 @@ private fun SlowRowItem(
             MaterialTheme.colorScheme.onSecondaryContainer
         }
 
+    // Абсолютное время (M-83): период на вкладке теперь выбираемый (M-85), а не всегда «24 ч» —
+    // «N назад» на многодневном диапазоне честности не добавляет, точный момент — добавляет.
+    val at = absoluteAgo(nowMs, row.at, zone)
+
     Column(
         Modifier
             .fillMaxWidth()
@@ -902,42 +1068,84 @@ private fun SlowRowItem(
             .padding(horizontal = Spacing.lg + Spacing.xs, vertical = Spacing.md + Spacing.xs),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Box(Modifier.clip(RoundedCornerShape(8.dp)).background(methodBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
+        if (compact) {
+            // На узкой ширине метод+маршрут и статус+время не помещаются в одну строку без
+            // обрезания — разносим на две, порядок элементов внутри строк тот же, что на десктопе.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(methodBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
+                    Text(
+                        row.method,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = MetrikMono,
+                        fontWeight = FontWeight.Bold,
+                        color = methodFg,
+                    )
+                }
                 Text(
-                    row.method,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = methodFg,
+                    row.route,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = MetrikMono,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
             }
-            Text(
-                row.route,
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
-            Box(Modifier.clip(RoundedCornerShape(8.dp)).background(statusBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(statusBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
+                    Text(
+                        row.status.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = MetrikMono,
+                        fontWeight = FontWeight.Bold,
+                        color = statusFg,
+                    )
+                }
                 Text(
-                    row.status.toString(),
+                    at,
                     style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = statusFg,
+                    fontFamily = MetrikMono,
+                    color = MaterialTheme.colorScheme.outline,
                 )
             }
-            Text(
-                relativeAgo(nowMs, row.at),
-                style = MaterialTheme.typography.labelSmall,
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.outline,
-            )
+        } else {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(methodBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
+                    Text(
+                        row.method,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = MetrikMono,
+                        fontWeight = FontWeight.Bold,
+                        color = methodFg,
+                    )
+                }
+                Text(
+                    row.route,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = MetrikMono,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(statusBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
+                    Text(
+                        row.status.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = MetrikMono,
+                        fontWeight = FontWeight.Bold,
+                        color = statusFg,
+                    )
+                }
+                Text(
+                    at,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = MetrikMono,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
         }
         Row(
             Modifier.fillMaxWidth(),
@@ -962,7 +1170,7 @@ private fun SlowRowItem(
             Text(
                 "${row.durationMs} мс",
                 style = MaterialTheme.typography.titleSmall,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = MetrikMono,
                 fontWeight = FontWeight.Bold,
                 color = if (hot) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             )
@@ -976,6 +1184,7 @@ private fun SlowRowItem(
 private fun SystemTab(
     system: List<SystemPoint>,
     loaded: Boolean,
+    compact: Boolean = false,
 ) {
     if (system.isEmpty()) {
         if (loaded) EmptyState("нет данных") else LoadingState("загружаем системные метрики…")
@@ -984,7 +1193,7 @@ private fun SystemTab(
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         system.groupBy { it.instance }.forEach { (instance, points) ->
-            InstanceCard(instance, points)
+            InstanceCard(instance, points, compact)
         }
     }
 }
@@ -993,6 +1202,7 @@ private fun SystemTab(
 private fun InstanceCard(
     instance: String,
     points: List<SystemPoint>,
+    compact: Boolean = false,
 ) {
     val last = points.last()
     // У нативного процесса нет верхней границы heap в смысле JVM — то, что мы видим, это RSS
@@ -1025,7 +1235,7 @@ private fun InstanceCard(
             Text(
                 instance,
                 style = MaterialTheme.typography.titleSmall,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = MetrikMono,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
@@ -1035,11 +1245,11 @@ private fun InstanceCard(
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        val memInfo: @Composable () -> Unit = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text("$usedMb МБ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = memColor)
-                    Text(memLabel, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = MetrikExtra.dim)
+                    Text(memLabel, style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = MetrikExtra.dim)
                 }
                 if (ratio != null) {
                     Box(
@@ -1061,23 +1271,42 @@ private fun InstanceCard(
                     Text(
                         "${(ratio * 100).roundToInt()} % от лимита",
                         style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = MetrikMono,
                         color = MaterialTheme.colorScheme.outline,
                     )
                 } else {
                     Text(
                         "у нативного процесса нет максимума heap — это RSS",
                         style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = MetrikMono,
                         color = MaterialTheme.colorScheme.outline,
                     )
                 }
             }
-            Sparkline(
-                points.map { ChartPoint(it.at, it.heapUsedBytes / 1024.0 / 1024.0) },
-                memColor,
-                Modifier.width(200.dp).height(64.dp).clip(RoundedCornerShape(12.dp)),
-            )
+        }
+        val memSparkline = points.map { ChartPoint(it.at, it.heapUsedBytes / 1024.0 / 1024.0) }
+
+        if (compact) {
+            // Фиксированная ширина спарклайна (200dp) рядом с цифрами — десктопная раскладка,
+            // на 390dp она либо переполняет строку, либо сжимает цифры до нечитаемости (M-89):
+            // на узком экране спарклайн на всю ширину под цифрами, а не сбоку от них.
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                memInfo()
+                Sparkline(
+                    memSparkline,
+                    memColor,
+                    Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(12.dp)),
+                )
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { memInfo() }
+                Sparkline(
+                    memSparkline,
+                    memColor,
+                    Modifier.width(200.dp).height(64.dp).clip(RoundedCornerShape(12.dp)),
+                )
+            }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

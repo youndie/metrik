@@ -148,11 +148,15 @@ class AlertWorker(
                     .bind("detail", verdict.detail),
             ).getOrThrow()
 
-        val chat = admin.rules(serviceId).firstOrNull { it.ruleId == verdict.ruleId }?.telegramChatId
+        val rule = admin.rules(serviceId).firstOrNull { it.ruleId == verdict.ruleId }
+
+        // Заглушение глушит только доставку. Состояние, история и подсветка в UI остаются:
+        // «заглушил» — это «не буди меня», а не «считай, что всё хорошо».
+        if (rule?.mutedUntil != null) return
 
         // Ошибка доставки не должна ни ронять воркер, ни терять состояние: следующая проверка
         // попробует снова.
-        runCatching { notifier.notify(text, chat) }
+        runCatching { notifier.notify(text, rule?.telegramChatId) }
     }
 
     private suspend fun loadState(
@@ -218,12 +222,24 @@ class AlertWorker(
             ).getOrThrow()
     }
 
+    /**
+     * Отправляет тестовое уведомление тем же путём, что и настоящие.
+     *
+     * @return false, если нотификатор не настроен или доставка не удалась — UI обязан показать
+     *   именно это, а не бодрое «отправлено».
+     */
+    suspend fun sendTest(chatId: String? = null): Boolean =
+        runCatching { notifier.notify("🧪 metrik: тестовое уведомление, проверка доставки", chatId) }
+            .getOrDefault(false)
+
     suspend fun active(): List<AlertView> =
         db
             .fetchAll(
                 """
-                SELECT s.name AS service, a.rule_id, a.state, a.since
-                FROM alert_states a JOIN services s ON s.id = a.service_id
+                SELECT s.name AS service, a.rule_id, a.state, a.since, m.until AS muted_until
+                FROM alert_states a
+                JOIN services s ON s.id = a.service_id
+                LEFT JOIN alert_mutes m ON m.service_id = a.service_id AND m.rule_id = a.rule_id
                 WHERE a.state = '$ALERT_STATE_FIRING'
                 ORDER BY a.since DESC
                 """.trimIndent(),
@@ -235,6 +251,7 @@ class AlertWorker(
                     ruleId = row.get("rule_id").asString(),
                     state = row.get("state").asString(),
                     since = row.get("since").asLong(),
+                    mutedUntil = row.get("muted_until").asLongOrNull()?.takeIf { it > nowMs() },
                 )
             }
 

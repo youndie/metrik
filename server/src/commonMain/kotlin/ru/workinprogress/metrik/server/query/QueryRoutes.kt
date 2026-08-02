@@ -8,6 +8,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import ru.workinprogress.metrik.api.Step
@@ -52,6 +53,9 @@ private suspend fun RoutingContext.admin(config: ServerConfig): String? {
 
     return user
 }
+
+@OptIn(ExperimentalTime::class)
+private fun nowMs(): Long = Clock.System.now().toEpochMilliseconds()
 
 @OptIn(ExperimentalTime::class)
 private fun ApplicationCall.range(defaultSpanMs: Long = 60 * 60 * 1000): Pair<Long, Long> {
@@ -111,8 +115,8 @@ fun Route.queryRoutes(
         get("/slow") {
             authenticated() ?: return@get
             val id = call.serviceId() ?: return@get
-            val (from, _) = call.range(defaultSpanMs = 24 * 60 * 60 * 1000)
-            call.respond(query.slow(id, from))
+            val (from, to) = call.range(defaultSpanMs = 24 * 60 * 60 * 1000)
+            call.respond(query.slow(id, from, to))
         }
 
         get("/deploys") {
@@ -142,6 +146,23 @@ fun Route.adminRoutes(
             call.respond(service.rules(id))
         }
 
+        put("/alerts/{rule}/mute") {
+            admin(config) ?: return@put
+            val id = call.serviceId() ?: return@put
+            val rule = call.parameters["rule"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+            val minutes = call.request.queryParameters["minutes"]?.toLongOrNull() ?: 60L
+            service.mute(id, rule, nowMs() + minutes * 60_000)
+            call.respond(service.rules(id))
+        }
+
+        delete("/alerts/{rule}/mute") {
+            admin(config) ?: return@delete
+            val id = call.serviceId() ?: return@delete
+            val rule = call.parameters["rule"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+            service.unmute(id, rule)
+            call.respond(service.rules(id))
+        }
+
         delete {
             admin(config) ?: return@delete
             val id = call.serviceId() ?: return@delete
@@ -150,6 +171,26 @@ fun Route.adminRoutes(
         }
     }
 }
+
+/**
+ * Тестовое уведомление: единственный способ убедиться, что настройка Telegram рабочая,
+ * не дожидаясь настоящей аварии.
+ */
+fun Route.alertTestRoute(
+    alerts: AlertWorker,
+    config: ServerConfig,
+) {
+    post("/admin/alerts/test") {
+        admin(config) ?: return@post
+        val delivered = alerts.sendTest()
+        call.respond(TestNotificationResult(delivered = delivered))
+    }
+}
+
+@kotlinx.serialization.Serializable
+data class TestNotificationResult(
+    val delivered: Boolean,
+)
 
 private suspend fun ApplicationCall.serviceId(): Long? {
     val id = parameters["id"]?.toLongOrNull()

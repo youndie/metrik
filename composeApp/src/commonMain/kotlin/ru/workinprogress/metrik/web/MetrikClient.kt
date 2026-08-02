@@ -4,10 +4,17 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import ru.workinprogress.metrik.api.AlertRuleView
 import ru.workinprogress.metrik.api.AlertView
@@ -86,7 +93,15 @@ class MetrikClient(
         to: Long,
     ): List<RouteRow> = client.get("$baseUrl/api/services/$serviceId/routes") { range(from, to) }.body()
 
-    suspend fun slow(serviceId: Long): List<SlowRow> = client.get("$baseUrl/api/services/$serviceId/slow").body()
+    /**
+     * Медленные сэмплы за период (M-85 — раньше сервер всегда отдавал последние 24 часа, теперь
+     * период выбирается так же, как на остальных вкладках сервиса).
+     */
+    suspend fun slow(
+        serviceId: Long,
+        from: Long,
+        to: Long,
+    ): List<SlowRow> = client.get("$baseUrl/api/services/$serviceId/slow") { range(from, to) }.body()
 
     suspend fun system(
         serviceId: Long,
@@ -104,7 +119,54 @@ class MetrikClient(
      * вызывающий код обязан обрабатывать это как «нет доступа», а не как «нет данных».
      */
     suspend fun adminAlertRules(serviceId: Long): List<AlertRuleView> = client.get("$baseUrl/api/admin/services/$serviceId/alerts").body()
+
+    /**
+     * Переопределяет порог правила для сервиса (M-82) — единственная мутация не из раздела
+     * алертов-заглушек в UI. Сервер возвращает актуальный список правил, поэтому отдельного
+     * пере запроса после сохранения не нужно.
+     */
+    suspend fun updateAlertRule(
+        serviceId: Long,
+        rule: AlertRuleView,
+    ): List<AlertRuleView> =
+        client
+            .put("$baseUrl/api/admin/services/$serviceId/alerts") {
+                contentType(ContentType.Application.Json)
+                setBody(rule)
+            }.body()
+
+    /**
+     * Заглушает уведомления по правилу на [minutes] (M-81). Заглушает только доставку — правило
+     * продолжает считаться и гореть в UI (`AlertRuleView.mutedUntil`, `AlertView.mutedUntil`).
+     */
+    suspend fun muteAlertRule(
+        serviceId: Long,
+        ruleId: String,
+        minutes: Long,
+    ): List<AlertRuleView> =
+        client
+            .put("$baseUrl/api/admin/services/$serviceId/alerts/$ruleId/mute") {
+                parameter("minutes", minutes)
+            }.body()
+
+    suspend fun unmuteAlertRule(
+        serviceId: Long,
+        ruleId: String,
+    ): List<AlertRuleView> = client.delete("$baseUrl/api/admin/services/$serviceId/alerts/$ruleId/mute").body()
+
+    /**
+     * Тестовое уведомление в Telegram (M-81) — единственный способ узнать, что доставка настроена,
+     * не дожидаясь настоящей аварии. `delivered == false` вызывающий код обязан показать как есть:
+     * это значит, что Telegram не настроен или недоступен, а не что сообщение «наверное дошло».
+     */
+    suspend fun sendTestAlert(): Boolean = client.post("$baseUrl/api/admin/alerts/test").body<TestNotificationResult>().delivered
 }
+
+/** Локальная копия ответа `POST /admin/alerts/test` — DTO живёт только на сервере, трогать server/ нельзя. */
+@Serializable
+private data class TestNotificationResult(
+    val delivered: Boolean,
+)
 
 private fun io.ktor.client.request.HttpRequestBuilder.range(
     from: Long,

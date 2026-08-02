@@ -3,6 +3,7 @@ kotlin = "2.4.10"
 composeMultiplatform = "1.11.1"
 kotlinxCoroutines = "1.11.0"
 kotlinxSerializationJson = "1.11.0"
+kotlinxDatetime = "0.8.0"
 okio = "3.18.1"
 sqlx4k = "1.13.0"
 ktlintPlugin = "14.0.1"
@@ -13,6 +14,7 @@ materialKolor = "5.0.0"
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 sqlx4k-sqlite = { module = "io.github.smyrgeorge:sqlx4k-sqlite", version.ref = "sqlx4k" }

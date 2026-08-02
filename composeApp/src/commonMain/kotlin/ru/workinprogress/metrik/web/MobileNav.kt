@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -158,7 +157,7 @@ fun MobileServicesListScreen(
         Text(
             "${services.size} " + pluralRu(services.size, "СЕРВИС", "СЕРВИСА", "СЕРВИСОВ"),
             style = MaterialTheme.typography.labelSmall,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MetrikMono,
             color = MaterialTheme.colorScheme.outline,
         )
         Text(
@@ -208,7 +207,7 @@ private fun MobileServiceListRow(
         Text(
             service.name,
             style = MaterialTheme.typography.bodyMedium,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MetrikMono,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
@@ -218,7 +217,7 @@ private fun MobileServiceListRow(
         Text(
             rpsLabel,
             style = MaterialTheme.typography.labelMedium,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MetrikMono,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
         )
     }

@@ -4,10 +4,13 @@ import io.github.smyrgeorge.sqlx4k.Statement
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asBoolean
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asDouble
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asInt
+import io.github.smyrgeorge.sqlx4k.impl.extensions.asLong
 import io.github.smyrgeorge.sqlx4k.sqlite.ISQLite
 import ru.workinprogress.metrik.api.AlertRuleView
 import ru.workinprogress.metrik.server.alert.AlertDefaults
 import ru.workinprogress.metrik.server.alert.AlertRuleIds
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * Админский контур: пороги алертов на сервис и удаление сервиса.
@@ -15,12 +18,69 @@ import ru.workinprogress.metrik.server.alert.AlertRuleIds
  * Регистрации сервисов здесь нет — ключ один на инсталляцию, сервис заводится сам при первом
  * пакете. Удаление нужно, чтобы убрать фантом, заведённый опечаткой в имени.
  */
+@OptIn(ExperimentalTime::class)
 class AdminService(
     private val db: ISQLite,
     private val defaults: AlertDefaults = AlertDefaults(),
+    private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
+    /**
+     * До какого момента правило заглушено. Истёкшие заглушения не считаются активными.
+     */
+    suspend fun mutes(serviceId: Long): Map<String, Long> =
+        db
+            .fetchAll(
+                Statement
+                    .create("SELECT rule_id, until FROM alert_mutes WHERE service_id = :id")
+                    .bind("id", serviceId),
+            ).getOrThrow()
+            .rows
+            .associate { row -> row.get("rule_id").asString() to row.get("until").asLong() }
+            .filterValues { until -> until > nowMs() }
+
+    /**
+     * Заглушает уведомления по правилу до [untilMs].
+     *
+     * Заглушается **только доставка**: правило продолжает считаться, гореть в UI и писаться в
+     * историю. Иначе кнопка «заглушить» означала бы «перестань замечать проблему».
+     */
+    suspend fun mute(
+        serviceId: Long,
+        ruleId: String,
+        untilMs: Long,
+    ) {
+        require(ruleId in AlertRuleIds.all) { "unknown rule: $ruleId" }
+
+        db
+            .execute(
+                Statement
+                    .create(
+                        """
+                        INSERT INTO alert_mutes (service_id, rule_id, until) VALUES (:id, :rule, :until)
+                        ON CONFLICT(service_id, rule_id) DO UPDATE SET until = excluded.until
+                        """.trimIndent(),
+                    ).bind("id", serviceId)
+                    .bind("rule", ruleId)
+                    .bind("until", untilMs),
+            ).getOrThrow()
+    }
+
+    suspend fun unmute(
+        serviceId: Long,
+        ruleId: String,
+    ) {
+        db
+            .execute(
+                Statement
+                    .create("DELETE FROM alert_mutes WHERE service_id = :id AND rule_id = :rule")
+                    .bind("id", serviceId)
+                    .bind("rule", ruleId),
+            ).getOrThrow()
+    }
+
     /** Правила сервиса: дефолты инсталляции, перекрытые переопределениями. */
     suspend fun rules(serviceId: Long): List<AlertRuleView> {
+        val muted = mutes(serviceId)
         val overrides =
             db
                 .fetchAll(
@@ -47,7 +107,9 @@ class AdminService(
                         )
                 }
 
-        return AlertRuleIds.all.map { ruleId -> overrides[ruleId] ?: defaults.view(ruleId) }
+        return AlertRuleIds.all.map { ruleId ->
+            (overrides[ruleId] ?: defaults.view(ruleId)).copy(mutedUntil = muted[ruleId])
+        }
     }
 
     /** Переопределяет правило для сервиса. Единственная мутирующая операция в UI. */

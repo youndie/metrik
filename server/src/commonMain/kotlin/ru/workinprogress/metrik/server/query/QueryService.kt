@@ -170,6 +170,7 @@ class QueryService(
     suspend fun slow(
         serviceId: Long,
         from: Long,
+        to: Long = nowMs(),
         limit: Int = 100,
     ): List<SlowRow> =
         rows(
@@ -177,11 +178,12 @@ class QueryService(
                 .create(
                     """
                     SELECT method, route, status, duration_ms, ts FROM slow_samples
-                    WHERE service_id = :id AND ts >= :from
+                    WHERE service_id = :id AND ts BETWEEN :from AND :to
                     ORDER BY duration_ms DESC LIMIT ${limit.coerceIn(1, 500)}
                     """.trimIndent(),
                 ).bind("id", serviceId)
-                .bind("from", from),
+                .bind("from", from)
+                .bind("to", to),
         ).map { row ->
             SlowRow(
                 method = row.get("method").asString(),

@@ -133,7 +133,21 @@ detail TEXT
         """CREATE INDEX alert_history_at ON alert_history(at);""",
     )
 
-private val allMigrations = listOf(migrationV1)
+// Заглушение — отдельная таблица, а не колонка в alert_rules: строка в alert_rules означает
+// «пороги переопределены», и смешивать с ней «временно молчи» значило бы, что заглушение
+// втихую делает сервис переопределённым.
+private val migrationV2 =
+    listOf(
+        """CREATE TABLE alert_mutes (
+service_id INTEGER NOT NULL,
+rule_id TEXT NOT NULL,
+until INTEGER NOT NULL,
+PRIMARY KEY (service_id, rule_id),
+FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
+);""",
+    )
+
+private val allMigrations = listOf(migrationV1, migrationV2)
 
 suspend fun ISQLite.migrateDb() {
     val current =

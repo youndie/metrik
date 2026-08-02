@@ -35,17 +35,28 @@ contract_source: :shared (ru.workinprogress.metrik.api)
 | GET | `/api/services/{id}/timeseries` | user | ряды RPS / p50 / p95 / max / error rate; те же параметры периода |
 | GET | `/api/services/{id}/routes` | user | таблица маршрутов за период: count, error rate, p50, p95, max |
 | GET | `/api/services/{id}/system` | user | heap / cpu / threads / gc по инстансам |
-| GET | `/api/services/{id}/slow` | user | медленные сэмплы за 24ч |
+| GET | `/api/services/{id}/slow` | user | медленные сэмплы; период — `?from`/`?to`, по умолчанию 24 часа |
 | GET | `/api/services/{id}/deploys` | user | отметки деплоев за период — накладываются на графики |
-| GET | `/api/alerts` | user | активные алерты + история |
+| GET | `/api/alerts` | user | алерты, горящие сейчас (`state = FIRING`), с отметкой заглушения |
+| GET | `/api/alerts/history` | user | записанные переходы правил FIRING↔OK, последние 100, свежие первыми |
 | GET | `/api/admin/services/{id}/alerts` | admin | пороги правил: дефолты инсталляции и переопределения сервиса |
 | PUT | `/api/admin/services/{id}/alerts` | admin | переопределить пороги и telegram-чат для сервиса |
+| PUT | `/api/admin/services/{id}/alerts/{rule}/mute` | admin | заглушить уведомления по правилу на `?minutes` (по умолчанию 60) |
+| DELETE | `/api/admin/services/{id}/alerts/{rule}/mute` | admin | снять заглушение |
+| POST | `/api/admin/alerts/test` | admin | тестовое уведомление; отвечает `{"delivered": true\|false}` |
 | DELETE | `/api/admin/services/{id}` | admin | удалить сервис и его данные (в том числе заведённый по опечатке) |
 | GET | `/health` | — | живость процесса + ping БД, без auth |
 | GET | `/api/self` | user | внутренние счётчики ingest (`unknown_version`, `bad_key`, `malformed`, `dropped`) |
 
 `/api/self` — не «на будущее»: без него потери и отброшенные пакеты остаются невидимыми, а именно
 они первыми объясняют «почему графики выглядят странно».
+
+**Заглушение глушит только доставку.** Правило продолжает считаться, гореть в `/api/alerts` и
+писаться в историю; в ответе видно `mutedUntil`. Иначе кнопка «заглушить» означала бы «перестань
+замечать проблему», а не «не буди меня».
+
+**`delivered: false` — это ответ, а не ошибка.** Тестовое уведомление отвечает честно: без
+настроенного токена или при отказе Telegram доставки не было, и UI обязан показать именно это.
 
 Регистрации сервиса в этом списке нет: ingest-key один на инсталляцию, сервис заводится сам при
 первом пакете. `PUT …/alerts` — единственная мутирующая операция в UI; на неё пришлось пойти ради
