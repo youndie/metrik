@@ -1,6 +1,7 @@
 package ru.workinprogress.metrik.agent
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -89,7 +90,10 @@ class MetrikAgent(
     val counters = AgentCounters()
 
     fun start(scope: CoroutineScope) {
-        job = scope.launch { run() }
+        // Dispatchers.Default, а не диспетчер вызывающего: на диспетчере движка Ktor (CIO native)
+        // таймеры не срабатывают — корутина уходит в delay и не просыпается, пока нет сетевой
+        // активности. Job наследуется от scope, поэтому остановка хоста по-прежнему гасит агента.
+        job = scope.launch(Dispatchers.Default) { run() }
     }
 
     fun stop() {

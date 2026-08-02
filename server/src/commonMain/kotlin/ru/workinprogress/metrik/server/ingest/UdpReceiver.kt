@@ -5,6 +5,7 @@ import io.ktor.network.sockets.aSocket
 import io.ktor.utils.io.core.readText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -27,7 +28,7 @@ class UdpReceiver(
     private var job: Job? = null
 
     fun start(scope: CoroutineScope) {
-        job = scope.launch { listen() }
+        job = scope.launch(Dispatchers.Default) { listen() }
     }
 
     fun stop() {

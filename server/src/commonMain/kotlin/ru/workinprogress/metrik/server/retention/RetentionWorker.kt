@@ -5,6 +5,7 @@ import io.github.smyrgeorge.sqlx4k.impl.extensions.asLong
 import io.github.smyrgeorge.sqlx4k.sqlite.ISQLite
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -41,7 +42,7 @@ class RetentionWorker(
 
     fun start(scope: CoroutineScope) {
         job =
-            scope.launch {
+            scope.launch(Dispatchers.Default) {
                 while (currentlyActive()) {
                     try {
                         tick()
