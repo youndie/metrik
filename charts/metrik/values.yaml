@@ -1,7 +1,9 @@
 image:
   repository: ghcr.io/youndie/metrik
   tag: latest
-  pullPolicy: IfNotPresent
+  # Always, а не IfNotPresent: тег latest мутабельный, и с IfNotPresent узел навсегда
+  # остаётся на первом скачанном образе.
+  pullPolicy: Always
 
 web:
   repository: ghcr.io/youndie/metrik-web
