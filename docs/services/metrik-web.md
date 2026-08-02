@@ -4,7 +4,7 @@ title: metrik-web (Compose Wasm)
 type: service
 status: active
 module: :composeApp
-tech_stack: [Kotlin/Wasm, Compose Multiplatform, ktor-client-js, nginx]
+tech_stack: [Kotlin/Wasm, Compose Multiplatform, ktor-client-js, Koin, Navigation 3, nginx]
 owner: unassigned
 depends_on:
   - metrik-server
@@ -17,7 +17,7 @@ publishes:
 ## 1. Зона ответственности
 
 SPA-дашборд: список сервисов, состояние алертов, графики по сервису, таблица маршрутов, список
-медленных запросов. Только чтение — ни одной мутирующей операции в v1.
+медленных запросов. Пишет только пороги алертов и заглушение доставки — всё остальное чтение.
 
 **Не отвечает за:** авторизацию (её делает reverse proxy перед `metrik-server`), хранение,
 любую бизнес-логику агрегации — считает сервер.
@@ -56,7 +56,36 @@ Ktor нечем отдать бандл, а инлайнить мегабайт�
 CORS на `metrik-server` нужен только для локальной разработки (`web` на `:8081`, сервер на `:8080`);
 в проде оба за одним хостом.
 
-## 3. Экраны
+## 3. Устройство модуля
+
+Слои по фичам, как в остальных клиентах (скилл `client-feature-impl`):
+
+```
+web/
+  core/{domain,data}      — UseCase-контракт, TimeSource, фабрика HttpClient
+  navigation/             — Route : NavKey + синхронизация с историей браузера (expect/actual)
+  ui/                     — тема, UI-кит, рельс, нижняя навигация, оболочка (AppShellViewModel)
+  feature/<name>/
+    domain/               — Repository (интерфейс) + по одному классу на операцию
+    data/                 — RepositoryImpl поверх HttpClient
+    ui/                   — ViewModel (UiState/UiAction/UiEvent) + пара Screen/Content
+```
+
+Три вещи здесь не декоративны:
+
+* **Пути к API не собираются строками.** Классы `@Resource` объявлены один раз в `:shared`
+  (`ru.workinprogress.metrik.api.Api`) и используются обеими сторонами: `ktor-server-resources` на
+  сервере, `ktor-client-resources` в дашборде. Копия пути в клиенте протухает молча — переименовали
+  роут, компилятор промолчал, сломалось у пользователя.
+* **Навигация — стек, а не переменная.** Navigation 3 (`NavDisplay`, `Route : NavKey`), маршруты
+  `@Serializable`. На wasm стек связан с историей браузера
+  (`com.github.terrakok:navigation3-browser`): кнопки «назад/вперёд» и адресная строка — часть
+  интерфейса, а не украшение.
+* **Прокрутка одна на экран, отступы внутри неё.** `contentPadding` применяется **после**
+  `verticalScroll`; повешенный снаружи паддинг сужает вьюпорт, и контент режется по внутренней
+  границе.
+
+## 4. Экраны
 
 | Экран | Содержимое |
 |---|---|
@@ -69,7 +98,7 @@ CORS на `metrik-server` нужен только для локальной ра
 
 Обновление — `polling` раз в 15–30 с (research §Р6): окно агрегации минутное, SSE ничего не добавит.
 
-## 4. Обязательные элементы честности в UI
+## 5. Обязательные элементы честности в UI
 
 Не косметика, а требование — иначе дашборд будет врать:
 
@@ -81,7 +110,7 @@ CORS на `metrik-server` нужен только для локальной ра
 * у нативных сервисов подпись «RSS», а не «heap» — это разные величины
   ([feature-system-metrics](../features/feature-system-metrics.md)).
 
-## 5. Чего в UI нет
+## 6. Чего в UI нет
 
 Разреза маршрутов по инстансам — данные так не хранятся (см. [metrik-server](metrik-server.md)).
 Списка инстансов как сущности: при rolling update они меняются каждый выкат, и список из сорока

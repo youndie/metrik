@@ -36,6 +36,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(libs.kotlinx.serialization.json)
+            // Пути API объявлены типизированно и живут здесь — обе стороны берут один контракт.
+            api(ktorLibs.resources)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

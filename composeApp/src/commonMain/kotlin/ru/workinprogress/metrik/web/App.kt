@@ -15,21 +15,40 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
-import ru.workinprogress.metrik.api.AlertView
-import ru.workinprogress.metrik.api.ServiceSummary
-
-/** Опрос раз в 30 с: окно агрегации минутное, real-time тут ничего не добавит (docs/research §Р6). */
-internal const val REFRESH_MS = 30_000L
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.ui.NavDisplay
+import io.ktor.client.HttpClient
+import org.koin.compose.KoinApplication
+import org.koin.compose.viewmodel.koinViewModel
+import ru.workinprogress.metrik.web.core.coreModule
+import ru.workinprogress.metrik.web.core.data.metrikHttpClient
+import ru.workinprogress.metrik.web.feature.alerts.alertsModule
+import ru.workinprogress.metrik.web.feature.alerts.ui.AlertsScreen
+import ru.workinprogress.metrik.web.feature.service.serviceModule
+import ru.workinprogress.metrik.web.feature.service.ui.ServiceScreen
+import ru.workinprogress.metrik.web.feature.services.servicesModule
+import ru.workinprogress.metrik.web.feature.services.ui.OverviewScreen
+import ru.workinprogress.metrik.web.feature.services.ui.ServicesListScreen
+import ru.workinprogress.metrik.web.navigation.BrowserBackStackSync
+import ru.workinprogress.metrik.web.navigation.Route
+import ru.workinprogress.metrik.web.navigation.routeSavedStateConfig
+import ru.workinprogress.metrik.web.ui.AppShellUiState
+import ru.workinprogress.metrik.web.ui.AppShellViewModel
+import ru.workinprogress.metrik.web.ui.BottomNavBar
+import ru.workinprogress.metrik.web.ui.MetrikTheme
+import ru.workinprogress.metrik.web.ui.MobileTab
+import ru.workinprogress.metrik.web.ui.NavRail
+import ru.workinprogress.metrik.web.ui.Spacing
+import ru.workinprogress.metrik.web.ui.TopRoute
 
 /**
  * Порог переключения десктоп/мобильной раскладки — по ширине окна ([BoxWithConstraints]), а не по
@@ -52,131 +71,157 @@ private val MOBILE_MAX_WIDTH: Dp = 760.dp
 private val DesktopContentPadding = PaddingValues(horizontal = Spacing.xxl, vertical = Spacing.xl)
 private val MobileContentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.lg)
 
-/** Верхнеуровневый маршрут дашборда — что показано в области контента справа от рельса (десктоп)
- * или под нижней навигацией (мобильная раскладка). */
-private sealed interface Route {
-    data object Overview : Route
-
-    data object Alerts : Route
-
-    /** Список сервисов на весь экран — мобильный аналог списка в рельсе, третья вкладка нижней навигации. */
-    data object Services : Route
-
-    data class Service(
-        val summary: ServiceSummary,
-        val tab: Int = 0,
-    ) : Route
-}
-
 /**
  * Дашборд «Metrik Expressive».
  *
- * Десктоп: рельс слева (см. [NavRail]) + контент справа, переключаемый без перезагрузки. Мобильная
- * раскладка (`maxWidth < `[MOBILE_MAX_WIDTH]): рельса нет, вместо него нижняя навигация из трёх
- * вкладок (Обзор / Алерты / Сервисы), контент — один столбец. Список сервисов и активные алерты
- * общие для обеих раскладок и обновляются одним и тем же опросом раз в 30 с; у «Обзора» на выбор
- * диапазона — свой независимый запрос (см. [OverviewScreen]).
+ * Десктоп: рельс слева (см. [NavRail]) + контент справа. Мобильная раскладка
+ * (`maxWidth < `[MOBILE_MAX_WIDTH]): рельса нет, вместо него нижняя навигация из трёх вкладок
+ * (Обзор / Алерты / Сервисы), контент — один столбец. Обе раскладки ходят по одному и тому же
+ * back stack'у, поэтому «назад» браузера работает одинаково.
  */
 @Composable
-fun App(
-    client: MetrikClient = remember { MetrikClient() },
-    nowMs: () -> Long,
-) {
-    var services by remember { mutableStateOf<List<ServiceSummary>>(emptyList()) }
-    var alerts by remember { mutableStateOf<List<AlertView>>(emptyList()) }
-    var error by remember { mutableStateOf<String?>(null) }
-    // Отдельно от error: различает «ещё не получили первый ответ» и «сервисов правда нет» —
-    // без этого флага пустой список на старте и пустой список после опроса выглядели бы одинаково.
-    var loaded by remember { mutableStateOf(false) }
-    var lastSuccessAt by remember { mutableStateOf<Long?>(null) }
-    var nowTick by remember { mutableStateOf(nowMs()) }
-    var route by remember { mutableStateOf<Route>(Route.Overview) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            runCatching {
-                services = client.services()
-                alerts = client.alerts()
-                error = null
-                lastSuccessAt = nowMs()
-            }.onFailure { cause -> error = cause.message ?: "не удалось получить данные" }
-            loaded = true
-            delay(REFRESH_MS)
-        }
-    }
-
-    // Секундный тик — только для надписи «обновлено N с назад» в рельсе, данные он не запрашивает.
-    LaunchedEffect(Unit) {
-        while (true) {
-            nowTick = nowMs()
-            delay(1000)
-        }
-    }
-
-    val firingAlertCount = alerts.count { it.state.equals("firing", ignoreCase = true) }
-
-    MetrikTheme {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surfaceDim) {
-            BoxWithConstraints(Modifier.fillMaxSize()) {
-                if (maxWidth < MOBILE_MAX_WIDTH) {
-                    MobileShell(
-                        client = client,
-                        services = services,
-                        alerts = alerts,
-                        error = error,
-                        firingAlertCount = firingAlertCount,
-                        nowTick = { nowTick },
-                        route = route,
-                        onRouteChange = { route = it },
-                    )
-                } else {
-                    DesktopShell(
-                        client = client,
-                        services = services,
-                        alerts = alerts,
-                        error = error,
-                        updatedAgoLabel = lastSuccessAt?.let { "обновлено ${relativeAgo(nowTick, it)} назад" } ?: "опрашиваем…",
-                        nowTick = { nowTick },
-                        route = route,
-                        onRouteChange = { route = it },
-                    )
-                }
+fun App(httpClient: HttpClient = metrikHttpClient()) {
+    KoinApplication(application = {
+        modules(coreModule(httpClient), servicesModule, serviceModule, alertsModule)
+    }) {
+        MetrikTheme {
+            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surfaceDim) {
+                AppShell()
             }
         }
     }
 }
 
 @Composable
+private fun AppShell(viewModel: AppShellViewModel = koinViewModel()) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val backStack = rememberNavBackStack(routeSavedStateConfig, Route.Overview)
+
+    BrowserBackStackSync(backStack)
+
+    AppShellContent(uiState = uiState, backStack = backStack)
+}
+
+/**
+ * Стейтлес-оболочка: знает про состояние и back stack, но ничего не знает про ViewModel.
+ */
+@Composable
+private fun AppShellContent(
+    uiState: AppShellUiState,
+    backStack: NavBackStack<NavKey>,
+) {
+    /** Верхнеуровневая вкладка сбрасывает стек: это переключение раздела, а не заход вглубь. */
+    fun switchTab(route: Route) {
+        if (backStack.singleOrNull() != route) {
+            backStack.clear()
+            backStack.add(route)
+        }
+    }
+
+    fun openService(id: Long) {
+        if (backStack.lastOrNull() != Route.Service(id)) backStack.add(Route.Service(id))
+    }
+
+    val current = backStack.lastOrNull() as? Route
+
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val compact = maxWidth < MOBILE_MAX_WIDTH
+        val contentPadding = if (compact) MobileContentPadding else DesktopContentPadding
+
+        // Паддинга вокруг прокрутки здесь нет намеренно: он уходит внутрь экрана (contentPadding).
+        // Снаружи он сужал бы вьюпорт, и контент обрезался бы по внутренней границе — выглядело
+        // так, будто экран скроллится внутри рамки.
+        val content: @Composable () -> Unit = {
+            NavDisplay(
+                backStack = backStack,
+                onBack = { backStack.removeLastOrNull() },
+                entryProvider =
+                    entryProvider {
+                        entry<Route.Overview> {
+                            OverviewScreen(
+                                compact = compact,
+                                contentPadding = contentPadding,
+                                onOpenAlerts = { switchTab(Route.Alerts) },
+                                onSelect = { service -> openService(service.id) },
+                            )
+                        }
+
+                        entry<Route.Alerts> {
+                            AlertsScreen(compact = compact, contentPadding = contentPadding)
+                        }
+
+                        entry<Route.Services> {
+                            // На десктопе список сервисов всегда в рельсе, отдельного экрана для
+                            // него нет — но маршрут переживает смену раскладки: можно открыть
+                            // «Сервисы» в узком окне и расширить его. Показываем «Обзор» как
+                            // разумный дефолт.
+                            if (compact) {
+                                ServicesListScreen(
+                                    services = uiState.services,
+                                    contentPadding = contentPadding,
+                                    onSelect = { service -> openService(service.id) },
+                                )
+                            } else {
+                                OverviewScreen(
+                                    compact = false,
+                                    contentPadding = contentPadding,
+                                    onOpenAlerts = { switchTab(Route.Alerts) },
+                                    onSelect = { service -> openService(service.id) },
+                                )
+                            }
+                        }
+
+                        entry<Route.Service> { route ->
+                            ServiceScreen(
+                                serviceId = route.id,
+                                compact = compact,
+                                contentPadding = contentPadding,
+                                onBack = { backStack.removeLastOrNull() },
+                            )
+                        }
+                    },
+            )
+        }
+
+        if (compact) {
+            MobileShell(uiState = uiState, current = current, onSelectTab = ::switchTab, content = content)
+        } else {
+            DesktopShell(
+                uiState = uiState,
+                current = current,
+                onSelectTab = ::switchTab,
+                onSelectService = ::openService,
+                content = content,
+            )
+        }
+    }
+}
+
+@Composable
 private fun DesktopShell(
-    client: MetrikClient,
-    services: List<ServiceSummary>,
-    alerts: List<AlertView>,
-    error: String?,
-    updatedAgoLabel: String,
-    nowTick: () -> Long,
-    route: Route,
-    onRouteChange: (Route) -> Unit,
+    uiState: AppShellUiState,
+    current: Route?,
+    onSelectTab: (Route) -> Unit,
+    onSelectService: (Long) -> Unit,
+    content: @Composable () -> Unit,
 ) {
     Row(Modifier.fillMaxSize()) {
         NavRail(
-            services = services,
-            firingAlertCount = alerts.count { it.state.equals("firing", ignoreCase = true) },
-            updatedAgoLabel = updatedAgoLabel,
+            services = uiState.services,
+            firingAlertCount = uiState.firingAlertCount,
+            updatedAgoLabel = uiState.updatedAgoLabel,
             topRoute =
-                when (route) {
+                when (current) {
                     Route.Overview -> TopRoute.OVERVIEW
                     Route.Alerts -> TopRoute.ALERTS
-                    Route.Services, is Route.Service -> null
+                    else -> null
                 },
-            selectedServiceId = (route as? Route.Service)?.summary?.id,
-            onOverview = { onRouteChange(Route.Overview) },
-            onAlerts = { onRouteChange(Route.Alerts) },
-            onSelectService = { service -> onRouteChange(Route.Service(service)) },
+            selectedServiceId = (current as? Route.Service)?.id,
+            onOverview = { onSelectTab(Route.Overview) },
+            onAlerts = { onSelectTab(Route.Alerts) },
+            onSelectService = { service -> onSelectService(service.id) },
         )
 
-        // Паддинга здесь нет намеренно: он уходит внутрь прокрутки каждого экрана
-        // (contentPadding). Снаружи он сужал бы вьюпорт, и контент обрезался бы по внутренней
-        // границе — выглядело так, будто экран скроллится внутри рамки.
         Column(
             Modifier
                 .weight(1f)
@@ -184,135 +229,39 @@ private fun DesktopShell(
                 .clip(RoundedCornerShape(topStart = 28.dp))
                 .background(MaterialTheme.colorScheme.surfaceDim),
         ) {
-            if (error != null) {
-                Box(Modifier.padding(horizontal = Spacing.xxl, vertical = Spacing.md)) { ErrorBanner(error) }
+            if (uiState.error != null) {
+                Box(Modifier.padding(horizontal = Spacing.xxl, vertical = Spacing.md)) { ErrorBanner(uiState.error) }
             }
-
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                when (val current = route) {
-                    Route.Overview -> {
-                        OverviewScreen(
-                            client = client,
-                            alerts = alerts,
-                            nowMs = nowTick,
-                            contentPadding = DesktopContentPadding,
-                            onSelect = { service -> onRouteChange(Route.Service(service)) },
-                        )
-                    }
-
-                    Route.Alerts -> {
-                        AlertsScreen(client, services, alerts, nowMs = nowTick, contentPadding = DesktopContentPadding)
-                    }
-
-                    // На десктопе список сервисов всегда в рельсе, отдельного экрана для него нет —
-                    // но `route` переживает смену раскладки: можно открыть «Сервисы» в узком окне и
-                    // расширить его, не переключая вкладку. Показываем Обзор как разумный дефолт.
-                    Route.Services -> {
-                        OverviewScreen(
-                            client = client,
-                            alerts = alerts,
-                            nowMs = nowTick,
-                            contentPadding = DesktopContentPadding,
-                            onSelect = { service -> onRouteChange(Route.Service(service)) },
-                        )
-                    }
-
-                    is Route.Service -> {
-                        // Сервис в маршруте мог устареть между опросами (например, у него
-                        // изменился firingAlerts) — берём актуальную версию по id, а если
-                        // сервис вдруг пропал из списка, используем последнюю известную,
-                        // чтобы экран не схлопывался в пустоту посреди просмотра.
-                        val fresh = services.firstOrNull { it.id == current.summary.id } ?: current.summary
-                        ServiceScreen(
-                            client = client,
-                            service = fresh,
-                            alerts = alerts,
-                            nowMs = nowTick,
-                            tab = current.tab,
-                            contentPadding = DesktopContentPadding,
-                            onTabChange = { newTab -> onRouteChange(current.copy(summary = fresh, tab = newTab)) },
-                        )
-                    }
-                }
-            }
+            Box(Modifier.weight(1f).fillMaxWidth()) { content() }
         }
     }
 }
 
 @Composable
 private fun MobileShell(
-    client: MetrikClient,
-    services: List<ServiceSummary>,
-    alerts: List<AlertView>,
-    error: String?,
-    firingAlertCount: Int,
-    nowTick: () -> Long,
-    route: Route,
-    onRouteChange: (Route) -> Unit,
+    uiState: AppShellUiState,
+    current: Route?,
+    onSelectTab: (Route) -> Unit,
+    content: @Composable () -> Unit,
 ) {
-    val selectedTab =
-        when (route) {
-            Route.Overview -> MobileTab.OVERVIEW
-            Route.Alerts -> MobileTab.ALERTS
-            Route.Services, is Route.Service -> MobileTab.SERVICES
-        }
-
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).fillMaxWidth()) {
-            if (error != null) {
-                Box(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) { ErrorBanner(error) }
+            if (uiState.error != null) {
+                Box(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) { ErrorBanner(uiState.error) }
             }
-
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                when (val current = route) {
-                    Route.Overview -> {
-                        OverviewScreen(
-                            client = client,
-                            alerts = alerts,
-                            nowMs = nowTick,
-                            compact = true,
-                            contentPadding = MobileContentPadding,
-                            onSelect = { service -> onRouteChange(Route.Service(service)) },
-                            onOpenAlerts = { onRouteChange(Route.Alerts) },
-                        )
-                    }
-
-                    Route.Alerts -> {
-                        AlertsScreen(client, services, alerts, compact = true, nowMs = nowTick, contentPadding = MobileContentPadding)
-                    }
-
-                    Route.Services -> {
-                        MobileServicesListScreen(
-                            services = services,
-                            selectedServiceId = null,
-                            contentPadding = MobileContentPadding,
-                            onSelect = { service -> onRouteChange(Route.Service(service)) },
-                        )
-                    }
-
-                    is Route.Service -> {
-                        val fresh = services.firstOrNull { it.id == current.summary.id } ?: current.summary
-                        ServiceScreen(
-                            client = client,
-                            service = fresh,
-                            alerts = alerts,
-                            nowMs = nowTick,
-                            tab = current.tab,
-                            compact = true,
-                            contentPadding = MobileContentPadding,
-                            onBack = { onRouteChange(Route.Services) },
-                            onTabChange = { newTab -> onRouteChange(current.copy(summary = fresh, tab = newTab)) },
-                        )
-                    }
-                }
-            }
+            Box(Modifier.weight(1f).fillMaxWidth()) { content() }
         }
 
         BottomNavBar(
-            selected = selectedTab,
-            firingAlertCount = firingAlertCount,
+            selected =
+                when (current) {
+                    Route.Alerts -> MobileTab.ALERTS
+                    Route.Services, is Route.Service -> MobileTab.SERVICES
+                    else -> MobileTab.OVERVIEW
+                },
+            firingAlertCount = uiState.firingAlertCount,
             onSelect = { tab ->
-                onRouteChange(
+                onSelectTab(
                     when (tab) {
                         MobileTab.OVERVIEW -> Route.Overview
                         MobileTab.ALERTS -> Route.Alerts

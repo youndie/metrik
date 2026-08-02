@@ -1,4 +1,4 @@
-package ru.workinprogress.metrik.web
+package ru.workinprogress.metrik.web.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

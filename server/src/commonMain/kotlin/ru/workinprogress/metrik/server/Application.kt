@@ -10,6 +10,8 @@ import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.resources.Resources
+import io.ktor.server.resources.get
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -21,6 +23,7 @@ import okio.Path.Companion.toPath
 import okio.SYSTEM
 import ru.workinprogress.metrik.agent.Metrik
 import ru.workinprogress.metrik.agent.MetrikCountersKey
+import ru.workinprogress.metrik.api.Api
 import ru.workinprogress.metrik.server.alert.AlertNotifier
 import ru.workinprogress.metrik.server.alert.AlertWorker
 import ru.workinprogress.metrik.server.alert.NoopNotifier
@@ -116,6 +119,9 @@ fun Application.module(
         }
     }
 
+    // Типизированные пути: контракт объявлен в :shared и общий с дашбордом.
+    install(Resources)
+
     install(ContentNegotiation) { json(MetrikJson) }
 
     routing {
@@ -125,10 +131,12 @@ fun Application.module(
             call.respondText("ok")
         }
 
-        route("/api") {
+        // Префикс /api несут сами ресурсы (см. `Api` в :shared), поэтому обёртки route("/api")
+        // здесь нет: она бы задвоила путь.
+        run {
             // Без этих счётчиков потери и отброшенные пакеты невидимы, а странные графики
             // нечем объяснить.
-            get("/self") {
+            get<Api.Self> {
                 // Счётчики агента приезжают сюда только при самонаблюдении — иначе потери
                 // на стороне отправителя не видны никому.
                 val agentCounters = call.application.attributes.getOrNull(MetrikCountersKey)

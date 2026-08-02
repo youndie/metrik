@@ -1,4 +1,4 @@
-package ru.workinprogress.metrik.web
+package ru.workinprogress.metrik.web.feature.services.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,11 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,65 +32,59 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.viewmodel.koinViewModel
 import ru.workinprogress.metrik.api.AlertView
 import ru.workinprogress.metrik.api.ServiceSummary
+import ru.workinprogress.metrik.web.core.domain.Range
+import ru.workinprogress.metrik.web.ui.ChartPoint
+import ru.workinprogress.metrik.web.ui.EmptyState
+import ru.workinprogress.metrik.web.ui.LoadingState
+import ru.workinprogress.metrik.web.ui.MetrikExtra
+import ru.workinprogress.metrik.web.ui.MetrikMono
+import ru.workinprogress.metrik.web.ui.RangeSelector
+import ru.workinprogress.metrik.web.ui.Spacing
+import ru.workinprogress.metrik.web.ui.Sparkline
+import ru.workinprogress.metrik.web.ui.format
+import ru.workinprogress.metrik.web.ui.pluralRu
 
 /**
  * Обзор: hero горящих алертов (если есть) и сетка карточек сервисов.
  *
- * Экран сам себе хозяин по данным сервисов: в отличие от рельса (который всегда «живой», последние
- * 5 минут — см. [MetrikClient.services]) здесь есть переключатель диапазона, и он обязан реально
- * перезапрашивать `/api/services` и спарклайны за выбранный период, а не просто перекрашивать кнопку
- * (см. итоговый отчёт задания). Алерты по-прежнему общие с остальным приложением — `/api/alerts`
- * периода не принимает.
+ * Экран сам себе хозяин по данным (см. [OverviewViewModel]): переключатель диапазона реально
+ * перезапрашивает список сервисов и спарклайны за выбранный период.
  */
 @Composable
 fun OverviewScreen(
-    client: MetrikClient,
-    alerts: List<AlertView>,
-    nowMs: () -> Long,
+    viewModel: OverviewViewModel = koinViewModel(),
     compact: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     onOpenAlerts: () -> Unit = {},
     onSelect: (ServiceSummary) -> Unit,
-    contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    var range by remember { mutableStateOf(Range.HOUR) }
-    var services by remember { mutableStateOf<List<ServiceSummary>>(emptyList()) }
-    var sparklines by remember { mutableStateOf<Map<Long, List<ChartPoint>>>(emptyMap()) }
-    // Не привязан к range: иначе смена диапазона на мгновение схлопывала бы весь экран в спиннер
-    // вместо того, чтобы держать старые цифры до прихода новых (тот же приём, что и в App.kt).
-    var loaded by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    OverviewContent(
+        uiState = uiState,
+        onAction = viewModel::onAction,
+        compact = compact,
+        contentPadding = contentPadding,
+        onOpenAlerts = onOpenAlerts,
+        onSelect = onSelect,
+    )
+}
 
-    LaunchedEffect(range) {
-        while (true) {
-            runCatching {
-                val to = nowMs()
-                val from = to - range.ms
-                val freshServices = client.services(from, to)
-                val deferredByService =
-                    coroutineScope {
-                        freshServices.map { service ->
-                            service.id to
-                                async {
-                                    runCatching { client.timeSeries(service.id, from, to, range.step) }.getOrNull()
-                                }
-                        }
-                    }
-                val freshSparklines = LinkedHashMap<Long, List<ChartPoint>>()
-                for ((serviceId, deferred) in deferredByService) {
-                    val points = deferred.await()?.points?.toChart { it.requestsPerSecond } ?: emptyList()
-                    freshSparklines[serviceId] = points
-                }
-                services = freshServices
-                sparklines = freshSparklines
-            }
-            loaded = true
-            delay(REFRESH_MS)
-        }
-    }
+/** Стейтлес — всё через [uiState]/[onAction], про ViewModel ничего не знает. */
+@Composable
+fun OverviewContent(
+    uiState: OverviewUiState,
+    onAction: (OverviewUiAction) -> Unit,
+    compact: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    onOpenAlerts: () -> Unit = {},
+    onSelect: (ServiceSummary) -> Unit,
+) {
+    val services = uiState.services
+    val firing = uiState.firingAlerts
 
     Column(
         // Паддинг применяется ПОСЛЕ verticalScroll и потому едет вместе с контентом. Если
@@ -103,7 +93,7 @@ fun OverviewScreen(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(if (compact) Spacing.md else Spacing.xl),
     ) {
-        if (!loaded) {
+        if (!uiState.loaded) {
             LoadingState("загружаем список сервисов…")
             return@Column
         }
@@ -112,8 +102,8 @@ fun OverviewScreen(
             return@Column
         }
 
-        val firing = alerts.filter { it.state.equals("firing", ignoreCase = true) }
         val totalInstances = services.sumOf { it.instances }
+        val onRange: (Range) -> Unit = { range -> onAction(OverviewUiAction.SelectRange(range)) }
 
         if (compact) {
             Text(
@@ -122,7 +112,7 @@ fun OverviewScreen(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            RangeSelector(range, { range = it }, Modifier.fillMaxWidth())
+            RangeSelector(uiState.range, onRange, Modifier.fillMaxWidth())
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -140,7 +130,7 @@ fun OverviewScreen(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
-                RangeSelector(range, { range = it })
+                RangeSelector(uiState.range, onRange)
             }
         }
 
@@ -155,11 +145,11 @@ fun OverviewScreen(
         if (compact) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 services.forEach { service ->
-                    MobileServiceRow(service, alerts, sparklines[service.id]) { onSelect(service) }
+                    MobileServiceRow(service, firing, uiState.sparklines[service.id]) { onSelect(service) }
                 }
             }
         } else {
-            ServiceGrid(services, alerts, sparklines, onSelect)
+            ServiceGrid(services, firing, uiState.sparklines, onSelect)
         }
     }
 }

@@ -1,4 +1,4 @@
-package ru.workinprogress.metrik.web
+package ru.workinprogress.metrik.web.feature.alerts.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,7 +26,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,122 +36,70 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
+import org.koin.compose.viewmodel.koinViewModel
 import ru.workinprogress.metrik.api.AlertRuleView
 import ru.workinprogress.metrik.api.AlertView
 import ru.workinprogress.metrik.api.ServiceSummary
+import ru.workinprogress.metrik.web.ui.EmptyState
+import ru.workinprogress.metrik.web.ui.LoadingState
+import ru.workinprogress.metrik.web.ui.MetrikExtra
+import ru.workinprogress.metrik.web.ui.MetrikMono
+import ru.workinprogress.metrik.web.ui.Spacing
+import ru.workinprogress.metrik.web.ui.absoluteAgo
+import ru.workinprogress.metrik.web.ui.alertStateLabel
+import ru.workinprogress.metrik.web.ui.format
+import ru.workinprogress.metrik.web.ui.relativeAgo
 
 /**
- * Алерты. Три мутации из макета подключены к серверу, который их теперь умеет (M-81, M-82):
- * «Отправить тестовое» ([TestAlertButton]), «Заглушить»/«Снять» ([MuteControl]) на каждое горящее
- * правило и в панели «Пороги», и сама панель «Пороги» — редактируемая форма, а не витрина.
+ * Экран «Алерты»: горящие сейчас, история переходов и пороги правил (см. [AlertsViewModel]).
  *
- * Весь экран — одна прокручиваемая область: «Горят сейчас», «История срабатываний» и «Пороги»
- * раньше скроллились независимо внутри своих карточек, теперь один `verticalScroll` на весь Column,
- * а карточки просто растут по контенту.
- *
- * На мобильной раскладке ([compact]) панели «Пороги» нет вовсе — в макете (`docs/design/
- * metrik-expressive.html`, «mobile: алерты») её тоже нет, редактирование порогов — desktop/admin
- * сценарий. Кнопка «Отправить тестовое» там же отсутствует по той же причине, что и раньше: не
- * помещается рядом с заголовком без потери читаемости. Заглушение на мобильном — фиксированный час
- * («Заглушить 1 ч» буквально из макета), без выбора срока, который есть на десктопе.
- *
- * Проп [alerts] — активные алерты из общего опроса `App.kt` (`GET /api/alerts`, на сервере это
- * `WHERE state = 'FIRING'`), им кормится только «Горят сейчас». Историю экран запрашивает сам, см.
- * [HistoryCard].
+ * Мобильная раскладка показывает только «Горят сейчас» и историю: панель порогов — это форма на
+ * три поля в ряд, на 390dp её честнее не показывать вовсе, чем показывать нажимаемой наполовину.
+ * Заглушение там фиксированное («Заглушить 1 ч» буквально из макета), без выбора срока.
  */
 @Composable
 fun AlertsScreen(
-    client: MetrikClient,
-    services: List<ServiceSummary>,
-    alerts: List<AlertView>,
+    viewModel: AlertsViewModel = koinViewModel(),
     compact: Boolean = false,
-    nowMs: () -> Long,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    val scope = rememberCoroutineScope()
-    val zone = remember { TimeZone.currentSystemDefault() }
-
-    // AlertView хранит только имя сервиса, не id (см. `ru.workinprogress.metrik.api.AlertView`) —
-    // резолвим через список сервисов, который экрану и так передан.
-    val serviceIdByName = remember(services) { services.associate { it.name to it.id } }
-
-    val firing = alerts.filter { it.state.equals("firing", ignoreCase = true) }
-    val totalRules =
-        alerts
-            .map { it.ruleId }
-            .distinct()
-            .size
-            .coerceAtLeast(firing.size)
-
-    // История срабатываний — свой эндпоинт и свой опрос. Общий `alerts` сверху отдаёт только
-    // горящие сейчас правила, поэтому «историей» из него получалась бы копия «Горят сейчас», в
-    // которой не может появиться ни одна погасшая запись. `/api/alerts/history` — это записанные
-    // переходы (FIRING/OK, последние 100, см. `AlertWorker.history()`), то есть то, что карточка и
-    // обещает. Период тот же, что у общего опроса: история меняется не чаще.
-    var history by remember { mutableStateOf<List<AlertView>?>(null) }
-    var historyError by remember { mutableStateOf<String?>(null) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var lastError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        while (true) {
-            runCatching { client.alertHistory() }
-                .onSuccess {
-                    history = it
-                    historyError = null
-                }.onFailure { cause -> historyError = cause.message ?: "не удалось получить историю" }
-            delay(REFRESH_MS)
+        viewModel.events.collect { event ->
+            when (event) {
+                is AlertsUiEvent.ShowError -> lastError = event.message
+            }
         }
     }
 
-    // Панель «Пороги» привязана к сервису — экран «Алерты» верхнеуровневый и ни к какому сервису
-    // не привязан, поэтому берём тот, где сейчас что-то горит, а если не горит ничего — первый по
-    // списку. Без этого панель было бы нечего показывать.
-    val rulesService = services.firstOrNull { it.firingAlerts.isNotEmpty() } ?: services.firstOrNull()
-    var rules by remember { mutableStateOf<List<AlertRuleView>?>(null) }
-    var rulesDenied by remember { mutableStateOf(false) }
+    AlertsContent(
+        uiState = uiState,
+        onAction = viewModel::onAction,
+        lastError = lastError,
+        compact = compact,
+        contentPadding = contentPadding,
+    )
+}
 
-    suspend fun reloadRules(id: Long) {
-        runCatching { client.adminAlertRules(id) }
-            .onSuccess {
-                rules = it
-                rulesDenied = false
-            }.onFailure { rulesDenied = true }
-    }
-
-    LaunchedEffect(rulesService?.id, compact) {
-        rules = null
-        rulesDenied = false
-        if (compact) return@LaunchedEffect
-        val id = rulesService?.id ?: return@LaunchedEffect
-        reloadRules(id)
-    }
-
-    // Заглушение из «Горят сейчас» бьёт по своему сервису напрямую; если это тот же сервис, что
-    // сейчас открыт в панели «Пороги», подтягиваем её тоже — иначе панель показывала бы устаревший
-    // mutedUntil до следующего LaunchedEffect. Сам список `alerts` — проп сверху (опрос раз в 30 с,
-    // см. `App.kt`), его мгновенно не обновить без переписывания опроса на уровне приложения; в
-    // худшем случае горящая строка покажет старое состояние заглушения до ближайшего тика опроса —
-    // это тот же компромисс, на котором и так стоит весь дашборд (real-time здесь не нужен).
-    fun muteAlert(
-        alert: AlertView,
-        minutes: Long,
-    ) {
-        val id = serviceIdByName[alert.service] ?: return
-        scope.launch {
-            runCatching { client.muteAlertRule(id, alert.ruleId, minutes) }
-            if (id == rulesService?.id) reloadRules(id)
-        }
-    }
-
-    fun unmuteAlert(alert: AlertView) {
-        val id = serviceIdByName[alert.service] ?: return
-        scope.launch {
-            runCatching { client.unmuteAlertRule(id, alert.ruleId) }
-            if (id == rulesService?.id) reloadRules(id)
-        }
-    }
+/** Стейтлес — всё через [uiState]/[onAction], про ViewModel ничего не знает. */
+@Composable
+fun AlertsContent(
+    uiState: AlertsUiState,
+    onAction: (AlertsUiAction) -> Unit,
+    lastError: String? = null,
+    compact: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+) {
+    val zone = remember { TimeZone.currentSystemDefault() }
+    val nowMs = uiState.nowMs
+    val firing = uiState.firing
+    val onMute: (AlertView, Long) -> Unit = { alert, minutes -> onAction(AlertsUiAction.MuteAlert(alert, minutes)) }
+    val onUnmute: (AlertView) -> Unit = { alert -> onAction(AlertsUiAction.UnmuteAlert(alert)) }
 
     Column(
         // Паддинг применяется ПОСЛЕ verticalScroll и потому едет вместе с контентом. Если
@@ -184,28 +131,37 @@ fun AlertsScreen(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
-                TestAlertButton(client)
+                TestAlertButton(uiState.testState) { onAction(AlertsUiAction.SendTest) }
             }
         }
 
         if (compact) {
             if (firing.isNotEmpty()) {
-                FiringRulesCard(firing, totalRules, nowMs, zone, compact = true, onMute = ::muteAlert, onUnmute = ::unmuteAlert)
+                FiringRulesCard(firing, uiState.totalRules, nowMs, zone, compact = true, onMute = onMute, onUnmute = onUnmute)
             }
-            HistoryCard(history, historyError, nowMs, zone)
+            HistoryCard(uiState.history, uiState.historyError, nowMs, zone)
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xl - Spacing.xs)) {
                 Column(Modifier.weight(1.25f), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                     if (firing.isNotEmpty()) {
-                        FiringRulesCard(firing, totalRules, nowMs, zone, compact = false, onMute = ::muteAlert, onUnmute = ::unmuteAlert)
+                        FiringRulesCard(firing, uiState.totalRules, nowMs, zone, compact = false, onMute = onMute, onUnmute = onUnmute)
                     }
-                    HistoryCard(history, historyError, nowMs, zone)
+                    HistoryCard(uiState.history, uiState.historyError, nowMs, zone)
                 }
 
                 Column(Modifier.weight(1f)) {
-                    ThresholdsCard(client, rulesService, rules, rulesDenied, nowMs, zone) { updated -> rules = updated }
+                    ThresholdsCard(uiState, onAction, nowMs, zone)
                 }
             }
+        }
+
+        // Отказ мутации виден и тогда, когда карточка правила уже уехала из вида.
+        if (lastError != null) {
+            Text(
+                "последняя ошибка: $lastError",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+            )
         }
     }
 }
@@ -219,10 +175,10 @@ private val MuteDurations = listOf(15L to "15 мин", 60L to "1 ч", 240L to "4
  * это единственный сигнал, что нотификатор молчит.
  */
 @Composable
-private fun TestAlertButton(client: MetrikClient) {
-    val scope = rememberCoroutineScope()
-    var state by remember { mutableStateOf<TestAlertState>(TestAlertState.Idle) }
-
+private fun TestAlertButton(
+    state: TestAlertState,
+    onSend: () -> Unit,
+) {
     // Кнопка намеренно тихая: обвод вместо заливки, обычный вес, компактная высота.
     // Это служебная проверка настройки, которую нажимают раз в жизни, — заливка primary
     // делала её самым громким элементом экрана, где главное всё-таки горящие алерты.
@@ -232,17 +188,8 @@ private fun TestAlertButton(client: MetrikClient) {
                 .height(36.dp)
                 .clip(RoundedCornerShape(18.dp))
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
-                .clickable(enabled = state != TestAlertState.Sending) {
-                    state = TestAlertState.Sending
-                    scope.launch {
-                        state =
-                            runCatching { client.sendTestAlert() }
-                                .fold(
-                                    onSuccess = { delivered -> TestAlertState.Done(delivered) },
-                                    onFailure = { e -> TestAlertState.Failed(e.message ?: "нет связи с сервером") },
-                                )
-                    }
-                }.padding(horizontal = Spacing.lg),
+                .clickable(enabled = state != TestAlertState.Sending, onClick = onSend)
+                .padding(horizontal = Spacing.lg),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -268,20 +215,6 @@ private fun TestAlertButton(client: MetrikClient) {
             else -> {}
         }
     }
-}
-
-private sealed interface TestAlertState {
-    data object Idle : TestAlertState
-
-    data object Sending : TestAlertState
-
-    data class Done(
-        val delivered: Boolean,
-    ) : TestAlertState
-
-    data class Failed(
-        val message: String,
-    ) : TestAlertState
 }
 
 /**
@@ -364,7 +297,7 @@ private fun MuteControl(
 private fun FiringRulesCard(
     firing: List<AlertView>,
     totalRules: Int,
-    nowMs: () -> Long,
+    nowMs: Long,
     zone: TimeZone,
     compact: Boolean,
     onMute: (AlertView, Long) -> Unit,
@@ -420,7 +353,7 @@ private fun FiringRulesCard(
 @Composable
 private fun FiringRuleRow(
     alert: AlertView,
-    nowMs: () -> Long,
+    nowMs: Long,
     zone: TimeZone,
     onMute: (minutes: Long) -> Unit,
     onUnmute: () -> Unit,
@@ -452,14 +385,14 @@ private fun FiringRuleRow(
         Text(
             // Длительность текущего срабатывания — относительное время здесь уместнее абсолютного
             // (см. `Formatting.kt`, `relativeAgo`): это «горит уже N», а не запись в истории.
-            relativeAgo(nowMs(), alert.since),
+            relativeAgo(nowMs, alert.since),
             style = MaterialTheme.typography.labelSmall,
             fontFamily = MetrikMono,
             color = MaterialTheme.colorScheme.error,
         )
         MuteControl(
             mutedUntil = alert.mutedUntil,
-            nowMs = nowMs(),
+            nowMs = nowMs,
             zone = zone,
             onMute = onMute,
             onUnmute = onUnmute,
@@ -473,13 +406,13 @@ private fun FiringRuleRow(
 @Composable
 private fun FiringRuleRowCompact(
     alert: AlertView,
-    nowMs: () -> Long,
+    nowMs: Long,
     zone: TimeZone,
     onMute: () -> Unit,
     onUnmute: () -> Unit,
 ) {
     val mutedUntil = alert.mutedUntil
-    val muted = mutedUntil != null && mutedUntil > nowMs()
+    val muted = mutedUntil != null && mutedUntil > nowMs
 
     Column(
         Modifier
@@ -500,7 +433,7 @@ private fun FiringRuleRowCompact(
                 modifier = Modifier.weight(1f),
             )
             Text(
-                relativeAgo(nowMs(), alert.since),
+                relativeAgo(nowMs, alert.since),
                 style = MaterialTheme.typography.labelSmall,
                 fontFamily = MetrikMono,
                 color = MaterialTheme.colorScheme.error,
@@ -513,7 +446,7 @@ private fun FiringRuleRowCompact(
         )
         if (muted) {
             Text(
-                "молчит до " + absoluteAgo(nowMs(), mutedUntil, zone, labelToday = true),
+                "молчит до " + absoluteAgo(nowMs, mutedUntil, zone, labelToday = true),
                 style = MaterialTheme.typography.labelSmall,
                 fontFamily = MetrikMono,
                 color = MaterialTheme.colorScheme.error,
@@ -571,7 +504,7 @@ private fun FiringRuleRowCompact(
 private fun HistoryCard(
     history: List<AlertView>?,
     error: String?,
-    nowMs: () -> Long,
+    nowMs: Long,
     zone: TimeZone,
 ) {
     Column(
@@ -612,7 +545,7 @@ private fun HistoryCard(
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     val sorted = history.sortedByDescending { it.since }
                     sorted.forEachIndexed { index, alert ->
-                        HistoryRow(alert, nowMs(), zone, historyRowShape(index, sorted.size))
+                        HistoryRow(alert, nowMs, zone, historyRowShape(index, sorted.size))
                     }
                 }
             }
@@ -682,14 +615,13 @@ private fun HistoryRow(
 
 @Composable
 private fun ThresholdsCard(
-    client: MetrikClient,
-    service: ServiceSummary?,
-    rules: List<AlertRuleView>?,
-    denied: Boolean,
-    nowMs: () -> Long,
+    uiState: AlertsUiState,
+    onAction: (AlertsUiAction) -> Unit,
+    nowMs: Long,
     zone: TimeZone,
-    onRulesChanged: (List<AlertRuleView>) -> Unit,
 ) {
+    val service = uiState.rulesService
+    val rules = uiState.rules
     Column(
         Modifier
             .fillMaxWidth()
@@ -717,7 +649,7 @@ private fun ThresholdsCard(
                 EmptyState("нет сервисов")
             }
 
-            denied -> {
+            uiState.rulesDenied -> {
                 EmptyState("нет доступа к порогам — нужен admin-тир (см. docs/api/endpoint-query.md)")
             }
 
@@ -732,7 +664,14 @@ private fun ThresholdsCard(
             else -> {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     rules.forEach { rule ->
-                        ThresholdCard(client, service.id, rule, nowMs, zone, onRulesChanged)
+                        ThresholdCard(
+                            rule = rule,
+                            error = uiState.ruleErrors[rule.ruleId],
+                            saving = rule.ruleId in uiState.savingRuleIds,
+                            nowMs = nowMs,
+                            zone = zone,
+                            onAction = onAction,
+                        )
                     }
                 }
             }
@@ -747,21 +686,20 @@ private fun ThresholdsCard(
  */
 @Composable
 private fun ThresholdCard(
-    client: MetrikClient,
-    serviceId: Long,
     rule: AlertRuleView,
-    nowMs: () -> Long,
+    error: String?,
+    saving: Boolean,
+    nowMs: Long,
     zone: TimeZone,
-    onRulesChanged: (List<AlertRuleView>) -> Unit,
+    onAction: (AlertsUiAction) -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
-
+    // Значения полей до сабмита — чисто презентационное состояние: доменного смысла у недописанного
+    // числа нет, в UiState ему делать нечего.
     var thresholdText by remember(rule.ruleId, rule.threshold) { mutableStateOf(formatThreshold(rule.threshold)) }
     var windowsText by remember(rule.ruleId, rule.windows) { mutableStateOf(rule.windows.toString()) }
     var minCountText by remember(rule.ruleId, rule.minCount) { mutableStateOf(rule.minCount.toString()) }
     var enabled by remember(rule.ruleId, rule.enabled) { mutableStateOf(rule.enabled) }
-    var error by remember(rule.ruleId) { mutableStateOf<String?>(null) }
-    var saving by remember(rule.ruleId) { mutableStateOf(false) }
+    var validationError by remember(rule.ruleId) { mutableStateOf<String?>(null) }
 
     val dirty =
         thresholdText != formatThreshold(rule.threshold) ||
@@ -773,47 +711,23 @@ private fun ThresholdCard(
         val thresholdValue = thresholdText.replace(',', '.').toDoubleOrNull()
         val windowsValue = windowsText.toIntOrNull()
         val minCountValue = minCountText.toIntOrNull()
-        error =
+        validationError =
             when {
                 thresholdValue == null || thresholdValue < 0 -> "порог должен быть неотрицательным числом"
                 minCountValue == null || minCountValue < 0 -> "min count должен быть неотрицательным целым"
                 windowsValue == null || windowsValue < 1 -> "окон должно быть не меньше 1"
                 else -> null
             }
-        if (error != null || thresholdValue == null || windowsValue == null || minCountValue == null) return
+        if (validationError != null || thresholdValue == null || windowsValue == null || minCountValue == null) return
 
-        saving = true
-        scope.launch {
-            runCatching {
-                client.updateAlertRule(
-                    serviceId,
-                    rule.copy(threshold = thresholdValue, minCount = minCountValue, windows = windowsValue, enabled = enabled),
-                )
-            }.onSuccess { updated ->
-                onRulesChanged(updated)
-                error = null
-            }.onFailure { e ->
-                error = "не удалось сохранить: ${e.message ?: "ошибка сервера"}"
-            }
-            saving = false
-        }
+        onAction(
+            AlertsUiAction.SaveRule(
+                rule.copy(threshold = thresholdValue, minCount = minCountValue, windows = windowsValue, enabled = enabled),
+            ),
+        )
     }
 
-    fun mute(minutes: Long) {
-        scope.launch {
-            runCatching { client.muteAlertRule(serviceId, rule.ruleId, minutes) }
-                .onSuccess(onRulesChanged)
-                .onFailure { error = "не удалось заглушить: ${it.message ?: "ошибка сервера"}" }
-        }
-    }
-
-    fun unmute() {
-        scope.launch {
-            runCatching { client.unmuteAlertRule(serviceId, rule.ruleId) }
-                .onSuccess(onRulesChanged)
-                .onFailure { error = "не удалось снять заглушение: ${it.message ?: "ошибка сервера"}" }
-        }
-    }
+    val shownError = validationError ?: error
 
     val overridden = !rule.inherited
     val bg = if (overridden) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
@@ -880,12 +794,18 @@ private fun ThresholdCard(
             ThresholdInputField("MIN COUNT", minCountText, { minCountText = it }, fieldBg, fg, dim, Modifier.weight(1f), integer = true)
         }
 
-        if (error != null) {
-            Text(error.orEmpty(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        if (shownError != null) {
+            Text(shownError, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            MuteControl(rule.mutedUntil, nowMs(), zone, onMute = ::mute, onUnmute = ::unmute)
+            MuteControl(
+                mutedUntil = rule.mutedUntil,
+                nowMs = nowMs,
+                zone = zone,
+                onMute = { minutes -> onAction(AlertsUiAction.MuteRule(rule, minutes)) },
+                onUnmute = { onAction(AlertsUiAction.UnmuteRule(rule)) },
+            )
             if (dirty) {
                 Box(
                     Modifier

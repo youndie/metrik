@@ -1,4 +1,4 @@
-package ru.workinprogress.metrik.web
+package ru.workinprogress.metrik.web.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column

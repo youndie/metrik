@@ -125,6 +125,15 @@ data class AlertView(
 )
 
 /**
+ * Горит ли правило прямо сейчас.
+ *
+ * `state` — строка протокола (`FIRING`/`OK`), и сравнение с ней расползалось по клиенту копиями
+ * `state.equals("firing", ignoreCase = true)`. Смысл строки принадлежит контракту, а не экрану.
+ */
+val AlertView.isFiring: Boolean
+    get() = state.equals("firing", ignoreCase = true)
+
+/**
  * Ответ на `POST /api/admin/alerts/test`.
  *
  * Живёт здесь, а не копией в клиенте: копия контракта не только протухает, но и ломается —

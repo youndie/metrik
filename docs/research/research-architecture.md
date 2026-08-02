@@ -69,7 +69,7 @@ Prometheus + Grafana + Alertmanager»: один бинарь, один файл 
 
 ### 1.3 Отдача статики из нативного Ktor — больное место
 
-Проверено по katcher (`~/IdeaProjects/katcher`):
+Проверено по [katcher](https://github.com/youndie/katcher):
 
 - весь Tailwind лежит **строковой константой** `const val CSS` в
   `server/src/commonMain/kotlin/ru/workinprogress/katcher/static/CSS.kt` (31 КБ исходника) и отдаётся

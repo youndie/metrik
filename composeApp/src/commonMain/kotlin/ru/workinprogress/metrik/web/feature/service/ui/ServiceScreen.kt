@@ -1,4 +1,4 @@
-package ru.workinprogress.metrik.web
+package ru.workinprogress.metrik.web.feature.service.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,8 +41,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 import ru.workinprogress.metrik.api.AlertView
 import ru.workinprogress.metrik.api.DeployMarker
 import ru.workinprogress.metrik.api.RouteRow
@@ -51,67 +54,29 @@ import ru.workinprogress.metrik.api.SlowRow
 import ru.workinprogress.metrik.api.Step
 import ru.workinprogress.metrik.api.SystemPoint
 import ru.workinprogress.metrik.api.TimeSeries
+import ru.workinprogress.metrik.web.core.domain.Range
+import ru.workinprogress.metrik.web.ui.ChartPoint
+import ru.workinprogress.metrik.web.ui.EmptyState
+import ru.workinprogress.metrik.web.ui.HonestyChip
+import ru.workinprogress.metrik.web.ui.LineChart
+import ru.workinprogress.metrik.web.ui.LoadingState
+import ru.workinprogress.metrik.web.ui.MetrikExtra
+import ru.workinprogress.metrik.web.ui.MetrikMono
+import ru.workinprogress.metrik.web.ui.RangeSelector
+import ru.workinprogress.metrik.web.ui.Spacing
+import ru.workinprogress.metrik.web.ui.Sparkline
+import ru.workinprogress.metrik.web.ui.StatTile
+import ru.workinprogress.metrik.web.ui.absoluteAgo
+import ru.workinprogress.metrik.web.ui.format
+import ru.workinprogress.metrik.web.ui.pluralRu
+import ru.workinprogress.metrik.web.ui.statusColor
+import ru.workinprogress.metrik.web.ui.toChart
 import kotlin.math.roundToInt
-
-/**
- * Диапазон периода на экране сервиса.
- *
- * Для «1 ч»/«24 ч» просим минутный шаг: контракт гарантирует минутные окна только за последние
- * 48 часов, оба диапазона укладываются. Для «7 д» просим часовой — иначе сервер всё равно молча
- * отдаст часовой и пометит это в ответе (docs/api/endpoint-query.md, «Правила ответов»), а честно
- * заявленное намерение лучше отражает то, что реально произойдёт.
- */
-enum class Range(
-    val label: String,
-    val ms: Long,
-    val step: Step,
-) {
-    HOUR("1 ч", 60 * 60 * 1000L, Step.MINUTE),
-    DAY("24 ч", 24 * 60 * 60 * 1000L, Step.MINUTE),
-    WEEK("7 д", 7 * 24 * 60 * 60 * 1000L, Step.HOUR),
-}
-
-@Composable
-fun RangeSelector(
-    selected: Range,
-    onSelect: (Range) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Range.entries.forEach { range ->
-            val active = range == selected
-            Box(
-                Modifier
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(if (active) MaterialTheme.colorScheme.primary else Color.Transparent)
-                    .clickable { onSelect(range) }
-                    .padding(horizontal = 22.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    range.label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                    color = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-private val ServiceTabTitles = listOf("Графики", "Маршруты", "Медленные", "Система")
 
 @Composable
 private fun ServiceTabBar(
-    selected: Int,
-    onSelect: (Int) -> Unit,
+    selected: ServiceTab,
+    onSelect: (ServiceTab) -> Unit,
     compact: Boolean = false,
 ) {
     // На мобильной ширине четыре вкладки в полный размер не помещаются (макет показывает урезанный
@@ -125,19 +90,19 @@ private fun ServiceTabBar(
             .padding(if (compact) 4.dp else 5.dp),
         horizontalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp),
     ) {
-        ServiceTabTitles.forEachIndexed { index, title ->
-            val active = index == selected
+        ServiceTab.entries.forEach { tab ->
+            val active = tab == selected
             Box(
                 Modifier
                     .height(if (compact) 38.dp else 42.dp)
                     .clip(RoundedCornerShape(if (compact) 19.dp else 21.dp))
                     .background(if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                    .clickable { onSelect(index) }
+                    .clickable { onSelect(tab) }
                     .padding(horizontal = if (compact) 18.dp else 24.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    title,
+                    tab.title,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
                     color =
@@ -154,51 +119,44 @@ private fun ServiceTabBar(
 
 /**
  * Экран одного сервиса: четыре вкладки поверх общего заголовка. На десктопе «назад» нет — рельс
- * (см. [NavRail]) сам заменяет переход к обзору или к другому сервису. На мобильной раскладке
- * рельса нет вовсе, поэтому там читается [onBack] — стрелка возвращает на мобильный список сервисов.
+ * сам заменяет переход к обзору или к другому сервису. На мобильной раскладке рельса нет вовсе,
+ * поэтому там читается [onBack] — стрелка возвращает на список сервисов.
  */
 @Composable
 fun ServiceScreen(
-    client: MetrikClient,
-    service: ServiceSummary,
-    alerts: List<AlertView>,
-    nowMs: () -> Long,
-    tab: Int,
+    serviceId: Long,
+    viewModel: ServiceViewModel = koinViewModel(parameters = { parametersOf(serviceId) }),
     compact: Boolean = false,
-    onBack: () -> Unit = {},
-    onTabChange: (Int) -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    onBack: () -> Unit = {},
 ) {
-    var range by remember(service.id) { mutableStateOf(Range.HOUR) }
-    var series by remember { mutableStateOf<TimeSeries?>(null) }
-    var routes by remember { mutableStateOf<List<RouteRow>>(emptyList()) }
-    var slow by remember { mutableStateOf<List<SlowRow>>(emptyList()) }
-    var system by remember { mutableStateOf<List<SystemPoint>>(emptyList()) }
-    var loaded by remember(service.id, range) { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    ServiceContent(
+        uiState = uiState,
+        onAction = viewModel::onAction,
+        compact = compact,
+        contentPadding = contentPadding,
+        onBack = onBack,
+    )
+}
+
+/** Стейтлес — всё через [uiState]/[onAction], про ViewModel ничего не знает. */
+@Composable
+fun ServiceContent(
+    uiState: ServiceUiState,
+    onAction: (ServiceUiAction) -> Unit,
+    compact: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    onBack: () -> Unit = {},
+) {
     val zone = remember { TimeZone.currentSystemDefault() }
+    val service = uiState.service
+    val firingCount = service?.firingAlerts?.size ?: 0
+    val instances = service?.instances ?: 0
+    val onRange: (Range) -> Unit = { range -> onAction(ServiceUiAction.SelectRange(range)) }
 
-    LaunchedEffect(service.id, range) {
-        while (true) {
-            val to = nowMs()
-            val from = to - range.ms
-            runCatching {
-                series = client.timeSeries(service.id, from, to, range.step)
-                routes = client.routes(service.id, from, to)
-                // M-85: /slow теперь принимает период, как и остальные вкладки — раньше сервер
-                // всегда отдавал последние 24 часа независимо от выбранного диапазона.
-                slow = client.slow(service.id, from, to)
-                system = client.system(service.id, from, to)
-            }
-            loaded = true
-            delay(REFRESH_MS)
-        }
-    }
-
-    val firingCount = service.firingAlerts.size
-
-    // Один скролл на весь экран — заголовок и вкладки раньше были прибиты, а прокручивалось только
-    // содержимое активной вкладки; теперь всё, включая шапку, едет вместе (то же решение, что и на
-    // «Обзоре»/«Алертах» — см. итоговый отчёт задания).
+    // Один скролл на весь экран: заголовок и вкладки едут вместе с содержимым вкладки, а не
+    // остаются прибитыми над отдельно прокручиваемой областью.
     Column(
         // Паддинг применяется ПОСЛЕ verticalScroll и потому едет вместе с контентом. Если
         // повесить его снаружи (на контейнер шелла), вьюпорт сужается, и контент режется по
@@ -219,7 +177,7 @@ fun ServiceScreen(
                     Text("←", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text(
-                    service.name,
+                    service?.name.orEmpty(),
                     fontFamily = MetrikMono,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
@@ -229,41 +187,41 @@ fun ServiceScreen(
                     modifier = Modifier.weight(1f),
                 )
             }
-            if (firingCount > 0 || service.instances > 0) {
+            if (firingCount > 0 || instances > 0) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     if (firingCount > 0) FiringCountPill(firingCount)
-                    InstancesPill(service.instances)
+                    InstancesPill(instances)
                 }
             }
-            RangeSelector(range, { range = it }, Modifier.fillMaxWidth())
+            RangeSelector(uiState.range, onRange, Modifier.fillMaxWidth())
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    if (firingCount > 0 || service.instances > 0) {
+                    if (firingCount > 0 || instances > 0) {
                         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             if (firingCount > 0) FiringCountPill(firingCount)
-                            InstancesPill(service.instances)
+                            InstancesPill(instances)
                         }
                     }
                     Text(
-                        service.name,
+                        service?.name.orEmpty(),
                         fontFamily = MetrikMono,
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
-                RangeSelector(range, { range = it })
+                RangeSelector(uiState.range, onRange)
             }
         }
 
-        ServiceTabBar(tab, onTabChange, compact)
+        ServiceTabBar(uiState.tab, { tab -> onAction(ServiceUiAction.SelectTab(tab)) }, compact)
 
-        when (tab) {
-            0 -> ChartsTab(series, loaded, range, compact)
-            1 -> RoutesTab(routes, loaded, compact)
-            2 -> SlowTab(slow, loaded, nowMs, zone, compact)
-            else -> SystemTab(system, loaded, compact)
+        when (uiState.tab) {
+            ServiceTab.CHARTS -> ChartsTab(uiState.series, uiState.loaded, uiState.range, compact)
+            ServiceTab.ROUTES -> RoutesTab(uiState.routes, uiState.loaded, compact)
+            ServiceTab.SLOW -> SlowTab(uiState.slow, uiState.loaded, uiState.nowMs, zone, compact)
+            ServiceTab.SYSTEM -> SystemTab(uiState.system, uiState.loaded, compact)
         }
     }
 }
@@ -1001,7 +959,7 @@ private fun RouteRowItem(
 private fun SlowTab(
     slow: List<SlowRow>,
     loaded: Boolean,
-    nowMs: () -> Long,
+    nowMs: Long,
     zone: TimeZone,
     compact: Boolean = false,
 ) {
@@ -1011,7 +969,6 @@ private fun SlowTab(
     }
 
     val maxDuration = slow.maxOf { it.durationMs }.coerceAtLeast(1)
-    val now = nowMs()
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         HonestyChip(
@@ -1020,7 +977,7 @@ private fun SlowTab(
             MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            slow.forEach { row -> SlowRowItem(row, maxDuration, now, zone, compact) }
+            slow.forEach { row -> SlowRowItem(row, maxDuration, nowMs, zone, compact) }
         }
     }
 }
