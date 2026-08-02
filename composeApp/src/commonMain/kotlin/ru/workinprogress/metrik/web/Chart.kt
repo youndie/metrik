@@ -1,10 +1,14 @@
 package ru.workinprogress.metrik.web
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,23 +41,37 @@ fun LineChart(
     color: Color = MaterialTheme.colorScheme.primary,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+    Column(modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
         Text(title, style = MaterialTheme.typography.labelLarge)
 
         if (points.isEmpty()) {
-            Text("нет данных", style = MaterialTheme.typography.bodySmall)
+            Text(
+                "нет данных",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             return@Column
         }
 
         val values = points.mapNotNull { it.value }
         val maxValue = (values.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
+        // Именно последняя точка ряда, а не последнее известное значение: если сейчас разрыв,
+        // это надо показать как «нет данных», а не подсовывать устаревшее число под видом свежего.
+        val lastValue = points.last().value
         val minAt = points.minOf { it.at }
         val maxAt = points.maxOf { it.at }
         val span = (maxAt - minAt).coerceAtLeast(1)
         val markerColor = MaterialTheme.colorScheme.tertiary
         val gridColor = MaterialTheme.colorScheme.outlineVariant
+        val surfaceColor = MaterialTheme.colorScheme.surfaceContainerLow
 
-        Canvas(Modifier.fillMaxWidth().height(140.dp).padding(top = 4.dp)) {
+        Canvas(
+            Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+                .padding(top = Spacing.xs)
+                .background(surfaceColor, RoundedCornerShape(8.dp)),
+        ) {
             val width = size.width
             val height = size.height
 
@@ -98,10 +116,18 @@ fun LineChart(
             drawRect(gridColor, style = Stroke(width = 1f))
         }
 
-        Text(
-            "max ${format(maxValue)}",
-            style = MaterialTheme.typography.bodySmall,
-        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                "последнее " + (lastValue?.let { format(it) } ?: "нет данных"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "max ${format(maxValue)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
