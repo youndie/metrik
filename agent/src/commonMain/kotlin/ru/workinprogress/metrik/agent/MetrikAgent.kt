@@ -7,6 +7,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -79,7 +80,7 @@ class AgentCounters {
  * никогда не бросает. Всё остальное происходит в единственной корутине-потребителе, поэтому
  * агрегатор не нуждается ни в локах, ни в атомиках.
  */
-@OptIn(ExperimentalTime::class, ExperimentalAtomicApi::class)
+@OptIn(ExperimentalAtomicApi::class)
 class MetrikAgent(
     private val config: MetrikConfig,
     private val sender: MetrikSender,
@@ -161,7 +162,7 @@ class MetrikAgent(
         }
     }
 
-    private suspend fun currentScopeIsActive(): Boolean = kotlin.coroutines.coroutineContext.isActive
+    private suspend fun currentScopeIsActive(): Boolean = currentCoroutineContext().isActive
 
     private suspend fun flush(windowStart: Long) {
         counters.windowCounter.fetchAndIncrement()
