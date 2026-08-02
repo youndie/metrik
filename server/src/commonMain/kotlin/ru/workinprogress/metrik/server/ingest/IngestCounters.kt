@@ -58,6 +58,15 @@ class IngestCounters {
         )
 }
 
+/** Счётчики агента внутри этого же процесса — только при включённом самонаблюдении. */
+@Serializable
+data class AgentStats(
+    val windows: Int,
+    val dropped: Int,
+    val sendFailures: Int,
+    val oversized: Int,
+)
+
 @Serializable
 data class IngestStats(
     val accepted: Int,
@@ -68,4 +77,5 @@ data class IngestStats(
     val clockSkew: Int,
     val failed: Int,
     val missedWindows: Int,
+    val agent: AgentStats? = null,
 )

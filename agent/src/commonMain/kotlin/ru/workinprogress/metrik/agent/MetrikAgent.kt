@@ -41,8 +41,13 @@ class AgentCounters {
     internal val sendFailureCounter = AtomicInt(0)
     internal val oversizedCounter = AtomicInt(0)
 
+    internal val windowCounter = AtomicInt(0)
+
     /** Замеры, не влезшие в очередь. */
     val dropped: Int get() = droppedCounter.load()
+
+    /** Сколько окон агент закрыл и попытался отправить. Ноль здесь означает, что цикл не крутится. */
+    val windows: Int get() = windowCounter.load()
 
     /** Окна, которые не удалось отправить. */
     val sendFailures: Int get() = sendFailureCounter.load()
@@ -129,6 +134,8 @@ class MetrikAgent(
     private suspend fun currentScopeIsActive(): Boolean = kotlin.coroutines.coroutineContext.isActive
 
     private suspend fun flush(windowStart: Long) {
+        counters.windowCounter.fetchAndIncrement()
+
         val data = aggregator.drain()
         val system =
             if (config.systemMetrics) {

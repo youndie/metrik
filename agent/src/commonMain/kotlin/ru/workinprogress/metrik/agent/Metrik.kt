@@ -46,6 +46,15 @@ class MetrikConfig {
 internal expect fun defaultInstanceId(): String
 
 private val StartMarkKey = AttributeKey<TimeSource.Monotonic.ValueTimeMark>("MetrikStartMark")
+
+/**
+ * Счётчики агента, выставленные в атрибуты приложения.
+ *
+ * Без этого потери агента (переполненная очередь, неудачные отправки) не видны никому: сам агент
+ * ничего не отдаёт наружу, а сервер получает только то, что долетело. Хост может показать их
+ * рядом со своими — metrik так и делает в `/api/self`.
+ */
+val MetrikCountersKey: AttributeKey<AgentCounters> = AttributeKey("MetrikCounters")
 private val RouteTemplateKey = AttributeKey<String>("MetrikRouteTemplate")
 
 /**
@@ -73,6 +82,7 @@ val Metrik =
         require(config.endpoint.isNotBlank()) { "Metrik: endpoint is required" }
 
         val agent = MetrikAgent(config, config.senderFactory(config.endpoint))
+        application.attributes.put(MetrikCountersKey, agent.counters)
         agent.start(application)
 
         application.monitor.subscribe(ApplicationStopping) { agent.stop() }

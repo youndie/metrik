@@ -20,11 +20,13 @@ import okio.FileSystem
 import okio.Path.Companion.toPath
 import okio.SYSTEM
 import ru.workinprogress.metrik.agent.Metrik
+import ru.workinprogress.metrik.agent.MetrikCountersKey
 import ru.workinprogress.metrik.server.alert.AlertNotifier
 import ru.workinprogress.metrik.server.alert.AlertWorker
 import ru.workinprogress.metrik.server.alert.NoopNotifier
 import ru.workinprogress.metrik.server.alert.TelegramNotifier
 import ru.workinprogress.metrik.server.db.migrateDb
+import ru.workinprogress.metrik.server.ingest.AgentStats
 import ru.workinprogress.metrik.server.ingest.IngestService
 import ru.workinprogress.metrik.server.ingest.UdpReceiver
 import ru.workinprogress.metrik.server.query.AdminService
@@ -125,7 +127,24 @@ fun Application.module(
         route("/api") {
             // Без этих счётчиков потери и отброшенные пакеты невидимы, а странные графики
             // нечем объяснить.
-            get("/self") { call.respond(ingest.counters.snapshot()) }
+            get("/self") {
+                // Счётчики агента приезжают сюда только при самонаблюдении — иначе потери
+                // на стороне отправителя не видны никому.
+                val agentCounters = call.application.attributes.getOrNull(MetrikCountersKey)
+                call.respond(
+                    ingest.counters.snapshot().copy(
+                        agent =
+                            agentCounters?.let {
+                                AgentStats(
+                                    windows = it.windows,
+                                    dropped = it.dropped,
+                                    sendFailures = it.sendFailures,
+                                    oversized = it.oversized,
+                                )
+                            },
+                    ),
+                )
+            }
 
             alertRoutes(alerts)
             queryRoutes(query, config)
