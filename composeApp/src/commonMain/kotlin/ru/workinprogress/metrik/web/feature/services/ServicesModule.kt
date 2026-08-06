@@ -6,6 +6,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import ru.workinprogress.metrik.web.feature.services.data.ServicesRepositoryImpl
+import ru.workinprogress.metrik.web.feature.services.domain.DeleteServiceUseCase
 import ru.workinprogress.metrik.web.feature.services.domain.GetServicesUseCase
 import ru.workinprogress.metrik.web.feature.services.domain.ServicesRepository
 import ru.workinprogress.metrik.web.feature.services.ui.OverviewViewModel
@@ -14,5 +15,6 @@ val servicesModule =
     module {
         singleOf(::ServicesRepositoryImpl).bind<ServicesRepository>()
         factoryOf(::GetServicesUseCase)
+        factoryOf(::DeleteServiceUseCase)
         viewModel { OverviewViewModel(get(), get(), get(), get()) }
     }

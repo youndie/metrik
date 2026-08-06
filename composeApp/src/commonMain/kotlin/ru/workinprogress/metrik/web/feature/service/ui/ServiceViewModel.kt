@@ -3,9 +3,11 @@ package ru.workinprogress.metrik.web.feature.service.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.workinprogress.metrik.api.RouteRow
@@ -20,6 +22,7 @@ import ru.workinprogress.metrik.web.feature.service.domain.GetRoutesUseCase
 import ru.workinprogress.metrik.web.feature.service.domain.GetSlowRequestsUseCase
 import ru.workinprogress.metrik.web.feature.service.domain.GetSystemPointsUseCase
 import ru.workinprogress.metrik.web.feature.service.domain.GetTimeSeriesUseCase
+import ru.workinprogress.metrik.web.feature.services.domain.DeleteServiceUseCase
 import ru.workinprogress.metrik.web.feature.services.domain.GetServicesUseCase
 
 /** Вкладки экрана сервиса. Порядок совпадает с макетом. */
@@ -47,6 +50,10 @@ data class ServiceUiState(
     val loaded: Boolean = false,
     /** Секундный тик для «N назад» в медленных запросах. */
     val nowMs: Long = 0,
+    /** Показан ли запрос подтверждения на удаление: операция необратима, одного клика мало. */
+    val deleteRequested: Boolean = false,
+    val deleting: Boolean = false,
+    val deleteError: String? = null,
 )
 
 sealed interface ServiceUiAction {
@@ -57,6 +64,18 @@ sealed interface ServiceUiAction {
     data class SelectRange(
         val range: Range,
     ) : ServiceUiAction
+
+    /** Первый клик — только вопрос; сервис вместе со всей историей удаляет [ConfirmDelete]. */
+    data object RequestDelete : ServiceUiAction
+
+    data object CancelDelete : ServiceUiAction
+
+    data object ConfirmDelete : ServiceUiAction
+}
+
+sealed interface ServiceUiEvent {
+    /** Сервиса больше нет — экрану нечего показывать, вызывающий обязан уйти назад. */
+    data object Deleted : ServiceUiEvent
 }
 
 class ServiceViewModel(
@@ -66,10 +85,14 @@ class ServiceViewModel(
     private val getRoutes: GetRoutesUseCase,
     private val getSlowRequests: GetSlowRequestsUseCase,
     private val getSystemPoints: GetSystemPointsUseCase,
+    private val deleteService: DeleteServiceUseCase,
     private val timeSource: TimeSource,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ServiceUiState(nowMs = timeSource.nowMs()))
     val uiState = _uiState.asStateFlow()
+
+    private val _events = Channel<ServiceUiEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
 
     private var loadJob: Job? = null
 
@@ -94,6 +117,38 @@ class ServiceViewModel(
                 _uiState.update { it.copy(range = action.range, loaded = false) }
                 restartPolling()
             }
+
+            ServiceUiAction.RequestDelete -> {
+                _uiState.update { it.copy(deleteRequested = true, deleteError = null) }
+            }
+
+            ServiceUiAction.CancelDelete -> {
+                _uiState.update { it.copy(deleteRequested = false) }
+            }
+
+            ServiceUiAction.ConfirmDelete -> {
+                confirmDelete()
+            }
+        }
+    }
+
+    private fun confirmDelete() {
+        _uiState.update { it.copy(deleting = true, deleteError = null) }
+        viewModelScope.launch {
+            deleteService(DeleteServiceUseCase.Params(serviceId))
+                .onSuccess {
+                    // Опрос останавливаем сразу: сервиса больше нет, и его запросы будут отвечать 404.
+                    loadJob?.cancel()
+                    _events.send(ServiceUiEvent.Deleted)
+                }.onFailure { cause ->
+                    _uiState.update {
+                        it.copy(
+                            deleting = false,
+                            deleteRequested = false,
+                            deleteError = cause.message ?: "не удалось удалить сервис",
+                        )
+                    }
+                }
         }
     }
 

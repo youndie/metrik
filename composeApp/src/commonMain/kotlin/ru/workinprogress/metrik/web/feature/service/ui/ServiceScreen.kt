@@ -131,6 +131,16 @@ fun ServiceScreen(
     onBack: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                // Сервиса больше нет — показывать его экран нечестно, уходим назад.
+                ServiceUiEvent.Deleted -> onBack()
+            }
+        }
+    }
+
     ServiceContent(
         uiState = uiState,
         onAction = viewModel::onAction,
@@ -196,7 +206,9 @@ fun ServiceContent(
             RangeSelector(uiState.range, onRange, Modifier.fillMaxWidth())
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                // weight(1f) обязателен: без него длинное имя сервиса занимает всю ширину по
+                // своему размеру и выдавливает правую колонку за край окна.
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     if (firingCount > 0 || instances > 0) {
                         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             if (firingCount > 0) FiringCountPill(firingCount)
@@ -209,9 +221,16 @@ fun ServiceContent(
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 RangeSelector(uiState.range, onRange)
+            }
+            // Отдельной строкой во всю ширину, а не в шапке: подтверждение удаления — это текст
+            // плюс две кнопки, и в тесной шапке оно выдавливало кнопки за край окна.
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                RemoveFromMonitoring(uiState, onAction)
             }
         }
 
@@ -222,6 +241,78 @@ fun ServiceContent(
             ServiceTab.ROUTES -> RoutesTab(uiState.routes, uiState.loaded, compact)
             ServiceTab.SLOW -> SlowTab(uiState.slow, uiState.loaded, uiState.nowMs, zone, compact)
             ServiceTab.SYSTEM -> SystemTab(uiState.system, uiState.loaded, compact)
+        }
+    }
+}
+
+/**
+ * Убрать сервис из наблюдения.
+ *
+ * Нужно, когда сервис увели или переименовали: старая запись честно молчит и потому вечно горит
+ * правилом `absent`. Заглушение здесь не подходит — оно прячет живую проблему, а тут проблемы нет.
+ *
+ * Кнопка намеренно тихая и в два шага: операция необратима, вместе с сервисом уезжает вся его
+ * история. Одного случайного клика для этого мало.
+ */
+@Composable
+private fun RemoveFromMonitoring(
+    uiState: ServiceUiState,
+    onAction: (ServiceUiAction) -> Unit,
+) {
+    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        if (uiState.deleteRequested) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(
+                    "Удалить вместе со всей историей?",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Box(
+                    Modifier
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.error)
+                        .clickable(enabled = !uiState.deleting) { onAction(ServiceUiAction.ConfirmDelete) }
+                        .padding(horizontal = Spacing.md),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        if (uiState.deleting) "Удаляем…" else "Удалить",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onError,
+                    )
+                }
+                Box(
+                    Modifier
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable(enabled = !uiState.deleting) { onAction(ServiceUiAction.CancelDelete) }
+                        .padding(horizontal = Spacing.md),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("Отмена", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        } else {
+            Box(
+                Modifier
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { onAction(ServiceUiAction.RequestDelete) }
+                    .padding(horizontal = Spacing.md),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "Убрать из наблюдения",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MetrikExtra.dim,
+                )
+            }
+        }
+
+        if (uiState.deleteError != null) {
+            Text(uiState.deleteError, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
         }
     }
 }
