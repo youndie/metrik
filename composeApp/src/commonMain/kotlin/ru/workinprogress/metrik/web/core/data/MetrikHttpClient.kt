@@ -6,7 +6,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.json.Json
+import ru.workinprogress.metrik.wire.MetrikJson
 
 /**
  * HTTP-клиент к metrik-server.
@@ -25,8 +25,10 @@ fun metrikHttpClient(
     user: String? = null,
 ): HttpClient =
     HttpClient {
+        // Тот же `MetrikJson`, что и на сервере, а не своя копия настроек: настройки сериализации —
+        // такая же часть контракта, как имена полей. Разъехавшись, они ломают разбор целого ответа.
         install(ContentNegotiation) {
-            json(Json { ignoreUnknownKeys = true })
+            json(MetrikJson)
         }
         install(Resources)
         defaultRequest {

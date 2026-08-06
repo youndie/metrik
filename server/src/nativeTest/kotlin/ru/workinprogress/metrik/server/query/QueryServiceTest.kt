@@ -1,10 +1,12 @@
 package ru.workinprogress.metrik.server.query
 
+import io.github.smyrgeorge.sqlx4k.Statement
 import kotlinx.coroutines.test.runTest
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import okio.SYSTEM
 import ru.workinprogress.metrik.api.Step
+import ru.workinprogress.metrik.server.alert.ALERT_STATE_FIRING
 import ru.workinprogress.metrik.server.ingest.IngestResult
 import ru.workinprogress.metrik.server.ingest.IngestService
 import ru.workinprogress.metrik.server.openDatabase
@@ -87,6 +89,27 @@ class QueryServiceTest {
 
     private suspend fun serviceId(): Long = query.serviceIdByName("orders-api")!!
 
+    /** Пишет состояние правила напрямую: таблица `alert_states` — это и есть стык воркера и чтения. */
+    private suspend fun fireRule(
+        serviceId: Long,
+        ruleId: String,
+        state: String,
+    ) {
+        db
+            .execute(
+                Statement
+                    .create(
+                        """
+                        INSERT INTO alert_states (service_id, rule_id, state, since)
+                        VALUES (:id, :rule, :state, :since)
+                        """.trimIndent(),
+                    ).bind("id", serviceId)
+                    .bind("rule", ruleId)
+                    .bind("state", state)
+                    .bind("since", now),
+            ).getOrThrow()
+    }
+
     @Test
     fun `the service list should summarise the recent window`() =
         runTest {
@@ -101,6 +124,43 @@ class QueryServiceTest {
             assertEquals("orders-api", services.single().name)
             assertEquals(1, services.single().instances)
             assertTrue(services.single().requestsPerSecond > 0)
+        }
+
+    /**
+     * Поле `firingAlerts` сервер когда-то не заполнял вовсе: на «Алертах» сервис горел, а его
+     * карточка на «Обзоре» оставалась зелёной с подписью «ок». Дашборд, который в одном месте
+     * показывает аварию, а в другом её же прячет, хуже, чем дашборд без карточек.
+     */
+    @Test
+    fun `the service list should carry the rules that are firing`() =
+        runTest {
+            // Given — сервис есть, и по нему горит одно правило, а второе погасло.
+            send()
+            val id = serviceId()
+            fireRule(id, "absent", ALERT_STATE_FIRING)
+            fireRule(id, "error_rate", "OK")
+
+            // When
+            val summary = query.services().single()
+
+            // Then — горящее видно, погасшее не мешается.
+            assertEquals(listOf("absent"), summary.firingAlerts)
+        }
+
+    @Test
+    fun `a service with nothing firing should carry an empty list`() =
+        runTest {
+            // Given
+            send()
+
+            // When / Then
+            assertTrue(
+                query
+                    .services()
+                    .single()
+                    .firingAlerts
+                    .isEmpty(),
+            )
         }
 
     @Test

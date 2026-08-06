@@ -4,6 +4,10 @@ import kotlinx.serialization.Serializable
 
 // Контракт между metrik-server и дашбордом. Живёт в :shared, потому что обе стороны — Kotlin,
 // и расходиться описаниям незачем.
+//
+// У каждого nullable-поля обязан быть дефолт `= null`. Сервер сериализует с `explicitNulls = false`
+// (см. `MetrikJson`), то есть null-поле из ответа просто исчезает — и на приёме поле без дефолта
+// падает с «Field is required», роняя разбор всего ответа целиком, а не одной ячейки.
 
 /** Шаг ряда. Сервер сам выбирает источник данных под шаг, клиент об этом не знает. */
 @Serializable
@@ -21,7 +25,7 @@ data class ServiceSummary(
     val requestsPerSecond: Double,
     val errorRate: Double,
     val p95Ms: Double,
-    val lastSeenAt: Long?,
+    val lastSeenAt: Long? = null,
     val instances: Int,
     val clockSkew: Boolean,
     val firingAlerts: List<String> = emptyList(),
@@ -100,11 +104,11 @@ data class SystemPoint(
     val instance: String,
     val at: Long,
     val heapUsedBytes: Long,
-    val heapMaxBytes: Long?,
+    val heapMaxBytes: Long? = null,
     val cpuPermille: Int,
     val threads: Int,
-    val gcCollections: Int?,
-    val gcMs: Long?,
+    val gcCollections: Int? = null,
+    val gcMs: Long? = null,
 )
 
 /** Состояние правила алертинга. */

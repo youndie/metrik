@@ -15,6 +15,7 @@ import ru.workinprogress.metrik.api.Step
 import ru.workinprogress.metrik.api.SystemPoint
 import ru.workinprogress.metrik.api.TimePoint
 import ru.workinprogress.metrik.api.TimeSeries
+import ru.workinprogress.metrik.server.alert.ALERT_STATE_FIRING
 import ru.workinprogress.metrik.wire.Histogram
 import ru.workinprogress.metrik.wire.MetrikJson
 import ru.workinprogress.metrik.wire.isServerError
@@ -60,6 +61,7 @@ class QueryService(
         to: Long = nowMs(),
     ): List<ServiceSummary> {
         val spanSeconds = ((to - from).coerceAtLeast(1_000L)) / 1000.0
+        val firingByService = firingRulesByService()
 
         return rows("SELECT id, name FROM services ORDER BY name").map { row ->
             val id = row.get("id").asLong()
@@ -86,9 +88,21 @@ class QueryService(
                 lastSeenAt = instanceRow.get("seen").asLongOrNull(),
                 instances = instanceRow.get("c").asInt(),
                 clockSkew = (instanceRow.get("skew").asLongOrNull() ?: 0L) > 0,
+                firingAlerts = firingByService[id].orEmpty(),
             )
         }
     }
+
+    /**
+     * Горящие правила по сервисам — одним запросом на весь список, а не по запросу на сервис.
+     *
+     * Без этого поле оставалось дефолтным пустым списком: на «Алертах» сервис горел, а его карточка
+     * на «Обзоре» была зелёной и подписана «ок». Дашборд, который в одном месте показывает аварию,
+     * а в другом её же прячет, хуже, чем дашборд без карточек.
+     */
+    private suspend fun firingRulesByService(): Map<Long, List<String>> =
+        rows("SELECT service_id, rule_id FROM alert_states WHERE state = '$ALERT_STATE_FIRING' ORDER BY rule_id")
+            .groupBy({ it.get("service_id").asLong() }, { it.get("rule_id").asString() })
 
     suspend fun overview(
         serviceId: Long,

@@ -1,7 +1,7 @@
 package ru.workinprogress.metrik.agent
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -11,6 +11,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.newSingleThreadContext
 import ru.workinprogress.metrik.wire.WindowHeader
 import ru.workinprogress.metrik.wire.splitWindow
 import kotlin.concurrent.atomics.AtomicInt
@@ -96,9 +97,25 @@ class MetrikAgent(
 
     val counters = AgentCounters()
 
-    // Собственный scope, а не хостовый: агент не должен умирать оттого, что чужой Job отменили,
-    // и не должен зависеть от диспетчера HTTP-движка. Останавливается явно в stop().
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    /**
+     * Собственный поток, а не `Dispatchers.Default`.
+     *
+     * Цикл окон держится на `delay`, а `delay` на общем пуле возобновляет тот же пул. В
+     * Kotlin/Native каждый `SelectorManager` занимает воркер `Dispatchers.Default` намертво своим
+     * `select()`: на двухъядерной ноде хосту достаточно поднять два Ktor-движка, чтобы свободных
+     * воркеров не осталось и таймеры перестали срабатывать во всём процессе — агент замолкает
+     * целиком, а мониторинг показывает «сервис молчит» у совершенно живого сервиса.
+     *
+     * Своим потоком агент перестаёт зависеть от того, что хост делает с общим пулом. Это то же
+     * лекарство, что уже применено к сокету (см. [UdpMetrikSender]), и та же причина: агент обязан
+     * не влиять на сервис, в который встроен, — и не ломаться от того, как устроен этот сервис.
+     */
+    @OptIn(DelicateCoroutinesApi::class)
+    private val dispatcher = newSingleThreadContext("metrik-agent")
+
+    // Собственный scope, а не хостовый: агент не должен умирать оттого, что чужой Job отменили.
+    // Останавливается явно в stop().
+    private val scope = CoroutineScope(dispatcher + SupervisorJob())
 
     fun start(host: CoroutineScope) {
         job = scope.launch { run() }
@@ -109,6 +126,7 @@ class MetrikAgent(
         job = null
         scope.cancel()
         sender.close()
+        dispatcher.close()
     }
 
     /** Вызывается с горячего пути. Никогда не suspend, никогда не бросает. */
