@@ -69,6 +69,14 @@ retentionHours: 48
 # The server monitors itself under this name. Empty disables it.
 selfService: metrik-server
 
+# Telegram delivery. Leave the token empty and there is no delivery at all: the server installs a
+# no-op notifier, and "send a test" on the alerts screen answers "not delivered" rather than
+# pretending. Pass the token with --set, like the ingest key — it reaches the pod through a Secret,
+# not as a value in the pod spec, because a bot token can write into your chat.
+telegram:
+  token: ""
+  chatId: ""
+
 persistence:
   size: 5Gi
   storageClass: local-path
@@ -91,8 +99,17 @@ Prefer a plain Ingress? Leave `traefik.enabled: false` and fill in the `ingress`
 helm upgrade --install metrik ./charts/metrik \
   -f my-values.yaml \
   --set ingestKey=$METRIK_INGEST_KEY \
+  --set telegram.token=$METRIK_TELEGRAM_TOKEN \
+  --set telegram.chatId=$METRIK_TELEGRAM_CHAT_ID \
   --namespace metrik --create-namespace --atomic
 ```
+
+Already keep the bot token in a Secret of your own? Point the chart at it instead of passing the
+value: `telegram.existingSecret` plus `telegram.secretKey`. Same pair as `existingSecret`/`secretKey`
+for the ingest key.
+
+One installation delivers to one chat. Two contours that share a chat quickly train everyone to
+ignore it — give staging its own.
 
 ### 4. Point your services at it
 

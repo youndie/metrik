@@ -40,9 +40,14 @@ spec:
             - name: METRIK_SELF_SERVICE
               value: {{ . | quote }}
             {{- end }}
-            {{- with .Values.telegram.token }}
+            {{- if or .Values.telegram.token .Values.telegram.existingSecret }}
+            # Токен бота — через Secret, а не значением в спеке: бот умеет писать в ваш чат, и
+            # `kubectl get deploy -o yaml` не должен его показывать.
             - name: METRIK_TELEGRAM_TOKEN
-              value: {{ . | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.telegram.existingSecret | default (printf "%s-metrik" .Release.Name) }}
+                  key: {{ .Values.telegram.secretKey }}
             {{- end }}
             {{- with .Values.telegram.chatId }}
             - name: METRIK_TELEGRAM_CHAT_ID
