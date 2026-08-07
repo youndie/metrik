@@ -20,5 +20,5 @@ val serviceModule =
         factoryOf(::GetRoutesUseCase)
         factoryOf(::GetSlowRequestsUseCase)
         factoryOf(::GetSystemPointsUseCase)
-        viewModel { (serviceId: Long) -> ServiceViewModel(serviceId, get(), get(), get(), get(), get(), get(), get()) }
+        viewModel { ServiceViewModel(get(), get(), get(), get(), get(), get(), get()) }
     }

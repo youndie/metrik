@@ -118,8 +118,20 @@ private fun AppShellContent(
         }
     }
 
+    /**
+     * Переход к сервису.
+     *
+     * Из рельса это переключение вбок, а не заход вглубь: сервис заменяет открытый сервис, а не
+     * ложится поверх него. Иначе стек растёт на каждый клик по рельсу, «назад» отматывает по всем
+     * просмотренным сервисам, а их ViewModel'ы остаются в стеке и продолжают опрашивать сервер.
+     */
     fun openService(id: Long) {
-        if (backStack.lastOrNull() != Route.Service(id)) backStack.add(Route.Service(id))
+        val target = Route.Service(id)
+        when {
+            backStack.lastOrNull() == target -> Unit
+            backStack.lastOrNull() is Route.Service -> backStack[backStack.lastIndex] = target
+            else -> backStack.add(target)
+        }
     }
 
     val current = backStack.lastOrNull() as? Route

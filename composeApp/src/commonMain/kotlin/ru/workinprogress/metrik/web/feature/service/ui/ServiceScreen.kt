@@ -45,7 +45,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
 import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.parameter.parametersOf
 import ru.workinprogress.metrik.api.AlertView
 import ru.workinprogress.metrik.api.DeployMarker
 import ru.workinprogress.metrik.api.RouteRow
@@ -125,12 +124,15 @@ private fun ServiceTabBar(
 @Composable
 fun ServiceScreen(
     serviceId: Long,
-    viewModel: ServiceViewModel = koinViewModel(parameters = { parametersOf(serviceId) }),
+    viewModel: ServiceViewModel = koinViewModel(),
     compact: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     onBack: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Экран сервиса один, а сервис на нём меняется: из рельса переходят вбок, с одного на другой.
+    LaunchedEffect(serviceId) { viewModel.onAction(ServiceUiAction.Open(serviceId)) }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->

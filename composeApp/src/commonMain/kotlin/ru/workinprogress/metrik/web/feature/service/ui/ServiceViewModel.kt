@@ -36,6 +36,8 @@ enum class ServiceTab(
 }
 
 data class ServiceUiState(
+    /** Чей экран показан. `null` — до первого [ServiceUiAction.Open]. */
+    val serviceId: Long? = null,
     /**
      * `null`, пока не пришёл первый список сервисов: экран открывается по id из маршрута и своё имя
      * узнаёт только оттуда. Показывать в это время пустую шапку честнее, чем выдуманное имя.
@@ -57,6 +59,18 @@ data class ServiceUiState(
 )
 
 sealed interface ServiceUiAction {
+    /**
+     * Показать сервис [serviceId].
+     *
+     * Экран сервиса один, а сервис на нём меняется: из рельса на него переходят вбок, с одного
+     * сервиса на другой. Поэтому id — это состояние, а не параметр конструктора: ViewModel,
+     * созданный под конкретный id, при переключении отдавался бы тот же самый (хранилище у
+     * записей стека общее), и экран показывал бы предыдущий сервис.
+     */
+    data class Open(
+        val serviceId: Long,
+    ) : ServiceUiAction
+
     data class SelectTab(
         val tab: ServiceTab,
     ) : ServiceUiAction
@@ -79,7 +93,6 @@ sealed interface ServiceUiEvent {
 }
 
 class ServiceViewModel(
-    private val serviceId: Long,
     private val getServices: GetServicesUseCase,
     private val getTimeSeries: GetTimeSeriesUseCase,
     private val getRoutes: GetRoutesUseCase,
@@ -97,7 +110,6 @@ class ServiceViewModel(
     private var loadJob: Job? = null
 
     init {
-        restartPolling()
         viewModelScope.launch {
             while (true) {
                 _uiState.update { it.copy(nowMs = timeSource.nowMs()) }
@@ -108,6 +120,15 @@ class ServiceViewModel(
 
     fun onAction(action: ServiceUiAction) {
         when (action) {
+            is ServiceUiAction.Open -> {
+                if (action.serviceId == _uiState.value.serviceId) return
+                // Данные прежнего сервиса не показываем ни мгновения: они не про этот сервис.
+                _uiState.update {
+                    ServiceUiState(serviceId = action.serviceId, tab = it.tab, range = it.range, nowMs = it.nowMs)
+                }
+                restartPolling()
+            }
+
             is ServiceUiAction.SelectTab -> {
                 _uiState.update { it.copy(tab = action.tab) }
             }
@@ -133,6 +154,7 @@ class ServiceViewModel(
     }
 
     private fun confirmDelete() {
+        val serviceId = _uiState.value.serviceId ?: return
         _uiState.update { it.copy(deleting = true, deleteError = null) }
         viewModelScope.launch {
             deleteService(DeleteServiceUseCase.Params(serviceId))
@@ -164,6 +186,7 @@ class ServiceViewModel(
     }
 
     private suspend fun refresh(range: Range) {
+        val serviceId = _uiState.value.serviceId ?: return
         val to = timeSource.nowMs()
         val from = to - range.ms
 
@@ -177,6 +200,9 @@ class ServiceViewModel(
         val system = getSystemPoints(GetSystemPointsUseCase.Params(serviceId, from, to)).getOrNull()
 
         _uiState.update { state ->
+            // Пока запросы летели, экран мог переключиться на другой сервис — тогда ответ уже не
+            // про то, что показано, и применять его нельзя.
+            if (state.serviceId != serviceId) return@update state
             state.copy(
                 service = service ?: state.service,
                 series = series ?: state.series,
