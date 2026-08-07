@@ -28,6 +28,8 @@ kotlin {
             implementation(ktorLibs.server.contentNegotiation)
             implementation(ktorLibs.server.resources)
             implementation(ktorLibs.serialization.kotlinx.json)
+            // Сам клиент общий, движок — платформенный (см. NotifierHttpClient).
+            implementation(ktorLibs.client.core)
             implementation(libs.sqlx4k.sqlite)
             implementation(libs.okio)
         }
