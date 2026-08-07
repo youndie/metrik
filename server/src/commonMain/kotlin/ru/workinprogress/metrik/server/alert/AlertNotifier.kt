@@ -1,7 +1,6 @@
 package ru.workinprogress.metrik.server.alert
 
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.forms.submitForm
 import io.ktor.http.isSuccess
 import io.ktor.http.parameters
@@ -35,7 +34,7 @@ object NoopNotifier : AlertNotifier {
 class TelegramNotifier(
     private val token: String,
     private val defaultChatId: String,
-    private val client: HttpClient = HttpClient(CIO),
+    private val client: HttpClient = notifierHttpClient(),
 ) : AlertNotifier {
     override suspend fun notify(
         text: String,
