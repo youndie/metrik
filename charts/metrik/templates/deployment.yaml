@@ -66,11 +66,6 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
-        - name: web
-          image: "{{ .Values.web.repository }}:{{ .Values.web.tag }}"
-          ports:
-            - name: web
-              containerPort: 80
       volumes:
         - name: data
           persistentVolumeClaim:

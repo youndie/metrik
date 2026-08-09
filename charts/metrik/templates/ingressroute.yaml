@@ -28,21 +28,8 @@ spec:
         - name: {{ .Release.Name }}-redirect-to-https
       services:
         - name: {{ .Release.Name }}-metrik
-          port: 80
-      priority: 1
-
-    # API — приоритет выше, чем у статики, иначе /api уедет в nginx.
-    - match: Host(`{{ .Values.traefik.hostname }}`) && PathPrefix(`/api`)
-      kind: Rule
-      middlewares:
-        - name: {{ .Values.traefik.authMiddleware.name }}
-      {{- range .Values.traefik.middlewares }}
-        - name: {{ .name }}
-      {{- end }}
-      services:
-        - name: {{ .Release.Name }}-metrik
           port: 8080
-      priority: 20
+      priority: 1
 
     - match: Host(`{{ .Values.traefik.hostname }}`)
       kind: Rule
@@ -53,7 +40,7 @@ spec:
       {{- end }}
       services:
         - name: {{ .Release.Name }}-metrik
-          port: 80
+          port: 8080
       priority: 10
   tls:
     certResolver: {{ .Values.traefik.certResolver | quote }}

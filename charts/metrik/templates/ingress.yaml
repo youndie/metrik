@@ -14,18 +14,12 @@ spec:
     - host: {{ .Values.ingress.host }}
       http:
         paths:
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ .Release.Name }}-metrik
-                port:
-                  name: http
+          # Один бэкенд на всё: и API, и дашборд отдаёт один и тот же сервер.
           - path: /
             pathType: Prefix
             backend:
               service:
                 name: {{ .Release.Name }}-metrik
                 port:
-                  name: web
+                  name: http
 {{- end }}

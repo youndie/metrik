@@ -52,7 +52,8 @@ out — and writes to Telegram when the answers get worse.
 - Desktop JVM target — development only, because the wasm build is slow
 - MaterialKolor for the Material 3 colour scheme
 
-Everything is served as static files by nginx; the native server exposes only JSON.
+The bundle is served by the native server itself — `staticFiles` is unavailable on Kotlin/Native,
+so the handful of things it does (MIME, ETag, precompressed twins) are written out by hand.
 
 ## Instrumenting a service
 
@@ -96,8 +97,8 @@ docker run -p 8080:8080 -p 9999:9999/udp \
   ghcr.io/youndie/metrik:latest
 ```
 
-The dashboard is a separate nginx container (`ghcr.io/youndie/metrik-web`) — a native binary has no
-way to serve a wasm bundle.
+The dashboard ships inside the same image and is served by the same binary: one container, one
+port, one release artifact.
 
 ## Authentication
 

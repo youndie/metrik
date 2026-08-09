@@ -5,9 +5,6 @@ image:
   # остаётся на первом скачанном образе.
   pullPolicy: Always
 
-web:
-  repository: ghcr.io/youndie/metrik-web
-  tag: latest
 
 # Ingest-key инсталляции. Один на всю установку; сервер не стартует без него.
 # В проде подставляется из существующего секрета: existingSecret + secretKey.

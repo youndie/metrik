@@ -52,10 +52,6 @@ image:
   # The tag is mutable, so IfNotPresent would pin a node to the first image it ever pulled.
   pullPolicy: Always
 
-web:
-  repository: ghcr.io/youndie/metrik-web
-  tag: latest
-
 # One ingest key per installation. Pass it with --set from a secret store rather than
 # committing it; the server refuses to start without it.
 ingestKey: ""
@@ -136,7 +132,11 @@ packet only stops accidents. It belongs inside the cluster.
 * **A mutable tag needs a restart.** `helm upgrade` does not recreate a pod when the rendered spec
   is unchanged, so a fresh `:latest` will not land on its own. Either pin an immutable tag or run
   `kubectl rollout restart deployment/<release>-metrik` after the upgrade.
-* **Two containers in one pod.** The nginx container serves the dashboard; the native server serves
-  `/api/**`. They share a pod because they share a lifecycle and there is exactly one replica.
-* **Small by design.** Requests of 30m CPU and 32Mi memory are enough for tens of services; the
-  process idles at a few megabytes.
+* **One container serves everything.** The dashboard bundle ships inside the server image and is
+  served by the binary itself, so API and UI can never drift apart across a release. `staticFiles`
+  does not exist on Kotlin/Native, so MIME types, ETags and precompressed twins are written by hand
+  — the `.gz` files are produced once at image build, because there is no compression plugin for
+  native either.
+* **Small by design, but mind the memory ceiling.** Requests of 30m CPU and 32Mi memory are enough
+  for tens of services and the process idles around 35Mi. Serving the bundle is what costs: twenty
+  concurrent cold-cache loads peak near 160Mi, so keep the limit at 256Mi or above.

@@ -39,6 +39,8 @@ import ru.workinprogress.metrik.server.query.alertRoutes
 import ru.workinprogress.metrik.server.query.alertTestRoute
 import ru.workinprogress.metrik.server.query.queryRoutes
 import ru.workinprogress.metrik.server.retention.RetentionWorker
+import ru.workinprogress.metrik.server.web.WebAssets
+import ru.workinprogress.metrik.server.web.webRoutes
 import ru.workinprogress.metrik.wire.MetrikJson
 
 fun main() {
@@ -125,6 +127,10 @@ fun Application.module(
     install(ContentNegotiation) { json(MetrikJson) }
 
     routing {
+        // Дашборд отдаёт сам сервер — отдельного контейнера с nginx нет (M-98). Каталог
+        // сканируется один раз на старте: файлы вшиты в образ и не меняются.
+        readEnv("METRIK_WEB_ROOT")?.let { root -> webRoutes(WebAssets.scan(root)) }
+
         // Живость процесса и доступность базы: оркестратору нужно различать «поднялся» и «работает».
         get("/health") {
             db.fetchAll("SELECT 1;").getOrThrow()
