@@ -39,6 +39,16 @@ data class GcSnapshot(
  */
 @Serializable
 data class SystemSnapshot(
+    /**
+     * Рантайм процесса: `jvm` или `native`.
+     *
+     * Передаётся явно, потому что вывести его из остальных полей нельзя. Раньше дашборд считал
+     * нативным того, у кого нет `heapMaxBytes` — но в контейнере нативный агент кладёт туда лимит
+     * cgroup, и все нативные сервисы подписывались как JVM, а RSS выдавался за heap.
+     *
+     * `null` — старый агент, который поле ещё не шлёт. Это «неизвестно», а не «JVM».
+     */
+    @SerialName("rt") val runtime: String? = null,
     @SerialName("hu") val heapUsedBytes: Long,
     @SerialName("hm") val heapMaxBytes: Long? = null,
     @SerialName("cp") val cpuPermille: Int,

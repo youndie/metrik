@@ -147,7 +147,15 @@ FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
 );""",
     )
 
-private val allMigrations = listOf(migrationV1, migrationV2)
+// Рантайм процесса приезжает от агента, а не выводится из данных: раньше нативным считался тот,
+// у кого нет heap_max, но в контейнере агент кладёт туда лимит cgroup — и все нативные сервисы
+// подписывались как JVM. Колонка nullable: старые агенты поле не шлют, и это «неизвестно».
+private val migrationV3 =
+    listOf(
+        """ALTER TABLE system_windows ADD COLUMN runtime TEXT;""",
+    )
+
+private val allMigrations = listOf(migrationV1, migrationV2, migrationV3)
 
 suspend fun ISQLite.migrateDb() {
     val current =

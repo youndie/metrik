@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -123,7 +122,11 @@ fun NavRail(
             )
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+        // Вес именно здесь, на секции целиком: она забирает всё, что осталось от рельса, и внутри
+        // этой известной высоты список уже может прокручиваться. Раньше вес стоял на внутреннем
+        // списке, у родителя высота была неограниченной — и при десятке сервисов рельс не
+        // прокручивался, а сдавливал содержимое.
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
             Text(
                 "СЕРВИСЫ · ${services.size}",
                 style = MaterialTheme.typography.labelSmall,
@@ -132,13 +135,10 @@ fun NavRail(
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.xs),
             )
-            // Обычный Column, не LazyColumn: список сервисов на инсталляцию небольшой (единицы —
-            // десятки), а LazyColumn всегда растягивается на весь доступный максимум высоты даже
-            // с `fill = false` — тогда карточка-подпись внизу рельса отрывалась бы от списка.
-            // `weight(fill = false)` здесь просто ограничивает список сверху высотой рельса и
-            // включает скролл, если сервисов вдруг станет много.
+            // Обычный Column, не LazyColumn: сервисов на инсталляцию единицы-десятки, а ленивый
+            // контейнер растянулся бы на всю доступную высоту и оторвал бы подпись внизу рельса.
             Column(
-                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
             ) {
                 services.forEach { service ->
@@ -146,8 +146,6 @@ fun NavRail(
                 }
             }
         }
-
-        Spacer(Modifier.weight(1f))
 
         Column(
             Modifier

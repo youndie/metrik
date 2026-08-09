@@ -218,7 +218,7 @@ class QueryService(
                 .create(
                     """
                     SELECT i.instance_key AS instance, s.window_start, s.heap_used, s.heap_max,
-                           s.cpu_permille, s.threads, s.gc_count, s.gc_ms
+                           s.cpu_permille, s.threads, s.gc_count, s.gc_ms, s.runtime
                     FROM system_windows s
                     JOIN instances i ON i.id = s.instance_id
                     WHERE i.service_id = :id AND s.window_start BETWEEN :from AND :to
@@ -231,6 +231,7 @@ class QueryService(
             SystemPoint(
                 instance = row.get("instance").asString(),
                 at = row.get("window_start").asLong(),
+                runtime = row.get("runtime").asStringOrNull(),
                 heapUsedBytes = row.get("heap_used").asLong(),
                 heapMaxBytes = row.get("heap_max").asLongOrNull(),
                 cpuPermille = row.get("cpu_permille").asInt(),

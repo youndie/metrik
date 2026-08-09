@@ -48,11 +48,13 @@ import org.koin.compose.viewmodel.koinViewModel
 import ru.workinprogress.metrik.api.AlertView
 import ru.workinprogress.metrik.api.DeployMarker
 import ru.workinprogress.metrik.api.RouteRow
+import ru.workinprogress.metrik.api.ServiceRuntime
 import ru.workinprogress.metrik.api.ServiceSummary
 import ru.workinprogress.metrik.api.SlowRow
 import ru.workinprogress.metrik.api.Step
 import ru.workinprogress.metrik.api.SystemPoint
 import ru.workinprogress.metrik.api.TimeSeries
+import ru.workinprogress.metrik.api.serviceRuntime
 import ru.workinprogress.metrik.web.core.domain.Range
 import ru.workinprogress.metrik.web.ui.ChartPoint
 import ru.workinprogress.metrik.web.ui.EmptyState
@@ -1260,16 +1262,33 @@ private fun InstanceCard(
     compact: Boolean = false,
 ) {
     val last = points.last()
-    // У нативного процесса нет верхней границы heap в смысле JVM — то, что мы видим, это RSS
-    // всего процесса. Без объявленного максимума нельзя честно посчитать долю от лимита, поэтому
-    // для native полосы заполнения просто нет — только цифра и пояснение.
-    val native = last.heapMaxBytes == null
+    // Платформу берём из того, что прислал агент, и не выводим из данных. Раньше нативным считался
+    // тот, у кого нет heapMaxBytes, — но в контейнере нативный агент кладёт туда лимит cgroup, и
+    // все нативные сервисы подписывались как JVM, а RSS выдавался за heap.
+    val runtime = last.serviceRuntime
+    val native = runtime == ServiceRuntime.NATIVE
+    val jvm = runtime == ServiceRuntime.JVM
     val usedMb = last.heapUsedBytes / 1024 / 1024
-    val ratio = last.heapMaxBytes?.let { max -> (last.heapUsedBytes.toFloat() / max).coerceIn(0f, 1f) }
+    // Долю от лимита рисуем только для JVM: у нативного процесса heapMaxBytes — это лимит cgroup,
+    // а доля RSS от лимита контейнера и «сколько занято в heap» отвечают на разные вопросы.
+    val ratio = if (jvm) last.heapMaxBytes?.let { max -> (last.heapUsedBytes.toFloat() / max).coerceIn(0f, 1f) } else null
     val hot = ratio != null && ratio > 0.85f
     val memColor = if (hot) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    val memLabel = if (native) "RSS процесса" else "heap / ${last.heapMaxBytes!! / 1024 / 1024} МБ"
-    val kindLabel = if (native) "Kotlin/Native" else "JVM"
+    val memLabel =
+        when {
+            jvm && last.heapMaxBytes != null -> "heap / ${last.heapMaxBytes!! / 1024 / 1024} МБ"
+
+            native -> "RSS процесса"
+
+            // Агент платформу не прислал — назвать величину нечем, и выдумывать её нельзя.
+            else -> "память процесса"
+        }
+    val kindLabel =
+        when (runtime) {
+            ServiceRuntime.NATIVE -> "Kotlin/Native"
+            ServiceRuntime.JVM -> "JVM"
+            ServiceRuntime.UNKNOWN -> "рантайм неизвестен"
+        }
     val kindBg = if (native) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.secondaryContainer
     val kindFg = if (native) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
     val gcMissing = last.gcCollections == null

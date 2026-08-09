@@ -297,8 +297,8 @@ class IngestService(
                 .create(
                     """
                     INSERT OR REPLACE INTO system_windows
-                        (instance_id, window_start, heap_used, heap_max, cpu_permille, threads, uptime, gc_count, gc_ms)
-                    VALUES (:instanceId, :window, :heapUsed, :heapMax, :cpu, :threads, :uptime, :gcCount, :gcMs)
+                        (instance_id, window_start, heap_used, heap_max, cpu_permille, threads, uptime, gc_count, gc_ms, runtime)
+                    VALUES (:instanceId, :window, :heapUsed, :heapMax, :cpu, :threads, :uptime, :gcCount, :gcMs, :runtime)
                     """.trimIndent(),
                 ).bind("instanceId", instanceId)
                 .bind("window", windowStart)
@@ -308,7 +308,8 @@ class IngestService(
                 .bind("threads", snapshot.threads)
                 .bind("uptime", snapshot.uptimeSeconds)
                 .bind("gcCount", snapshot.gc?.collections)
-                .bind("gcMs", snapshot.gc?.totalMs),
+                .bind("gcMs", snapshot.gc?.totalMs)
+                .bind("runtime", snapshot.runtime),
         ).getOrThrow()
     }
 

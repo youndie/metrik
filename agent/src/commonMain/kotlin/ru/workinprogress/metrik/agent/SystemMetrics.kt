@@ -48,6 +48,7 @@ class SystemSampler {
         val gc = gcDelta(reading)
 
         return SystemSnapshot(
+            runtime = agentRuntime,
             heapUsedBytes = memoryUsed,
             heapMaxBytes = reading.memoryLimitBytes,
             cpuPermille = cpuPermille,

@@ -103,6 +103,8 @@ data class SlowRow(
 data class SystemPoint(
     val instance: String,
     val at: Long,
+    /** `jvm`, `native` или `null` — агент старый и платформу не сообщает. Угадывать её нельзя. */
+    val runtime: String? = null,
     val heapUsedBytes: Long,
     val heapMaxBytes: Long? = null,
     val cpuPermille: Int,
@@ -110,6 +112,30 @@ data class SystemPoint(
     val gcCollections: Int? = null,
     val gcMs: Long? = null,
 )
+
+/** Рантайм, в котором работает инстанс. */
+enum class ServiceRuntime {
+    JVM,
+    NATIVE,
+
+    /** Агент старый и платформу не сообщает. Это «не знаем», а не «JVM». */
+    UNKNOWN,
+}
+
+/**
+ * Рантайм инстанса — из того, что прислал агент, и никак иначе.
+ *
+ * Раньше дашборд считал нативным того, у кого нет `heapMaxBytes`. В контейнере это неверно:
+ * нативный агент кладёт туда лимит cgroup, и все нативные сервисы подписывались как JVM, а RSS
+ * выдавался за heap. Разница существенная — «heap» и «RSS» отвечают на разные вопросы.
+ */
+val SystemPoint.serviceRuntime: ServiceRuntime
+    get() =
+        when (runtime) {
+            "native" -> ServiceRuntime.NATIVE
+            "jvm" -> ServiceRuntime.JVM
+            else -> ServiceRuntime.UNKNOWN
+        }
 
 /** Состояние правила алертинга. */
 @Serializable
