@@ -6,7 +6,7 @@ kotlinxSerializationJson = "1.11.0"
 kotlinxDatetime = "0.8.0"
 okio = "3.18.1"
 sqlx4k = "1.13.0"
-ktlintPlugin = "14.0.1"
+ktlintPlugin = "14.2.0"
 # renovate: datasource=maven depName=com.pinterest.ktlint:ktlint-cli
 ktlint = "1.8.0"
 materialKolor = "5.0.0"
