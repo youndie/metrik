@@ -10,7 +10,7 @@ ktlintPlugin = "14.0.1"
 # renovate: datasource=maven depName=com.pinterest.ktlint:ktlint-cli
 ktlint = "1.8.0"
 materialKolor = "5.0.0"
-androidxLifecycle = "2.9.4"
+androidxLifecycle = "2.11.0"
 navigation3Ui = "1.1.1"
 navigation3Browser = "1.1.0"
 koin = "4.2.2"
