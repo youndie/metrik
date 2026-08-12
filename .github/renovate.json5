@@ -8,8 +8,9 @@
   timezone: "Etc/UTC",
   schedule: ["before 6am on monday"],
 
-  // Commits here are prose, not conventional commits.
-  semanticCommits: "disabled",
+  // Unlike tracy, the history here is conventional commits with scopes (`fix(web):`, `feat(chart):`),
+  // so keep the prefixes. config:recommended maps dependency bumps to `fix:` and the rest to `chore:`.
+  semanticCommits: "enabled",
 
   labels: ["dependencies"],
 
@@ -32,7 +33,8 @@
     labels: ["dependencies", "security"],
   },
 
-  ignorePaths: ["**/build/**", "**/.gradle/**"],
+  // kotlin-js-store holds a lock file the Kotlin/JS plugin generates for itself.
+  ignorePaths: ["**/build/**", "**/.gradle/**", "kotlin-js-store/**"],
 
   // The catalog's `ktlint` entry is the CLI version, read by build.gradle.kts through
   // libs.versions.ktlint.get(). No library or plugin references it, so the gradle
@@ -62,6 +64,19 @@
       description: "kotlinx-datetime publishes `-compat` builds for consumers pinned to an older line. They sort as newer and are not upgrades",
       matchPackageNames: ["org.jetbrains.kotlinx:kotlinx-datetime"],
       allowedVersions: "!/-compat$/",
+    },
+    {
+      description: "Compose Multiplatform and everything that releases with it (lifecycle, navigation3)",
+      matchPackageNames: [
+        "/^org\\.jetbrains\\.compose[:.]/",
+        "/^org\\.jetbrains\\.androidx\\./",
+      ],
+      groupName: "compose multiplatform",
+    },
+    {
+      description: "Koin — one BOM, one version",
+      matchPackageNames: ["/^io\\.insert-koin[:.]/"],
+      groupName: "koin",
     },
     {
       description: "The build harness arrives as one PR, not one per action",
