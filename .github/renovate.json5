@@ -3,32 +3,40 @@
 
   extends: ["config:recommended"],
 
-  // Раз в неделю, в UTC. Обновления собираются в понедельник утром одной пачкой,
-  // а не капают по PR в день — сборка тут долгая, каждый PR гоняет полный CI.
+  // Once a week, in UTC. Updates arrive as one Monday-morning batch rather than a
+  // trickle of a PR a day — every PR runs the full build, and that build is not cheap.
   timezone: "Etc/UTC",
   schedule: ["before 6am on monday"],
 
-  // История здесь на conventional commits — префиксы сохраняем.
-  // config:recommended отдаёт бампам зависимостей `fix:`, остальному — `chore:`.
-  semanticCommits: "enabled",
+  // Commits here are prose, not conventional commits.
+  semanticCommits: "disabled",
 
   labels: ["dependencies"],
 
-  prConcurrentLimit: 3,
+  // With the build harness merging itself these numbers stop being a throttle on human attention
+  // and become one on runner time, so they can be higher.
+  prConcurrentLimit: 5,
   prHourlyLimit: 0,
 
-  // Уязвимости — единственное, что приезжает вне расписания.
+  // Renovate merges the pull request itself rather than arming GitHub's auto-merge. Measured,
+  // not chosen: `enablePullRequestAutoMerge` is refused here with "Protected branch rules not
+  // configured for this branch" and "Pull request is in clean status" — GitHub will not arm
+  // auto-merge on a branch with no required checks, because there is nothing for it to wait for.
+  // Turning that on would mean branch protection on `main`, and direct pushes to `main` are the
+  // established way of working in these repositories.
+  platformAutomerge: false,
+
+  // Vulnerabilities are the one thing that ignores the schedule.
   vulnerabilityAlerts: {
     schedule: ["at any time"],
     labels: ["dependencies", "security"],
   },
 
-  // kotlin-js-store — lock-файл, который генерирует сам Kotlin/JS плагин.
-  ignorePaths: ["**/build/**", "**/.gradle/**", "kotlin-js-store/**"],
+  ignorePaths: ["**/build/**", "**/.gradle/**"],
 
-  // `ktlint` в каталоге — это версия CLI, её читает build.gradle.kts через
-  // libs.versions.ktlint.get(). На неё не ссылается ни одна library/plugin,
-  // поэтому gradle-манагер её не видит и сам бы не обновлял никогда.
+  // The catalog's `ktlint` entry is the CLI version, read by build.gradle.kts through
+  // libs.versions.ktlint.get(). No library or plugin references it, so the gradle
+  // manager never sees it — without this it would stay at 1.8.0 forever.
   customManagers: [
     {
       customType: "regex",
@@ -41,35 +49,22 @@
 
   packageRules: [
     {
-      description: "Kotlin: компилятор и плагины ходят одной версией, и это никогда не рутинный бамп",
+      description: "Kotlin: the compiler and its plugins move as one version, and that is never a routine bump",
       matchPackageNames: ["/^org\\.jetbrains\\.kotlin[:.]/"],
       groupName: "kotlin",
     },
     {
-      description: "kotlinx — общий релизный поезд, одним PR",
+      description: "kotlinx ships as one release train — one PR",
       matchPackageNames: ["/^org\\.jetbrains\\.kotlinx[:.]/"],
       groupName: "kotlinx",
     },
     {
-      description: "Compose Multiplatform и всё, что релизится вместе с ним (lifecycle, navigation3)",
-      matchPackageNames: [
-        "/^org\\.jetbrains\\.compose[:.]/",
-        "/^org\\.jetbrains\\.androidx\\./",
-      ],
-      groupName: "compose multiplatform",
+      description: "The build harness arrives as one PR, not one per action",
+      matchManagers: ["github-actions"],
+      groupName: "ci actions",
     },
     {
-      description: "Koin — один BOM, одна версия",
-      matchPackageNames: ["/^io\\.insert-koin[:.]/"],
-      groupName: "koin",
-    },
-    {
-      description: "Actions и Gradle wrapper вливаются сами: CI на pull_request — достаточная проверка",
-      matchManagers: ["github-actions", "gradle-wrapper"],
-      automerge: true,
-    },
-    {
-      description: "ktlint — инструмент сборки, а не зависимость рантайма",
+      description: "ktlint is build tooling, not a runtime dependency",
       matchPackageNames: [
         "/^org\\.jlleitschuh\\.gradle\\.ktlint[:.]/",
         "/^com\\.pinterest\\.ktlint[:.]/",
@@ -78,15 +73,26 @@
       automerge: true,
     },
     {
-      description: "Базовые образы: смена JDK или дистрибутива — решение, а не бамп",
+      description: "Base images: changing the JDK or the distro is a decision, not a bump",
       matchManagers: ["dockerfile"],
       automerge: false,
     },
     {
-      description: "Мажоры всегда смотрит человек",
+      description: "Majors of anything that ships get a human",
       matchUpdateTypes: ["major"],
       automerge: false,
       labels: ["dependencies", "major"],
+    },
+    // Last, so it wins over the major rule above. This ordering is the whole point: a major of
+    // `actions/checkout` is not the same kind of event as a major of Ktor. The build harness is
+    // not shipped to anyone, and the check that would catch a bad bump is the build itself —
+    // which already ran on the PR. Requiring a human there buys nothing and costs a merge queue
+    // that nobody drains.
+    {
+      description: "The build harness merges itself, majors included: CI on pull_request is the review",
+      matchManagers: ["github-actions", "gradle-wrapper"],
+      automerge: true,
+      automergeType: "pr",
     },
   ],
 }

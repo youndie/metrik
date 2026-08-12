@@ -3,7 +3,7 @@ plugins {
     application
 }
 
-kotlin { jvmToolchain(21) }
+kotlin { jvmToolchain(25) }
 
 application { mainClass.set("ru.workinprogress.metrik.sample.MainKt") }
 

@@ -22,7 +22,7 @@ kotlin {
     withSourcesJar()
 
     jvm()
-    jvmToolchain(21)
+    jvmToolchain(25)
 
     macosArm64()
     linuxX64()
