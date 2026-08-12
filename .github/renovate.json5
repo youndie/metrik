@@ -59,6 +59,11 @@
       groupName: "kotlinx",
     },
     {
+      description: "kotlinx-datetime publishes `-compat` builds for consumers pinned to an older line. They sort as newer and are not upgrades",
+      matchPackageNames: ["org.jetbrains.kotlinx:kotlinx-datetime"],
+      allowedVersions: "!/-compat$/",
+    },
+    {
       description: "The build harness arrives as one PR, not one per action",
       matchManagers: ["github-actions"],
       groupName: "ci actions",
@@ -76,6 +81,11 @@
       description: "Base images: changing the JDK or the distro is a decision, not a bump",
       matchManagers: ["dockerfile"],
       automerge: false,
+      // Own branch, so an image never shares a PR with something that may automerge — one dep
+      // that may not holds back the whole PR. In tracy and katcher this is concrete: the build
+      // stage is called `gradle` and moves in step with the wrapper. Here it is preventative,
+      // and the reason stands either way — no check on a pull request builds the Dockerfile.
+      additionalBranchPrefix: "docker-",
     },
     {
       description: "Majors of anything that ships get a human",
