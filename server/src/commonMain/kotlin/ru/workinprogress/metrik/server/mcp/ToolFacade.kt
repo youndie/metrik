@@ -7,6 +7,7 @@ import ru.workinprogress.metrik.api.Overview
 import ru.workinprogress.metrik.api.RouteRow
 import ru.workinprogress.metrik.api.ServiceSummary
 import ru.workinprogress.metrik.api.Step
+import ru.workinprogress.metrik.api.SystemPoint
 import ru.workinprogress.metrik.api.TimeSeries
 import ru.workinprogress.metrik.api.isFiring
 import ru.workinprogress.metrik.server.alert.AlertWorker
@@ -82,6 +83,19 @@ class ToolFacade(
         to: Long,
         step: Step,
     ): TimeSeries = query.timeSeries(serviceId(service), from, to, step)
+
+    /**
+     * Системный ряд: память, CPU, потоки — с разрезом по инстансам.
+     *
+     * Единственное место в API, где разрез по инстансам сохранён: у маршрутов и рядов инстансы
+     * складываются на записи. Здесь они нужны — «один инстанс из шести упёрся в лимит» и «все шесть
+     * ровно нагружены» лечатся по-разному.
+     */
+    suspend fun systemMetrics(
+        service: String,
+        from: Long,
+        to: Long,
+    ): List<SystemPoint> = query.system(serviceId(service), from, to)
 
     suspend fun deploys(
         service: String,

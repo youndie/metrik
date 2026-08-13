@@ -178,6 +178,23 @@ internal fun Server.registerTools(facade: ToolFacade) {
     }
 
     addTool(
+        name = "system_metrics",
+        description =
+            "Память, CPU и потоки по инстансам сервиса. Единственный инструмент с разрезом по " +
+                "инстансам: у маршрутов и рядов они складываются на записи. " +
+                "`runtime` — `jvm`, `native` или отсутствует у старого агента; угадывать его нельзя. " +
+                "**У нативного процесса `heapUsedBytes` — это RSS, а не heap**, а `heapMaxBytes` — " +
+                "лимит cgroup, а не максимум кучи: сравнивать эти два числа с JVM-ными напрямую " +
+                "неверно. `cpuPermille` — тысячные доли ядра (1000 = одно ядро целиком). " +
+                "`gcCollections` и `gcMs` приходят только с JVM.",
+        inputSchema = schema(required = windowed, properties = window),
+        toolAnnotations = readOnly,
+    ) { request ->
+        val a = args(request)
+        ok(MetrikJson.encodeToString(facade.systemMetrics(a.service(), a.from(), a.to())))
+    }
+
+    addTool(
         name = "alert_rules",
         description =
             "Пороги правил сервиса: значение порога, сколько окон подряд нужно для срабатывания, " +

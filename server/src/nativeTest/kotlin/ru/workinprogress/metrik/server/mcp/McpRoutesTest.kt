@@ -168,6 +168,7 @@ class McpRoutesTest {
                 "slow_routes",
                 "server_errors",
                 "time_series",
+                "system_metrics",
                 "deploys",
                 "firing_alerts",
             ).forEach { tool -> assertContains(body, tool) }
