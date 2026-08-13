@@ -32,6 +32,8 @@
 **Research**
 - [research-architecture](research/research-architecture.md) — проверенные факты, решения, риски.
   **Точка входа для любого, кто берётся за задачу.**
+- [research-mcp-and-cli](research/research-mcp-and-cli.md) — доступ агентов по MCP и клиент для
+  терминала: чем обоснованы, что проверено спайком, как устроены графики символами
 
 **Features**
 - [feature-request-metrics](features/feature-request-metrics.md) — метрики HTTP-запросов
@@ -41,13 +43,15 @@
 **API**
 - [protocol-ingest](api/protocol-ingest.md) — UDP-протокол агент → сервер, v1
 - [endpoint-query](api/endpoint-query.md) — HTTP API дашборда
+- [mcp-tools](api/mcp-tools.md) — инструменты MCP: те же данные для агентов и клиента в терминале
 
 **Services**
 - [metrik-agent](services/metrik-agent.md) — KMP Ktor-плагин
 - [metrik-server](services/metrik-server.md) — Kotlin/Native + SQLite
 - [metrik-web](services/metrik-web.md) — Compose Wasm дашборд
+- [metrik-cli](services/metrik-cli.md) — клиент для терминала
 
-**Бэклог** — [../BACKLOG.md](../BACKLOG.md), задачи `M-NN` по вехам M0…M7.
+**Бэклог** — [../BACKLOG.md](../BACKLOG.md), задачи `M-NN` по вехам M0…M10.
 
 ## Соглашения
 

@@ -30,6 +30,8 @@ out — and writes to Telegram when the answers get worse.
 - SQLite storage using sqlx4k for multiplatform database access
 - Authentication via reverse proxy (supports OAuth2-Proxy, Traefik, Nginx)
 - Compose Multiplatform dashboard, light/dark theme
+- Terminal client — the same numbers without a browser, one native binary
+- MCP endpoint, so an agent can read the metrics instead of looking at a page
 
 ## Tech Stack
 
@@ -54,6 +56,15 @@ out — and writes to Telegram when the answers get worse.
 
 The bundle is served by the native server itself — `staticFiles` is unavailable on Kotlin/Native,
 so the handful of things it does (MIME, ETag, precompressed twins) are written out by hand.
+
+### Terminal client
+
+- Kotlin/Native (linuxX64, linuxArm64, macosArm64), one binary, no runtime
+- [Mosaic](https://github.com/JakeWharton/mosaic) — the Compose runtime, drawing into a terminal
+- Charts made of characters, with colour driven by the alerting thresholds
+
+It reads through the MCP endpoint rather than the HTTP API: `/api` sits behind the browser login,
+and a terminal cannot pass that. `/mcp` is the door already built for machines.
 
 ## Instrumenting a service
 
@@ -98,7 +109,32 @@ docker run -p 8080:8080 -p 9999:9999/udp \
 ```
 
 The dashboard ships inside the same image and is served by the same binary: one container, one
-port, one release artifact.
+port, one release artifact. It can be switched off (`web.enabled: false` in the chart) for
+installations that live in the terminal — the API, the alerting and MCP carry on without it.
+
+## Reading it without a browser
+
+Two doors, one token. The MCP endpoint appears only when `METRIK_MCP_TOKEN` is set: no token means
+no route, no secret and no ingress bypass — an absent setting must mean closed, not open.
+
+An agent connects to `https://<host>/mcp` and gets seven read-only tools: which services are
+reporting, an overview, the slow routes, the 5xx, the time series, the deploys and the firing
+alerts. See [docs/api/mcp-tools.md](docs/api/mcp-tools.md).
+
+The terminal client speaks the same protocol:
+
+```shell
+export METRIK_URL=https://metrik.example.com
+export METRIK_TOKEN=<the same token>
+
+metrik            # services, with firing alerts marked
+metrik orders-api # one service: latency chart, slow routes, errors, deploys
+```
+
+A minute nobody reported is drawn as a gap rather than a zero, colour follows the alerting
+thresholds and is doubled by a dashed threshold guide, and `NO_COLOR` is honoured — the chart has
+to survive a pipe and a monochrome terminal. Details in
+[docs/services/metrik-cli.md](docs/services/metrik-cli.md).
 
 ## Authentication
 
@@ -116,6 +152,10 @@ metrik reads the following headers:
 
 If these headers are missing, metrik returns 401 Unauthorized. **Do not run it without such a
 proxy** — the dashboard would be open to anyone who reaches the port.
+
+The MCP endpoint is the exception, and deliberately so: a machine cannot fill in a login form, so
+`/mcp` bypasses the proxy and is guarded by its own bearer token instead. The proxy's headers are
+**not** accepted there — anyone reaching that route could claim any identity in them.
 
 `METRIK_ADMINS` narrows the admin routes to a list of emails. Left empty, every authenticated user
 is an admin: an installation belongs to one team.

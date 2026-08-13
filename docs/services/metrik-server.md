@@ -105,6 +105,7 @@ SQLite, sqlx4k. Сырых запросов **нет** — агент присы
 | Переменная | Дефолт | Смысл |
 |---|---|---|
 | `METRIK_DB_PATH` | `/data/metrik.db` | файл SQLite (нужен персистентный volume) |
+| `METRIK_WEB_ROOT` | задан в образе | каталог со статикой дашборда; **пусто = дашборд не раздаётся** |
 | `METRIK_DB_MAX_CONNECTIONS` | `2` | размер пула к SQLite; поднимать не стоит — см. ниже |
 | `METRIK_HTTP_PORT` | `8080` | HTTP API |
 | `METRIK_UDP_PORT` | `9999` | ingest |

@@ -73,6 +73,21 @@ telegram:
   token: ""
   chatId: ""
 
+# The MCP endpoint, for agents and for the terminal client. Leave the token empty and none of it
+# comes into existence: no route, no secret, no ingress bypass. That guard matters more here than
+# elsewhere — /mcp goes around the authenticating proxy, so "forgot to set a token" must not turn
+# into "published it". Pass it with --set, like the others.
+# allowedHosts guards against DNS rebinding; empty means traefik.hostname is used.
+mcp:
+  token: ""
+  allowedHosts: ""
+
+# The browser dashboard. Turn it off for installations read from the terminal or through MCP: a
+# page pulls html, wasm, fonts and a fistful of API calls at once, and that fan-out is what grows
+# the server's thread pool and with it the memory floor. The API and alerting are unaffected.
+web:
+  enabled: true
+
 persistence:
   size: 5Gi
   storageClass: local-path
@@ -97,6 +112,7 @@ helm upgrade --install metrik ./charts/metrik \
   --set ingestKey=$METRIK_INGEST_KEY \
   --set telegram.token=$METRIK_TELEGRAM_TOKEN \
   --set telegram.chatId=$METRIK_TELEGRAM_CHAT_ID \
+  --set mcp.token=$METRIK_MCP_TOKEN \
   --namespace metrik --create-namespace --atomic
 ```
 
@@ -113,7 +129,7 @@ The chart creates two services:
 
 | Service | Port | Purpose |
 |---|---|---|
-| `<release>-metrik` | 8080 (API), 80 (dashboard) | reached through the ingress, behind auth |
+| `<release>-metrik` | 8080 | API, dashboard and `/mcp` — one binary serves all three |
 | `<release>-metrik-ingest` | 9999/UDP | agents inside the cluster |
 
 Agents use the UDP one:
@@ -137,6 +153,14 @@ packet only stops accidents. It belongs inside the cluster.
   does not exist on Kotlin/Native, so MIME types, ETags and precompressed twins are written by hand
   — the `.gz` files are produced once at image build, because there is no compression plugin for
   native either.
-* **Small by design, but mind the memory ceiling.** Requests of 30m CPU and 32Mi memory are enough
-  for tens of services and the process idles around 35Mi. Serving the bundle is what costs: twenty
-  concurrent cold-cache loads peak near 160Mi, so keep the limit at 256Mi or above.
+* **The MCP route bypasses the auth middleware, and only exists with a token.** A machine cannot
+  fill in a login form, so `/mcp` is guarded by a bearer token instead of the proxy. Leave
+  `mcp.token` empty and the route, the secret and the bypass are all absent — an unset value has to
+  mean closed.
+* **Small by design, but do not squeeze the memory limit.** Requests of 30m CPU and 32Mi are plenty
+  and the process idles near 35Mi, but the resting figure is not what to size against. Concurrent
+  requests grow a thread pool that never shrinks, and measurement puts the cost at roughly 1.9MiB
+  per thread with a ceiling around 64 threads — so a busy dashboard settles well above its idle
+  number and stays there. 128Mi is not survivable (the pod died), 256Mi sits between the floor and
+  the peak; **384–512Mi is the working range**. Turning the dashboard off (`web.enabled: false`)
+  removes the fan-out that causes this in the first place.
