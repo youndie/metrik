@@ -15,6 +15,7 @@ navigation3Ui = "1.1.1"
 navigation3Browser = "1.1.0"
 koin = "4.2.2"
 mcpSdk = "0.15.0"
+mosaic = "0.18.0"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
@@ -37,6 +38,9 @@ koin-compose = { module = "io.insert-koin:koin-compose" }
 koin-composeViewmodel = { module = "io.insert-koin:koin-compose-viewmodel" }
 # Публикует klib'ы под linuxx64/linuxarm64/macosarm64 — проверено в Central, а не предположено.
 mcp-server = { module = "io.modelcontextprotocol:kotlin-sdk-server", version.ref = "mcpSdk" }
+mcp-client = { module = "io.modelcontextprotocol:kotlin-sdk-client", version.ref = "mcpSdk" }
+# Интерфейс в терминале на рантайме Compose. Публикует klib'ы под наши нативные таргеты.
+mosaic-runtime = { module = "com.jakewharton.mosaic:mosaic-runtime", version.ref = "mosaic" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

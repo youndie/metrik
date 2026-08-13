@@ -11,6 +11,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import ru.workinprogress.metrik.api.Step
 import ru.workinprogress.metrik.wire.MetrikJson
 
 /** Сколько строк максимум отдаёт один инструмент. Больше агенту всё равно нечем распорядиться. */
@@ -126,6 +127,41 @@ internal fun Server.registerTools(facade: ToolFacade) {
     ) { request ->
         val a = args(request)
         ok(MetrikJson.encodeToString(facade.serverErrors(a.service(), a.from(), a.to(), a.limit())))
+    }
+
+    addTool(
+        name = "time_series",
+        description =
+            "Ряд по сервису: запросов в секунду, доля ошибок, p50, p95 и максимум по шагам. " +
+                "Шаг запрашивается (`minute`, `hour`, `day`), но не гарантируется: минутные окна живут " +
+                "ограниченное время, и за пределами ретенции сервер отдаёт часовой. Каким шагом данные " +
+                "собраны на самом деле — в поле `step` ответа, считать надо по нему. " +
+                "`partial: true` у точки означает, что окно неполное: данных меньше, а не нагрузки — " +
+                "такую точку нельзя складывать с соседними и нельзя считать провалом трафика.",
+        inputSchema =
+            schema(
+                required = windowed,
+                properties =
+                    JsonObject(
+                        window +
+                            buildJsonObject {
+                                putJsonObject("step") {
+                                    put("type", "string")
+                                    put("description", "`minute`, `hour` или `day`; по умолчанию minute")
+                                }
+                            },
+                    ),
+            ),
+        toolAnnotations = readOnly,
+    ) { request ->
+        val a = args(request)
+        val step =
+            when (a.str("step")?.lowercase()) {
+                "hour" -> Step.HOUR
+                "day" -> Step.DAY
+                else -> Step.MINUTE
+            }
+        ok(MetrikJson.encodeToString(facade.timeSeries(a.service(), a.from(), a.to(), step)))
     }
 
     addTool(

@@ -5,6 +5,8 @@ import ru.workinprogress.metrik.api.DeployMarker
 import ru.workinprogress.metrik.api.Overview
 import ru.workinprogress.metrik.api.RouteRow
 import ru.workinprogress.metrik.api.ServiceSummary
+import ru.workinprogress.metrik.api.Step
+import ru.workinprogress.metrik.api.TimeSeries
 import ru.workinprogress.metrik.api.isFiring
 import ru.workinprogress.metrik.server.alert.AlertWorker
 import ru.workinprogress.metrik.server.query.QueryService
@@ -62,6 +64,21 @@ class ToolFacade(
             .filter { it.status >= 500 }
             .sortedByDescending { it.count }
             .take(limit)
+
+    /**
+     * Ряд по сервису.
+     *
+     * Шаг запрашивается, но не гарантируется: минутные окна живут ограниченное время, и за
+     * пределами ретенции сервер молча отдаёт часовой. Что он отдал на самом деле — в `step`
+     * ответа, и об этом сказано в описании инструмента: агент, считающий шаг тем, что попросил,
+     * ошибётся в арифметике по времени.
+     */
+    suspend fun timeSeries(
+        service: String,
+        from: Long,
+        to: Long,
+        step: Step,
+    ): TimeSeries = query.timeSeries(serviceId(service), from, to, step)
 
     suspend fun deploys(
         service: String,

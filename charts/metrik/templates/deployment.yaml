@@ -53,6 +53,12 @@ spec:
             - name: METRIK_TELEGRAM_CHAT_ID
               value: {{ . | quote }}
             {{- end }}
+            {{- if not .Values.web.enabled }}
+            # Пустой корень выключает отдачу дашборда: образ несёт статику всегда, а отдаёт её
+            # только тот, кому она нужна. API и алерты этим не затрагиваются.
+            - name: METRIK_WEB_ROOT
+              value: ""
+            {{- end }}
             {{- if or .Values.mcp.token .Values.mcp.existingSecret }}
             # Токен MCP — единственное, что защищает /mcp: этот маршрут идёт мимо oauth2-proxy.
             - name: METRIK_MCP_TOKEN
