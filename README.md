@@ -16,6 +16,10 @@ Unlike traditional monitoring stacks, metrik is one self-contained binary compil
 and one SQLite file. No JVM, no time-series database, no scrape configuration. The agent costs the
 monitored service **106 nanoseconds per request** and one UDP packet per minute.
 
+<img src="docs/images/metrik-cli.png" width="640" alt="metrik-cli: a service, its latency chart and its slowest routes in a terminal">
+
+*The terminal client. There is a browser dashboard too — see below.*
+
 ## Overview
 
 metrik answers four questions — how many requests, how many errors, how slow, is memory running
