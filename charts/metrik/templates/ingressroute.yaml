@@ -44,4 +44,29 @@ spec:
       priority: 10
   tls:
     certResolver: {{ .Values.traefik.certResolver | quote }}
+{{- if .Values.mcp.token }}
+---
+# Клиент MCP — машина: форму входа oauth2-proxy она пройти не может, и общий маршрут отдал бы ей
+# страницу логина вместо ответа. Поэтому /mcp идёт мимо auth-middleware.
+#
+# Обход рендерится только когда токен задан: иначе он возник бы без той аутентификации, которую
+# собой заменяет, и эндпоинт оказался бы открыт всем.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ .Release.Name }}-metrik-mcp
+  namespace: {{ .Release.Namespace }}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.traefik.hostname }}`) && PathPrefix(`/mcp`)
+      kind: Rule
+      services:
+        - name: {{ .Release.Name }}-metrik
+          port: 8080
+      priority: 200
+  tls:
+    certResolver: {{ .Values.traefik.certResolver | quote }}
+{{- end }}
 {{- end }}

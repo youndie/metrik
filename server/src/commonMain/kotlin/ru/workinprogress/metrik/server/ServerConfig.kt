@@ -27,6 +27,20 @@ class ServerConfig(
     val telegramChatId: String? = null,
     /** Имя, под которым metrik-server мониторит сам себя. `null` — самонаблюдение выключено. */
     val selfService: String? = null,
+    /**
+     * Токен MCP-эндпоинта. `null` — эндпоинта нет вовсе.
+     *
+     * Отсутствие настройки обязано означать закрытое состояние, а не открытое: endpoint живёт в
+     * обход oauth2-proxy, и «забыли задать токен» не может превращаться в «выставили наружу».
+     */
+    val mcpToken: String? = null,
+    /**
+     * Хосты, с которых принимается MCP-запрос. Пусто — проверка выключена.
+     *
+     * Защита от DNS rebinding: браузер на машине жертвы резолвит свой домен в наш адрес и ходит
+     * к endpoint'у. Локально этот класс ошибок не воспроизводится — там хост всегда localhost.
+     */
+    val mcpAllowedHosts: List<String> = emptyList(),
 ) {
     companion object {
         fun fromEnv(): ServerConfig {
@@ -53,6 +67,13 @@ class ServerConfig(
                 telegramToken = readEnv("METRIK_TELEGRAM_TOKEN"),
                 telegramChatId = readEnv("METRIK_TELEGRAM_CHAT_ID"),
                 selfService = readEnv("METRIK_SELF_SERVICE"),
+                mcpToken = readEnv("METRIK_MCP_TOKEN")?.takeIf { it.isNotBlank() },
+                mcpAllowedHosts =
+                    readEnv("METRIK_MCP_ALLOWED_HOSTS")
+                        .orEmpty()
+                        .split(',')
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() },
             )
         }
     }

@@ -53,6 +53,19 @@ spec:
             - name: METRIK_TELEGRAM_CHAT_ID
               value: {{ . | quote }}
             {{- end }}
+            {{- if or .Values.mcp.token .Values.mcp.existingSecret }}
+            # Токен MCP — единственное, что защищает /mcp: этот маршрут идёт мимо oauth2-proxy.
+            - name: METRIK_MCP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mcp.existingSecret | default (printf "%s-metrik" .Release.Name) }}
+                  key: {{ .Values.mcp.secretKey }}
+            # Защита от DNS rebinding. При traefik.enabled хост известен из чарта, и оставлять
+            # проверку выключенной по умолчанию незачем: этот класс ошибок локально не ловится —
+            # на машине разработчика хост всегда и есть localhost.
+            - name: METRIK_MCP_ALLOWED_HOSTS
+              value: {{ .Values.mcp.allowedHosts | default (ternary .Values.traefik.hostname "" .Values.traefik.enabled) | quote }}
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /health

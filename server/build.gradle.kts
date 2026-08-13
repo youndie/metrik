@@ -32,6 +32,7 @@ kotlin {
             implementation(ktorLibs.client.core)
             implementation(libs.sqlx4k.sqlite)
             implementation(libs.okio)
+            implementation(libs.mcp.server)
         }
         jvmMain.dependencies {
             // На JVM у CIO с TLS всё в порядке.

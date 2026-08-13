@@ -32,6 +32,8 @@ import ru.workinprogress.metrik.server.db.migrateDb
 import ru.workinprogress.metrik.server.ingest.AgentStats
 import ru.workinprogress.metrik.server.ingest.IngestService
 import ru.workinprogress.metrik.server.ingest.UdpReceiver
+import ru.workinprogress.metrik.server.mcp.ToolFacade
+import ru.workinprogress.metrik.server.mcp.installMcp
 import ru.workinprogress.metrik.server.query.AdminService
 import ru.workinprogress.metrik.server.query.QueryService
 import ru.workinprogress.metrik.server.query.adminRoutes
@@ -135,6 +137,14 @@ fun Application.module(
     install(Resources)
 
     install(ContentNegotiation) { json(MetrikJson) }
+
+    // Доступ для агентов. Без METRIK_MCP_TOKEN не ставится ничего: эндпоинт живёт в обход
+    // oauth2-proxy, и «забыли задать токен» не может означать «выставили наружу».
+    //
+    // Строго после ContentNegotiation: `mcpStatelessStreamableHttp` ставит его сам, если тот ещё
+    // не стоит, и приложение падало с DuplicatePluginException. Найдя плагин на месте, SDK
+    // ограничивается предупреждением.
+    installMcp(config, ToolFacade(query, alerts))
 
     routing {
         // Дашборд отдаёт сам сервер — отдельного контейнера с nginx нет (M-98). Каталог
