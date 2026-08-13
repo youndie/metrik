@@ -66,8 +66,11 @@ private suspend fun run(
         return
     }
 
+    // Альтернативный буфер вокруг всего рендера: приложение занимает терминал целиком, а на выходе
+    // экран возвращается таким, каким был. `finally` внутри `fullScreen` закрывает исключения,
+    // `quit()` — обычный выход, обработчики сигналов — Ctrl+C.
     try {
-        renderApp(client, config, service)
+        fullScreen { renderApp(client, config, service) }
     } finally {
         client.close()
     }
@@ -188,8 +191,10 @@ private suspend fun renderApp(
         reload++
     }
 
+    // Mosaic не даёт способа завершить композицию — в его же примерах выходят из процесса. Значит
+    // выход обязан пройти через `quit()`, который сначала возвращает основной буфер экрана.
     LaunchedEffect(quit) {
-        if (quit) exit(0)
+        if (quit) quit(0)
     }
 }
 

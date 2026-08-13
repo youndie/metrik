@@ -1,11 +1,14 @@
 package ru.workinprogress.metrik.cli
 
 import androidx.compose.runtime.Composable
+import com.jakewharton.mosaic.layout.fillMaxSize
+import com.jakewharton.mosaic.modifier.Modifier
 import com.jakewharton.mosaic.text.SpanStyle
 import com.jakewharton.mosaic.text.buildAnnotatedString
 import com.jakewharton.mosaic.text.withStyle
 import com.jakewharton.mosaic.ui.Color
 import com.jakewharton.mosaic.ui.Column
+import com.jakewharton.mosaic.ui.ColumnScope
 import com.jakewharton.mosaic.ui.Text
 import ru.workinprogress.metrik.api.isFiring
 
@@ -48,12 +51,30 @@ fun Line(
     )
 }
 
+/**
+ * Экран во весь терминал: содержимое сверху, подсказка по клавишам прижата к низу.
+ *
+ * `weight(1f)` на содержимом — то, что делает подвал нижним: без него он идёт сразу за контентом
+ * и в полноэкранном режиме висит посреди пустого экрана.
+ */
+@Composable
+private fun Screen(
+    footer: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(Modifier.fillMaxSize()) {
+        Column(Modifier.weight(1f), content = content)
+        Text("")
+        Text(footer)
+    }
+}
+
 @Composable
 fun ServicesScreen(
     state: UiState,
     config: CliConfig,
 ) {
-    Column {
+    Screen("↑↓ move   enter open   r refresh   q quit") {
         Header(state)
 
         if (state.services.isEmpty() && !state.loading) {
@@ -94,8 +115,6 @@ fun ServicesScreen(
                 )
             }
         }
-
-        Footer("↑↓ move   enter open   r refresh   q quit")
     }
 }
 
@@ -107,13 +126,12 @@ fun DetailScreen(
 ) {
     val detail = state.detail
 
-    Column {
+    Screen(if (detail == null) "esc back   q quit" else "esc back   r refresh   q quit") {
         Header(state)
 
         if (detail == null) {
             Text("loading…")
-            Footer("esc back   q quit")
-            return@Column
+            return@Screen
         }
 
         val o = detail.overview
@@ -169,8 +187,6 @@ fun DetailScreen(
                 )
             }
         }
-
-        Footer("esc back   r refresh   q quit")
     }
 }
 
@@ -185,10 +201,4 @@ private fun Header(state: UiState) {
 
     Text("metrik" + status)
     Text("")
-}
-
-@Composable
-private fun Footer(keys: String) {
-    Text("")
-    Text(keys)
 }
