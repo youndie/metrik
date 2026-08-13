@@ -91,13 +91,6 @@ fun Application.module(
     config: ServerConfig,
     db: ISQLite,
 ) {
-    // Рычаги сборщика — только из переменных окружения и только для замеров на стенде.
-    tuneGc(
-        targetHeapBytes = readEnv("METRIK_GC_TARGET_HEAP_MB")?.toLongOrNull()?.times(1024L * 1024),
-        targetUtilization = readEnv("METRIK_GC_UTILIZATION")?.toDoubleOrNull(),
-        autotune = readEnv("METRIK_GC_AUTOTUNE")?.toBooleanStrictOrNull(),
-    )?.let { environment.log.info("GC: $it") }
-
     val ingest = IngestService(db, config.ingestKey)
     val receiver = UdpReceiver(config.udpPort, ingest)
     val query = QueryService(db, minuteRetentionMs = config.retentionHours * 60 * 60 * 1000)
