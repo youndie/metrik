@@ -90,6 +90,7 @@ fun Application.module(
     tuneGc(
         targetHeapBytes = readEnv("METRIK_GC_TARGET_HEAP_MB")?.toLongOrNull()?.times(1024L * 1024),
         targetUtilization = readEnv("METRIK_GC_UTILIZATION")?.toDoubleOrNull(),
+        autotune = readEnv("METRIK_GC_AUTOTUNE")?.toBooleanStrictOrNull(),
     )?.let { environment.log.info("GC: $it") }
 
     val ingest = IngestService(db, config.ingestKey)

@@ -7,13 +7,13 @@ import kotlin.native.runtime.NativeRuntimeApi
 actual fun tuneGc(
     targetHeapBytes: Long?,
     targetUtilization: Double?,
+    autotune: Boolean?,
 ): String? {
-    if (targetHeapBytes == null && targetUtilization == null) return null
+    if (targetHeapBytes == null && targetUtilization == null && autotune == null) return null
 
-    // autotune остаётся включённым намеренно: с ним targetHeapBytes — это порог, после которого
-    // сборка назначается агрессивнее, а не стена. Выключенный autotune вместе с низким порогом и
-    // даёт непрерывные сборки, о которых предупреждает документация.
-    GC.autotune = true
+    // Порядок важен: autotune задаётся первым, иначе включённый autotune тут же пересчитает
+    // только что выставленный targetHeapBytes и замер измерит не то, что задавали.
+    autotune?.let { GC.autotune = it }
     targetHeapBytes?.let { GC.targetHeapBytes = it }
     targetUtilization?.let { GC.targetHeapUtilization = it }
 

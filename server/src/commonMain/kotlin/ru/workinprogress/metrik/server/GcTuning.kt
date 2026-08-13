@@ -11,4 +11,5 @@ package ru.workinprogress.metrik.server
 expect fun tuneGc(
     targetHeapBytes: Long?,
     targetUtilization: Double?,
+    autotune: Boolean?,
 ): String?

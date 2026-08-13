@@ -4,4 +4,5 @@ package ru.workinprogress.metrik.server
 actual fun tuneGc(
     targetHeapBytes: Long?,
     targetUtilization: Double?,
+    autotune: Boolean?,
 ): String? = null
