@@ -57,7 +57,7 @@ fun BottomNavBar(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         BottomNavItem(
-            label = "Обзор",
+            label = "Overview",
             dotShape = RoundedCornerShape(3.dp),
             active = selected == MobileTab.OVERVIEW,
             activeBg = MaterialTheme.colorScheme.primaryContainer,
@@ -66,7 +66,7 @@ fun BottomNavBar(
             onClick = { onSelect(MobileTab.OVERVIEW) },
         )
         BottomNavItem(
-            label = "Алерты",
+            label = "Alerts",
             dotShape = CircleShape,
             active = selected == MobileTab.ALERTS,
             activeBg = MaterialTheme.colorScheme.errorContainer,
@@ -76,7 +76,7 @@ fun BottomNavBar(
             onClick = { onSelect(MobileTab.ALERTS) },
         )
         BottomNavItem(
-            label = "Сервисы",
+            label = "Services",
             dotShape = RoundedCornerShape(3.dp),
             active = selected == MobileTab.SERVICES,
             activeBg = MaterialTheme.colorScheme.primaryContainer,

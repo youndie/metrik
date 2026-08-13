@@ -69,7 +69,7 @@ import ru.workinprogress.metrik.web.ui.Sparkline
 import ru.workinprogress.metrik.web.ui.StatTile
 import ru.workinprogress.metrik.web.ui.absoluteAgo
 import ru.workinprogress.metrik.web.ui.format
-import ru.workinprogress.metrik.web.ui.pluralRu
+import ru.workinprogress.metrik.web.ui.plural
 import ru.workinprogress.metrik.web.ui.statusColor
 import ru.workinprogress.metrik.web.ui.toChart
 import kotlin.math.roundToInt
@@ -267,7 +267,7 @@ private fun RemoveFromMonitoring(
         if (uiState.deleteRequested) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
-                    "Удалить вместе со всей историей?",
+                    "Delete it along with all its history?",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -281,7 +281,7 @@ private fun RemoveFromMonitoring(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        if (uiState.deleting) "Удаляем…" else "Удалить",
+                        if (uiState.deleting) "Deleting…" else "Delete",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onError,
@@ -295,7 +295,7 @@ private fun RemoveFromMonitoring(
                         .padding(horizontal = Spacing.md),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("Отмена", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Cancel", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -308,7 +308,7 @@ private fun RemoveFromMonitoring(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    "Убрать из наблюдения",
+                    "Remove from monitoring",
                     style = MaterialTheme.typography.labelMedium,
                     color = MetrikExtra.dim,
                 )
@@ -334,7 +334,7 @@ private fun FiringCountPill(count: Int) {
     ) {
         Box(Modifier.size(7.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onErrorContainer))
         Text(
-            "$count " + pluralRu(count, "алерт", "алерта", "алертов") + " " + pluralRu(count, "горит", "горят", "горят"),
+            "$count " + plural(count, "alert") + " firing",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onErrorContainer,
@@ -353,7 +353,7 @@ private fun InstancesPill(count: Int) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            "$count " + pluralRu(count, "инстанс", "инстанса", "инстансов"),
+            "$count " + plural(count, "instance"),
             fontFamily = MetrikMono,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -371,7 +371,7 @@ private fun ChartsTab(
     compact: Boolean = false,
 ) {
     if (series == null) {
-        if (loaded) EmptyState("нет данных") else LoadingState("загружаем графики…")
+        if (loaded) EmptyState("no data") else LoadingState("loading charts…")
         return
     }
 
@@ -385,7 +385,7 @@ private fun ChartsTab(
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         if (series.step != Step.MINUTE) {
             HonestyChip(
-                "данные часовые: минутные окна за этот период уже удалены",
+                "hourly data: the minute windows for this period have been deleted",
                 MaterialTheme.colorScheme.tertiaryContainer,
                 MaterialTheme.colorScheme.onTertiaryContainer,
             )
@@ -402,7 +402,7 @@ private fun ChartsTab(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                     Text(
-                        "ЗАПРОСЫ В СЕКУНДУ",
+                        "REQUESTS PER SECOND",
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = MetrikMono,
                         color = MaterialTheme.colorScheme.outline,
@@ -415,7 +415,7 @@ private fun ChartsTab(
                             color = MaterialTheme.colorScheme.primary,
                         )
                         Text(
-                            "rps сейчас · max ${format(maxRps)}",
+                            "rps now · max ${format(maxRps)}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MetrikExtra.dim,
                         )
@@ -448,7 +448,7 @@ private fun ChartsTab(
                     color = MaterialTheme.colorScheme.outline,
                 )
                 Text(
-                    "сейчас",
+                    "now",
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = MetrikMono,
                     color = MaterialTheme.colorScheme.outline,
@@ -461,29 +461,29 @@ private fun ChartsTab(
         if (compact) {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 SmallMetricChart(
-                    "P95, МС",
+                    "P95, MS",
                     points.toChart { it.p95Ms },
                     MaterialTheme.colorScheme.error,
-                    "мс · ±20 %",
-                    "приблизительно",
+                    "ms · ±20%",
+                    "approximate",
                     series.deploys,
                     Modifier.fillMaxWidth(),
                 )
                 SmallMetricChart(
-                    "P50, МС",
+                    "P50, MS",
                     points.toChart { it.p50Ms },
                     MaterialTheme.colorScheme.primary,
-                    "мс · ±20 %",
-                    "приблизительно",
+                    "ms · ±20%",
+                    "approximate",
                     series.deploys,
                     Modifier.fillMaxWidth(),
                 )
                 SmallMetricChart(
-                    "ДОЛЯ ОШИБОК",
+                    "ERROR RATE",
                     points.toChart { it.errorRate * 100 },
                     MaterialTheme.colorScheme.error,
                     "%",
-                    "порог 2 %",
+                    "threshold 2%",
                     series.deploys,
                     Modifier.fillMaxWidth(),
                 )
@@ -491,29 +491,29 @@ private fun ChartsTab(
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                 SmallMetricChart(
-                    "P95, МС",
+                    "P95, MS",
                     points.toChart { it.p95Ms },
                     MaterialTheme.colorScheme.error,
-                    "мс · ±20 %",
-                    "приблизительно",
+                    "ms · ±20%",
+                    "approximate",
                     series.deploys,
                     Modifier.weight(1f),
                 )
                 SmallMetricChart(
-                    "P50, МС",
+                    "P50, MS",
                     points.toChart { it.p50Ms },
                     MaterialTheme.colorScheme.primary,
-                    "мс · ±20 %",
-                    "приблизительно",
+                    "ms · ±20%",
+                    "approximate",
                     series.deploys,
                     Modifier.weight(1f),
                 )
                 SmallMetricChart(
-                    "ДОЛЯ ОШИБОК",
+                    "ERROR RATE",
                     points.toChart { it.errorRate * 100 },
                     MaterialTheme.colorScheme.error,
                     "%",
-                    "порог 2 %",
+                    "threshold 2%",
                     series.deploys,
                     Modifier.weight(1f),
                 )
@@ -522,7 +522,7 @@ private fun ChartsTab(
 
         if (partialCount > 0) {
             HonestyChip(
-                "разрывы на графиках — окна, от которых пришли не все пакеты",
+                "gaps on the charts are windows that did not receive all their packets",
                 MaterialTheme.colorScheme.surfaceContainerLow,
                 MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -590,7 +590,7 @@ private fun DeployCountChip(count: Int) {
     ) {
         Box(Modifier.width(2.dp).height(12.dp).background(MaterialTheme.colorScheme.onTertiaryContainer))
         Text(
-            "$count " + pluralRu(count, "деплой", "деплоя", "деплоев"),
+            "$count " + plural(count, "deploy"),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -611,7 +611,7 @@ private fun GapCountChip(count: Int) {
     ) {
         Box(Modifier.width(14.dp).height(2.dp).background(MaterialTheme.colorScheme.onSurfaceVariant))
         Text(
-            "$count " + pluralRu(count, "разрыв", "разрыва", "разрывов") + " — неполные окна",
+            "$count " + plural(count, "gap") + " — incomplete windows",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -669,7 +669,7 @@ private fun RoutesTab(
     compact: Boolean = false,
 ) {
     if (routes.isEmpty()) {
-        if (loaded) EmptyState("нет данных") else LoadingState("загружаем маршруты…")
+        if (loaded) EmptyState("no data") else LoadingState("loading routes…")
         return
     }
 
@@ -680,13 +680,13 @@ private fun RoutesTab(
         if (compact) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 HonestyChip(
-                    "p50 и p95 приблизительные: ±20 %",
+                    "p50 and p95 are approximate: ±20%",
                     MaterialTheme.colorScheme.tertiaryContainer,
                     MaterialTheme.colorScheme.onTertiaryContainer,
                     fontWeight = FontWeight.SemiBold,
                 )
                 HonestyChip(
-                    "Разреза по инстансам здесь нет",
+                    "No per-instance breakdown here",
                     MaterialTheme.colorScheme.surfaceContainerLow,
                     MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -694,13 +694,13 @@ private fun RoutesTab(
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 HonestyChip(
-                    "p50 и p95 приблизительные: ±20 % — ширина бакета гистограммы",
+                    "p50 and p95 are approximate: ±20% — the width of a histogram bucket",
                     MaterialTheme.colorScheme.tertiaryContainer,
                     MaterialTheme.colorScheme.onTertiaryContainer,
                     fontWeight = FontWeight.SemiBold,
                 )
                 HonestyChip(
-                    "Разреза по инстансам здесь нет — данные так не хранятся",
+                    "No per-instance breakdown here — the data is not stored that way",
                     MaterialTheme.colorScheme.surfaceContainerLow,
                     MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -880,9 +880,9 @@ private fun RouteHeaderRow() {
         Modifier.fillMaxWidth().padding(horizontal = Spacing.lg + Spacing.sm, vertical = Spacing.sm),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xl - Spacing.xs),
     ) {
-        RouteHeaderCell("МАРШРУТ", 2.6f)
-        RouteHeaderCell("СТАТУС", 0.7f)
-        RouteHeaderCell("КОЛ-ВО", 1.6f)
+        RouteHeaderCell("ROUTE", 2.6f)
+        RouteHeaderCell("STATUS", 0.7f)
+        RouteHeaderCell("COUNT", 1.6f)
         RouteHeaderCell("P50", 0.7f)
         RouteHeaderCell("P95", 1.8f)
         RouteHeaderCell("MAX", 0.7f)
@@ -1059,7 +1059,7 @@ private fun SlowTab(
     compact: Boolean = false,
 ) {
     if (slow.isEmpty()) {
-        if (loaded) EmptyState("нет данных") else LoadingState("загружаем медленные запросы…")
+        if (loaded) EmptyState("no data") else LoadingState("loading slow requests…")
         return
     }
 
@@ -1067,7 +1067,7 @@ private fun SlowTab(
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         HonestyChip(
-            "Это отдельные запросы, а не перцентиль: сэмплируется хвост, поэтому список показывает поводы, а не долю.",
+            "These are individual requests, not a percentile: the tail is sampled, so the list shows reasons, not a share.",
             MaterialTheme.colorScheme.surfaceContainerLow,
             MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1225,7 +1225,7 @@ private fun SlowRowItem(
                 )
             }
             Text(
-                "${row.durationMs} мс",
+                "${row.durationMs} ms",
                 style = MaterialTheme.typography.titleSmall,
                 fontFamily = MetrikMono,
                 fontWeight = FontWeight.Bold,
@@ -1244,7 +1244,7 @@ private fun SystemTab(
     compact: Boolean = false,
 ) {
     if (system.isEmpty()) {
-        if (loaded) EmptyState("нет данных") else LoadingState("загружаем системные метрики…")
+        if (loaded) EmptyState("no data") else LoadingState("loading system metrics…")
         return
     }
 
@@ -1276,18 +1276,18 @@ private fun InstanceCard(
     val memColor = if (hot) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
     val memLabel =
         when {
-            jvm && last.heapMaxBytes != null -> "heap / ${last.heapMaxBytes!! / 1024 / 1024} МБ"
+            jvm && last.heapMaxBytes != null -> "heap / ${last.heapMaxBytes!! / 1024 / 1024} MB"
 
-            native -> "RSS процесса"
+            native -> "process RSS"
 
             // Агент платформу не прислал — назвать величину нечем, и выдумывать её нельзя.
-            else -> "память процесса"
+            else -> "process memory"
         }
     val kindLabel =
         when (runtime) {
             ServiceRuntime.NATIVE -> "Kotlin/Native"
             ServiceRuntime.JVM -> "JVM"
-            ServiceRuntime.UNKNOWN -> "рантайм неизвестен"
+            ServiceRuntime.UNKNOWN -> "runtime unknown"
         }
     val kindBg = if (native) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.secondaryContainer
     val kindFg = if (native) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
@@ -1322,7 +1322,7 @@ private fun InstanceCard(
         val memInfo: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Text("$usedMb МБ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = memColor)
+                    Text("$usedMb MB", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = memColor)
                     Text(memLabel, style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = MetrikExtra.dim)
                 }
                 if (ratio != null) {
@@ -1343,14 +1343,14 @@ private fun InstanceCard(
                         )
                     }
                     Text(
-                        "${(ratio * 100).roundToInt()} % от лимита",
+                        "${(ratio * 100).roundToInt()}% of the limit",
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = MetrikMono,
                         color = MaterialTheme.colorScheme.outline,
                     )
                 } else {
                     Text(
-                        "у нативного процесса нет максимума heap — это RSS",
+                        "a native process has no heap maximum — this is RSS",
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = MetrikMono,
                         color = MaterialTheme.colorScheme.outline,
@@ -1385,10 +1385,10 @@ private fun InstanceCard(
 
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             StatTile("CPU", "${last.cpuPermille / 10.0} %", Modifier.weight(1f))
-            StatTile("тредов", last.threads.toString(), Modifier.weight(1f))
+            StatTile("threads", last.threads.toString(), Modifier.weight(1f))
             StatTile(
                 "GC",
-                if (gcMissing) "нет данных" else last.gcCollections.toString(),
+                if (gcMissing) "no data" else last.gcCollections.toString(),
                 Modifier.weight(1.4f),
                 background = if (gcMissing) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainer,
                 foreground = if (gcMissing) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,

@@ -31,7 +31,7 @@ import ru.workinprogress.metrik.web.ui.MetrikExtra
 import ru.workinprogress.metrik.web.ui.MetrikMono
 import ru.workinprogress.metrik.web.ui.Spacing
 import ru.workinprogress.metrik.web.ui.format
-import ru.workinprogress.metrik.web.ui.pluralRu
+import ru.workinprogress.metrik.web.ui.plural
 
 /**
  * Список сервисов на весь экран — мобильная замена списку сервисов в рельсе (там его в узком окне
@@ -54,19 +54,19 @@ fun ServicesListScreen(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text(
-            "${services.size} " + pluralRu(services.size, "СЕРВИС", "СЕРВИСА", "СЕРВИСОВ"),
+            "${services.size} " + plural(services.size, "SERVICE"),
             style = MaterialTheme.typography.labelSmall,
             fontFamily = MetrikMono,
             color = MaterialTheme.colorScheme.outline,
         )
         Text(
-            "Сервисы",
+            "Services",
             style = MaterialTheme.typography.displaySmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
         if (services.isEmpty()) {
-            EmptyState("Пока ни один сервис не прислал метрик")
+            EmptyState("No service has reported any metrics yet")
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 services.forEach { service ->

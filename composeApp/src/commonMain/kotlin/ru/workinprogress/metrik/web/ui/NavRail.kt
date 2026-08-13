@@ -97,7 +97,7 @@ fun NavRail(
 
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             NavRailItem(
-                label = "Обзор",
+                label = "Overview",
                 dotShape = RoundedCornerShape(3.dp),
                 dotColor =
                     if (topRoute == TopRoute.OVERVIEW) {
@@ -109,7 +109,7 @@ fun NavRail(
                 onClick = onOverview,
             )
             NavRailItem(
-                label = "Алерты",
+                label = "Alerts",
                 dotShape = CircleShape,
                 dotColor = MaterialTheme.colorScheme.error,
                 active = topRoute == TopRoute.ALERTS,
@@ -128,7 +128,7 @@ fun NavRail(
         // прокручивался, а сдавливал содержимое.
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
             Text(
-                "СЕРВИСЫ · ${services.size}",
+                "SERVICES · ${services.size}",
                 style = MaterialTheme.typography.labelSmall,
                 fontFamily = MetrikMono,
                 letterSpacing = 1.5.sp,
@@ -156,13 +156,13 @@ fun NavRail(
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             Text(
-                "Опрос раз в 30 с",
+                "Polling every 30s",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.tertiary,
             )
             Text(
-                "Окно агрегации — минута, чаще спрашивать нечего.",
+                "The aggregation window is one minute; asking more often would add nothing.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MetrikExtra.dim,
             )

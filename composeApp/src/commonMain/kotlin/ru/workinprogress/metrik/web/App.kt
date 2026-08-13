@@ -306,7 +306,7 @@ private fun ErrorBanner(message: String) {
         modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.md),
     ) {
         Text(
-            "нет связи с сервером: $message",
+            "no connection to the server: $message",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onErrorContainer,
             modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),

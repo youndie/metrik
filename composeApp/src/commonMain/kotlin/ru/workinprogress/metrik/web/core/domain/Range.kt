@@ -15,7 +15,7 @@ enum class Range(
     val ms: Long,
     val step: Step,
 ) {
-    HOUR("1 ч", 60 * 60 * 1000L, Step.MINUTE),
-    DAY("24 ч", 24 * 60 * 60 * 1000L, Step.MINUTE),
-    WEEK("7 д", 7 * 24 * 60 * 60 * 1000L, Step.HOUR),
+    HOUR("1h", 60 * 60 * 1000L, Step.MINUTE),
+    DAY("24h", 24 * 60 * 60 * 1000L, Step.MINUTE),
+    WEEK("7d", 7 * 24 * 60 * 60 * 1000L, Step.HOUR),
 }

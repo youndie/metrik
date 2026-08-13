@@ -110,7 +110,7 @@ fun AlertsContent(
     ) {
         if (compact) {
             Text(
-                "Алерты",
+                "Alerts",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -119,13 +119,16 @@ fun AlertsContent(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(
-                        "TELEGRAM · КУЛДАУН 15 МИН",
+                        // Кулдаун — 30 минут (`AlertWorker.cooldownMs`), в подписи стояло 15.
+                        // Цифра в интерфейсе, разошедшаяся с кодом, врёт ровно так же, как
+                        // неверная метрика: её читают и на неё полагаются.
+                        "TELEGRAM · 30 MIN COOLDOWN",
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = MetrikMono,
                         color = MaterialTheme.colorScheme.outline,
                     )
                     Text(
-                        "Алерты",
+                        "Alerts",
                         style = MaterialTheme.typography.displayLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -158,7 +161,7 @@ fun AlertsContent(
         // Отказ мутации виден и тогда, когда карточка правила уже уехала из вида.
         if (lastError != null) {
             Text(
-                "последняя ошибка: $lastError",
+                "last error: $lastError",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -167,7 +170,7 @@ fun AlertsContent(
 }
 
 /** Сколько времени предлагаем на заглушение (десктоп) — по макету дефолт «1 ч». */
-private val MuteDurations = listOf(15L to "15 мин", 60L to "1 ч", 240L to "4 ч", 24 * 60L to "24 ч")
+private val MuteDurations = listOf(15L to "15m", 60L to "1h", 240L to "4h", 24 * 60L to "24h")
 
 /**
  * Кнопка/статус тестового уведомления (M-81) — единственный способ узнать, что Telegram настроен,
@@ -193,7 +196,7 @@ private fun TestAlertButton(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                if (state == TestAlertState.Sending) "Отправляем…" else "Отправить тестовое",
+                if (state == TestAlertState.Sending) "Sending…" else "Send a test",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -202,14 +205,14 @@ private fun TestAlertButton(
             is TestAlertState.Done -> {
                 Text(
                     // Честно: false — это не «попробуем позже», а «Telegram не настроен».
-                    if (s.delivered) "доставлено" else "не доставлено — Telegram не настроен",
+                    if (s.delivered) "delivered" else "not delivered — Telegram is not configured",
                     style = MaterialTheme.typography.labelMedium,
                     color = if (s.delivered) MetrikExtra.healthy else MaterialTheme.colorScheme.error,
                 )
             }
 
             is TestAlertState.Failed -> {
-                Text("ошибка: ${s.message}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                Text("error: ${s.message}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
             }
 
             else -> {}
@@ -238,7 +241,7 @@ private fun MuteControl(
         muted -> {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
-                    "молчит до " + absoluteAgo(nowMs, mutedUntil, zone, labelToday = true),
+                    "silent until " + absoluteAgo(nowMs, mutedUntil, zone, labelToday = true),
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = MetrikMono,
                     color = foreground,
@@ -252,7 +255,7 @@ private fun MuteControl(
                         .padding(horizontal = Spacing.md),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("Снять", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = foreground)
+                    Text("Unmute", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = foreground)
                 }
             }
         }
@@ -287,7 +290,7 @@ private fun MuteControl(
                     .padding(horizontal = Spacing.lg),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("Заглушить", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = foreground)
+                Text("Mute", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = foreground)
             }
         }
     }
@@ -319,7 +322,7 @@ private fun FiringRulesCard(
     ) {
         if (compact) {
             Text(
-                "Горят сейчас · ${firing.size}",
+                "Firing now · ${firing.size}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onErrorContainer,
@@ -327,13 +330,13 @@ private fun FiringRulesCard(
         } else {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Text(
-                    "Горят сейчас",
+                    "Firing now",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                 )
                 Text(
-                    "${firing.size} из $totalRules правил",
+                    "${firing.size} of $totalRules rules",
                     style = MaterialTheme.typography.labelMedium,
                     fontFamily = MetrikMono,
                     color = MaterialTheme.colorScheme.error,
@@ -446,7 +449,7 @@ private fun FiringRuleRowCompact(
         )
         if (muted) {
             Text(
-                "молчит до " + absoluteAgo(nowMs, mutedUntil, zone, labelToday = true),
+                "silent until " + absoluteAgo(nowMs, mutedUntil, zone, labelToday = true),
                 style = MaterialTheme.typography.labelSmall,
                 fontFamily = MetrikMono,
                 color = MaterialTheme.colorScheme.error,
@@ -465,7 +468,7 @@ private fun FiringRuleRowCompact(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    if (muted) "Снять" else "Заглушить 1 ч",
+                    if (muted) "Unmute" else "Mute for 1h",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.errorContainer,
@@ -481,7 +484,7 @@ private fun FiringRuleRowCompact(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    "К сервису",
+                    "Open service",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onErrorContainer,
@@ -516,29 +519,29 @@ private fun HistoryCard(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text(
-            "История срабатываний",
+            "History",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
         if (error != null && history != null) {
             Text(
-                "данные могли устареть: $error",
+                "the data may be stale: $error",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.error,
             )
         }
         when {
             history == null && error != null -> {
-                EmptyState("не удалось загрузить историю: $error")
+                EmptyState("could not load the history: $error")
             }
 
             history == null -> {
-                LoadingState("загружаем историю…")
+                LoadingState("loading history…")
             }
 
             history.isEmpty() -> {
-                EmptyState("нет данных")
+                EmptyState("no data")
             }
 
             else -> {
@@ -632,13 +635,13 @@ private fun ThresholdsCard(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
-                "Пороги" + (service?.let { " · ${it.name}" } ?: ""),
+                "Thresholds" + (service?.let { " · ${it.name}" } ?: ""),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                "Изменения сохраняются по кнопке. Переопределение подсвечено.",
+                "Changes are saved with the button. Overrides are highlighted.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MetrikExtra.dim,
             )
@@ -646,19 +649,19 @@ private fun ThresholdsCard(
 
         when {
             service == null -> {
-                EmptyState("нет сервисов")
+                EmptyState("no services")
             }
 
             uiState.rulesDenied -> {
-                EmptyState("нет доступа к порогам — нужен admin-тир (см. docs/api/endpoint-query.md)")
+                EmptyState("no access to thresholds — the admin tier is required (see docs/api/endpoint-query.md)")
             }
 
             rules == null -> {
-                LoadingState("загружаем пороги…")
+                LoadingState("loading thresholds…")
             }
 
             rules.isEmpty() -> {
-                EmptyState("нет правил")
+                EmptyState("no rules")
             }
 
             else -> {
@@ -713,9 +716,9 @@ private fun ThresholdCard(
         val minCountValue = minCountText.toIntOrNull()
         validationError =
             when {
-                thresholdValue == null || thresholdValue < 0 -> "порог должен быть неотрицательным числом"
-                minCountValue == null || minCountValue < 0 -> "min count должен быть неотрицательным целым"
-                windowsValue == null || windowsValue < 1 -> "окон должно быть не меньше 1"
+                thresholdValue == null || thresholdValue < 0 -> "threshold must be a non-negative number"
+                minCountValue == null || minCountValue < 0 -> "min count must be a non-negative integer"
+                windowsValue == null || windowsValue < 1 -> "windows must be at least 1"
                 else -> null
             }
         if (validationError != null || thresholdValue == null || windowsValue == null || minCountValue == null) return
@@ -771,7 +774,7 @@ private fun ThresholdCard(
                     color = fg,
                 )
                 Text(
-                    if (overridden) "переопределено для сервиса" else "значение по умолчанию",
+                    if (overridden) "overridden for this service" else "installation default",
                     style = MaterialTheme.typography.bodySmall,
                     color = dim,
                 )
@@ -789,8 +792,8 @@ private fun ThresholdCard(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            ThresholdInputField("ПОРОГ", thresholdText, { thresholdText = it }, fieldBg, fg, dim, Modifier.weight(1f))
-            ThresholdInputField("ОКОН", windowsText, { windowsText = it }, fieldBg, fg, dim, Modifier.weight(1f), integer = true)
+            ThresholdInputField("THRESHOLD", thresholdText, { thresholdText = it }, fieldBg, fg, dim, Modifier.weight(1f))
+            ThresholdInputField("WINDOWS", windowsText, { windowsText = it }, fieldBg, fg, dim, Modifier.weight(1f), integer = true)
             ThresholdInputField("MIN COUNT", minCountText, { minCountText = it }, fieldBg, fg, dim, Modifier.weight(1f), integer = true)
         }
 
@@ -817,7 +820,7 @@ private fun ThresholdCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        if (saving) "Сохраняем…" else "Сохранить",
+                        if (saving) "Saving…" else "Save",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimary,

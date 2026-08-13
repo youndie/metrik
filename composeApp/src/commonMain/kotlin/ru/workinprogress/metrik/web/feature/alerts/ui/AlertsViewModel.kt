@@ -190,7 +190,7 @@ class AlertsViewModel(
                         )
                     }
                 }.onFailure { cause ->
-                    val message = cause.message ?: "ошибка сервера"
+                    val message = cause.message ?: "server error"
                     _uiState.update {
                         it.copy(
                             ruleErrors = it.ruleErrors + (ruleId to message),
@@ -210,7 +210,7 @@ class AlertsViewModel(
                     // `delivered == false` показываем как есть: это значит «Telegram не настроен»,
                     // а не «наверное дошло».
                     onSuccess = { delivered -> TestAlertState.Done(delivered) },
-                    onFailure = { cause -> TestAlertState.Failed(cause.message ?: "нет связи с сервером") },
+                    onFailure = { cause -> TestAlertState.Failed(cause.message ?: "no connection to the server") },
                 )
             _uiState.update { it.copy(testState = result) }
         }
@@ -243,7 +243,7 @@ class AlertsViewModel(
                             .coerceAtLeast(list.count { it.isFiring })
                     } ?: state.totalRules,
                 history = history.getOrNull() ?: state.history,
-                historyError = history.exceptionOrNull()?.let { it.message ?: "не удалось получить историю" },
+                historyError = history.exceptionOrNull()?.let { it.message ?: "could not fetch the history" },
                 rulesService = rulesService,
                 rules = rulesResult?.getOrNull() ?: state.rules,
                 rulesDenied = rulesResult?.isFailure ?: state.rulesDenied,

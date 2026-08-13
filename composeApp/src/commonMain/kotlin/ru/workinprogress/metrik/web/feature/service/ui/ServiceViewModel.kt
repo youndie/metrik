@@ -29,10 +29,10 @@ import ru.workinprogress.metrik.web.feature.services.domain.GetServicesUseCase
 enum class ServiceTab(
     val title: String,
 ) {
-    CHARTS("Графики"),
-    ROUTES("Маршруты"),
-    SLOW("Медленные"),
-    SYSTEM("Система"),
+    CHARTS("Charts"),
+    ROUTES("Routes"),
+    SLOW("Slow"),
+    SYSTEM("System"),
 }
 
 data class ServiceUiState(
@@ -167,7 +167,7 @@ class ServiceViewModel(
                         it.copy(
                             deleting = false,
                             deleteRequested = false,
-                            deleteError = cause.message ?: "не удалось удалить сервис",
+                            deleteError = cause.message ?: "could not delete the service",
                         )
                     }
                 }

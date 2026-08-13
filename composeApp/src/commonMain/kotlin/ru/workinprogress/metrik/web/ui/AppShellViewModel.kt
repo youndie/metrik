@@ -29,7 +29,7 @@ data class AppShellUiState(
     val nowMs: Long = 0,
 ) {
     val updatedAgoLabel: String
-        get() = lastSuccessAt?.let { "обновлено ${relativeAgo(nowMs, it)} назад" } ?: "опрашиваем…"
+        get() = lastSuccessAt?.let { "updated ${relativeAgo(nowMs, it)} ago" } ?: "polling…"
 }
 
 /**
@@ -72,7 +72,7 @@ class AppShellViewModel(
             state.copy(
                 services = services.getOrNull() ?: state.services,
                 firingAlertCount = alerts.getOrNull()?.count { it.isFiring } ?: state.firingAlertCount,
-                error = failure?.let { it.message ?: "не удалось получить данные" },
+                error = failure?.let { it.message ?: "could not fetch the data" },
                 loaded = true,
                 lastSuccessAt = if (failure == null) timeSource.nowMs() else state.lastSuccessAt,
             )

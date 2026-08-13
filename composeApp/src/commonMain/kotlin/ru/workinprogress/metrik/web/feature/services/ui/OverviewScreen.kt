@@ -46,7 +46,7 @@ import ru.workinprogress.metrik.web.ui.RangeSelector
 import ru.workinprogress.metrik.web.ui.Spacing
 import ru.workinprogress.metrik.web.ui.Sparkline
 import ru.workinprogress.metrik.web.ui.format
-import ru.workinprogress.metrik.web.ui.pluralRu
+import ru.workinprogress.metrik.web.ui.plural
 
 /**
  * Обзор: hero горящих алертов (если есть) и сетка карточек сервисов.
@@ -94,11 +94,11 @@ fun OverviewContent(
         verticalArrangement = Arrangement.spacedBy(if (compact) Spacing.md else Spacing.xl),
     ) {
         if (!uiState.loaded) {
-            LoadingState("загружаем список сервисов…")
+            LoadingState("loading services…")
             return@Column
         }
         if (services.isEmpty()) {
-            EmptyState("Пока ни один сервис не прислал метрик")
+            EmptyState("No service has reported any metrics yet")
             return@Column
         }
 
@@ -107,7 +107,7 @@ fun OverviewContent(
 
         if (compact) {
             Text(
-                "Обзор",
+                "Overview",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -117,14 +117,14 @@ fun OverviewContent(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(
-                        "${services.size} " + pluralRu(services.size, "СЕРВИС", "СЕРВИСА", "СЕРВИСОВ") +
-                            " · $totalInstances " + pluralRu(totalInstances, "ИНСТАНС", "ИНСТАНСА", "ИНСТАНСОВ"),
+                        "${services.size} " + plural(services.size, "SERVICE") +
+                            " · $totalInstances " + plural(totalInstances, "INSTANCE"),
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = MetrikMono,
                         color = MaterialTheme.colorScheme.outline,
                     )
                     Text(
-                        "Обзор",
+                        "Overview",
                         style = MaterialTheme.typography.displayLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -202,21 +202,28 @@ private fun AlertsHero(firing: List<AlertView>) {
                 )
                 Column {
                     Text(
-                        pluralRu(firing.size, "алерт", "алерта", "алертов"),
+                        plural(firing.size, "alert"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                     )
                     Text(
-                        "горят",
+                        plural(firing.size, "is", "are") + " firing",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                     )
                 }
             }
+            // Здесь стояло «гистерезис 5 окон, кулдаун 15 мин, всё уже ушло в Telegram» — три
+            // утверждения, и все три неверны. Гистерезис задаётся правилом (`windows`) и виден на
+            // экране порогов, а не фиксирован пятёркой; кулдаун — 30 минут; а доставка вообще не
+            // факт: без настроенного бота сервер поднимает заглушку и не отправляет ничего.
+            // Экран не знает, настроен ли Telegram, — узнать это можно только кнопкой «Send a test».
+            // Поэтому теперь здесь правило, а не отчёт о доставке.
             Text(
-                "Гистерезис 5 окон, кулдаун 15 мин. Всё уже ушло в Telegram.",
+                "A rule fires after several windows in a row and repeats no more often than the cooldown. " +
+                    "Delivery to Telegram happens when a bot is configured.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -253,7 +260,7 @@ private fun AlertsHeroCompact(
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )
             Text(
-                pluralRu(firing.size, "алерт", "алерта", "алертов") + "\nгорят",
+                plural(firing.size, "alert") + "\nfiring",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onErrorContainer,
@@ -269,7 +276,7 @@ private fun AlertsHeroCompact(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    "Смотреть",
+                    "View",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.errorContainer,
@@ -404,10 +411,10 @@ private fun ServiceGridCard(
     }
     val stateLabel =
         when {
-            firing -> "${service.firingAlerts.size} " + pluralRu(service.firingAlerts.size, "алерт", "алерта", "алертов")
-            service.clockSkew -> "часы"
-            service.lastSeenAt == null -> "молчит"
-            else -> "ок"
+            firing -> "${service.firingAlerts.size} " + plural(service.firingAlerts.size, "alert")
+            service.clockSkew -> "clock skew"
+            service.lastSeenAt == null -> "silent"
+            else -> "ok"
         }
     val note =
         when {
@@ -418,7 +425,7 @@ private fun ServiceGridCard(
             }
 
             service.clockSkew -> {
-                "часы инстанса разъехались — часть окон отброшена"
+                "the instance clock has drifted — some windows were dropped"
             }
 
             else -> {
@@ -428,7 +435,7 @@ private fun ServiceGridCard(
     val neverSeen = service.lastSeenAt == null
     val rpsLabel = if (neverSeen) "—" else format(service.requestsPerSecond)
     val errLabel = if (neverSeen) "—" else "${format(service.errorRate * 100)} %"
-    val p95Label = if (neverSeen) "—" else "${format(service.p95Ms)} мс"
+    val p95Label = if (neverSeen) "—" else "${format(service.p95Ms)} ms"
 
     Column(
         Modifier
@@ -454,7 +461,7 @@ private fun ServiceGridCard(
                     }
                     Box(Modifier.clip(RoundedCornerShape(9.dp)).background(chipBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
                         Text(
-                            "${service.instances} инст.",
+                            "${service.instances} inst.",
                             style = MaterialTheme.typography.labelSmall,
                             fontFamily = MetrikMono,
                             color = chipFg,
@@ -482,7 +489,7 @@ private fun ServiceGridCard(
         ) {
             Column {
                 Text(errLabel, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = fg)
-                Text("ошибки", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
+                Text("errors", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
             }
             Column {
                 Text(p95Label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = fg)
@@ -534,7 +541,7 @@ private fun MobileServiceRow(
     val neverSeen = service.lastSeenAt == null
     val rpsLabel = if (neverSeen) "—" else format(service.requestsPerSecond)
     val errLabel = if (neverSeen) "—" else "${format(service.errorRate * 100)} %"
-    val p95Label = if (neverSeen) "—" else "${format(service.p95Ms)} мс"
+    val p95Label = if (neverSeen) "—" else "${format(service.p95Ms)} ms"
 
     Row(
         Modifier
@@ -557,7 +564,7 @@ private fun MobileServiceRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Text("$errLabel ош.", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
+                Text("$errLabel err.", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
                 Text("p95 $p95Label", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
             }
         }

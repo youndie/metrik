@@ -60,7 +60,7 @@ fun LineChart(
 
         if (points.isEmpty()) {
             Text(
-                "нет данных",
+                "no data",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -117,7 +117,7 @@ fun LineChart(
         if (showHeader) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
-                    "последнее " + (lastValue?.let { format(it) } ?: "нет данных"),
+                    "last " + (lastValue?.let { format(it) } ?: "no data"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

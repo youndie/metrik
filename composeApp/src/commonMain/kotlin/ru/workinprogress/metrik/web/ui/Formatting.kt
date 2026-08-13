@@ -19,10 +19,10 @@ fun relativeAgo(
 ): String {
     val diffSeconds = ((nowMs - atMs).coerceAtLeast(0)) / 1000
     return when {
-        diffSeconds < 60 -> "$diffSeconds с"
-        diffSeconds < 3600 -> "${diffSeconds / 60} мин"
-        diffSeconds < 86_400 -> "${diffSeconds / 3600} ч"
-        else -> "${diffSeconds / 86_400} дн"
+        diffSeconds < 60 -> "${diffSeconds}s"
+        diffSeconds < 3600 -> "${diffSeconds / 60}m"
+        diffSeconds < 86_400 -> "${diffSeconds / 3600}h"
+        else -> "${diffSeconds / 86_400}d"
     }
 }
 
@@ -47,38 +47,32 @@ fun absoluteAgo(
     val time = "${at.hour.pad2()}:${at.minute.pad2()}"
     val daysBetween = (now.date.toEpochDays() - at.date.toEpochDays()).toInt().coerceAtLeast(0)
     return when {
-        daysBetween == 0 -> if (labelToday) "сегодня $time" else time
-        daysBetween == 1 -> "вчера $time"
-        else -> "$daysBetween " + pluralRu(daysBetween, "день", "дня", "дней") + " назад"
+        daysBetween == 0 -> if (labelToday) "today $time" else time
+        daysBetween == 1 -> "yesterday $time"
+        else -> "$daysBetween " + plural(daysBetween, "day") + " ago"
     }
 }
 
 private fun Int.pad2(): String = if (this < 10) "0$this" else toString()
 
 /**
- * Русское число + слово в нужной форме («1 алерт», «2 алерта», «5 алертов»).
- * Стандартное mod10/mod100 правило: тексты в дашборде не должны звучать как машинный перевод.
+ * Число и слово в нужной форме: «1 alert», «2 alerts».
+ *
+ * Раньше здесь жило русское правило mod10/mod100 с тремя формами. Английскому хватает двух, и
+ * `-s` покрывает всё, что показывает дашборд (alert, service, instance, deploy, gap, window, day).
+ * Слово с нестандартным множественным придётся передать вторым аргументом.
  */
-fun pluralRu(
+fun plural(
     n: Int,
     one: String,
-    few: String,
-    many: String,
-): String {
-    val mod10 = n % 10
-    val mod100 = n % 100
-    return when {
-        mod10 == 1 && mod100 != 11 -> one
-        mod10 in 2..4 && mod100 !in 12..14 -> few
-        else -> many
-    }
-}
+    many: String = one + "s",
+): String = if (n == 1) one else many
 
-/** Русская подпись состояния правила алертинга — с запасным вариантом для неизвестных состояний. */
+/** Подпись состояния правила алертинга — с запасным вариантом для неизвестных состояний. */
 fun alertStateLabel(state: String): String =
     when (state.lowercase()) {
-        "firing", "active" -> "горит"
-        "resolved", "ok" -> "погас"
+        "firing", "active" -> "firing"
+        "resolved", "ok" -> "resolved"
         else -> state
     }
 
