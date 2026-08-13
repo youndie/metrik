@@ -9,6 +9,16 @@ class ServerConfig(
     val httpPort: Int,
     val udpPort: Int,
     val dbPath: String,
+    /**
+     * Размер пула соединений к SQLite.
+     *
+     * Двойка вместо десятки не экономия ради экономии: замер на стенде (пять парных повторов,
+     * одинаковая нагрузка) дал −59 МиБ на полке потребления и при этом +10% запросов в секунду.
+     * Писатель в SQLite всё равно один, и лишние соединения только делят между собой тот же лок,
+     * а платит за каждое из них процесс — отдельным потоком, кэшем страниц и кэшем выражений.
+     * Десятка была не выбором, а дефолтом `sqlx`.
+     */
+    val dbMaxConnections: Int = 2,
     val ingestKey: String,
     /** Пусто — админ любой прошедший прокси: инсталляция принадлежит одной команде. */
     val admins: Set<String> = emptySet(),
@@ -30,6 +40,7 @@ class ServerConfig(
                 httpPort = readEnv("METRIK_HTTP_PORT")?.toIntOrNull() ?: 8080,
                 udpPort = readEnv("METRIK_UDP_PORT")?.toIntOrNull() ?: DEFAULT_INGEST_PORT,
                 dbPath = readEnv("METRIK_DB_PATH") ?: "/data/metrik.db",
+                dbMaxConnections = readEnv("METRIK_DB_MAX_CONNECTIONS")?.toIntOrNull() ?: 2,
                 ingestKey = ingestKey,
                 admins =
                     readEnv("METRIK_ADMINS")

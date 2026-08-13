@@ -45,7 +45,7 @@ import ru.workinprogress.metrik.wire.MetrikJson
 
 fun main() {
     val config = ServerConfig.fromEnv()
-    val db = openDatabase(config.dbPath)
+    val db = openDatabase(config.dbPath, config.dbMaxConnections)
 
     embeddedServer(CIO, port = config.httpPort, host = "0.0.0.0") {
         module(config, db)
@@ -58,7 +58,10 @@ fun main() {
  * `runBlocking` здесь осознан: сервер, поднявший порт раньше готовой схемы, отвечал бы ошибками
  * на первые запросы.
  */
-fun openDatabase(path: String): ISQLite {
+fun openDatabase(
+    path: String,
+    maxConnections: Int = 2,
+): ISQLite {
     val dbPath = path.toPath()
     val fileSystem = FileSystem.SYSTEM
 
@@ -73,7 +76,7 @@ fun openDatabase(path: String): ISQLite {
             options =
                 ConnectionPool.Options
                     .builder()
-                    .maxConnections(10)
+                    .maxConnections(maxConnections)
                     .build(),
         )
 
