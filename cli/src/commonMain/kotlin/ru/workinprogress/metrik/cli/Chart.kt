@@ -115,7 +115,14 @@ fun chart(
             else -> Severity.NORMAL
         }
 
-    val guideRow = thresholds.high?.let { if (top <= 0.0) null else ((it / top) * height).roundToInt().coerceIn(1, height) }
+    // Пунктир рисуется, только когда порог попадает в шкалу. Раньше позиция зажималась в границы
+    // поля, и порог выше максимума прилипал к верхней строке: на графике с максимумом 59 мс
+    // пунктир стоял на 59 и читался как «порог 59 мс» при настоящем пороге в 1000.
+    // Линия, которая всегда где-то есть, не сообщает ничего, а притворяется, что сообщает.
+    val guideRow =
+        thresholds.high
+            ?.takeIf { top > 0.0 && it <= top }
+            ?.let { ((it / top) * height).roundToInt().coerceIn(1, height) }
 
     val rows =
         (height downTo 1).map { row ->

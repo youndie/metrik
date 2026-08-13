@@ -60,6 +60,22 @@ fun deployColumns(
         }
 }
 
+/**
+ * Пороги графика p95 — из правила `latency` этого сервиса.
+ *
+ * `high` — сам порог: столбик, дотянувшийся до него, и есть тот, на котором правило сработало бы.
+ * `warn` — три четверти порога: «ещё не авария, но уже близко». Это единственная выдуманная здесь
+ * величина, и она выдумана только для промежуточного цвета, а не для пунктира.
+ *
+ * Выключенное правило порогов не даёт: раскрашивать по порогу, который никогда не сработает,
+ * значит рисовать тревогу там, где её не будет.
+ */
+fun latencyThresholds(rules: List<ru.workinprogress.metrik.api.AlertRuleView>): Thresholds {
+    val latency = rules.firstOrNull { it.ruleId == "latency" && it.enabled } ?: return Thresholds()
+
+    return Thresholds(warn = latency.threshold * 0.75, high = latency.threshold)
+}
+
 /** A grid wider than any terminal is pointless, and an unbounded one is a way to run out of memory. */
 private const val MAX_BUCKETS = 10_000
 

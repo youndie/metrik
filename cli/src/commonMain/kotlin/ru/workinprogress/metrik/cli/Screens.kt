@@ -8,12 +8,11 @@ import com.jakewharton.mosaic.text.buildAnnotatedString
 import com.jakewharton.mosaic.text.withStyle
 import com.jakewharton.mosaic.ui.Color
 import com.jakewharton.mosaic.ui.Column
-import com.jakewharton.mosaic.ui.ColumnScope
 import com.jakewharton.mosaic.ui.Text
 import ru.workinprogress.metrik.api.isFiring
 
-// Drawing. Every decision about *what* the numbers mean lives elsewhere; this file only decides
-// where they go on screen.
+// Экраны собираются как список строк, а рисуются одним местом. Так кадр можно обрезать по размеру
+// терминала (см. Viewport) и проверить тестом — в отличие от композаблов, разбросанных по файлу.
 
 /** Colour is a second channel, never the only one — see [chart] for the same rule in the plot. */
 private fun colourOf(severity: Severity): Color =
@@ -24,6 +23,12 @@ private fun colourOf(severity: Severity): Color =
         Severity.GAP -> Color(0x80, 0x80, 0x80)
         Severity.CHROME -> Color.Unspecified
     }
+
+/** Строка кадра из обычного текста. */
+fun row(
+    text: String,
+    severity: Severity = Severity.CHROME,
+): List<Cell> = text.map { Cell(it, severity) }
 
 @Composable
 fun Line(
@@ -52,146 +57,34 @@ fun Line(
 }
 
 /**
- * Экран во весь терминал: содержимое сверху, подсказка по клавишам прижата к низу.
+ * Кадр во весь терминал: содержимое сверху, подсказка по клавишам прижата к низу.
  *
- * `weight(1f)` на содержимом — то, что делает подвал нижним: без него он идёт сразу за контентом
- * и в полноэкранном режиме висит посреди пустого экрана.
+ * Содержимое обрезается по обеим осям — иначе кадр выше экрана ломает перерисовку Mosaic и
+ * оставляет куски прошлого кадра поверх нового.
  */
 @Composable
-private fun Screen(
+fun Screen(
+    rows: List<List<Cell>>,
     footer: String,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f), content = content)
-        Text("")
-        Text(footer)
-    }
-}
-
-@Composable
-fun ServicesScreen(
-    state: UiState,
-    config: CliConfig,
-) {
-    Screen("↑↓ move   enter open   r refresh   q quit") {
-        Header(state)
-
-        if (state.services.isEmpty() && !state.loading) {
-            Text("no services are reporting")
-        }
-
-        Text("  " + column("service", 22) + column("rps", 8) + column("errors", 8) + column("p95", 9) + column("inst", 5) + "last seen")
-
-        state.services.forEachIndexed { index, service ->
-            val selected = index == state.selected
-            val firing = service.firingAlerts.isNotEmpty()
-
-            val row =
-                (if (selected) "> " else "  ") +
-                    column(service.name, 22) +
-                    column(rate(service.requestsPerSecond), 8) +
-                    column(percent(service.errorRate), 8) +
-                    column(millis(service.p95Ms), 9) +
-                    column(service.instances.toString(), 5) +
-                    ago(service.lastSeenAt)
-
-            // A firing service is red and marked; the mark is what survives a pipe.
-            val severity = if (firing) Severity.HIGH else Severity.CHROME
-            val suffix = if (firing) "  ! " + service.firingAlerts.joinToString(" ") else ""
-
-            Line((row + suffix).map { Cell(it, severity) }, config.colour)
-        }
-
-        if (state.alerts.isNotEmpty()) {
-            Text("")
-            Text("firing:")
-            state.alerts.filter { it.isFiring }.forEach { alert ->
-                val muted = alert.mutedUntil?.let { " (muted, still firing)" }.orEmpty()
-                Line(
-                    ("  " + column(alert.service, 22) + column(alert.ruleId, 14) + ago(alert.since) + muted)
-                        .map { Cell(it, Severity.HIGH) },
-                    config.colour,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun DetailScreen(
-    state: UiState,
     config: CliConfig,
     width: Int,
+    height: Int,
+    keepVisible: Int = 0,
 ) {
-    val detail = state.detail
+    // Две строки внизу — пустая и подсказка; всё остальное отдано содержимому.
+    val body = (height - 2).coerceAtLeast(1)
 
-    Screen(if (detail == null) "esc back   q quit" else "esc back   r refresh   q quit") {
-        Header(state)
-
-        if (detail == null) {
-            Text("loading…")
-            return@Screen
+    Column(Modifier.fillMaxSize()) {
+        Column(Modifier.weight(1f)) {
+            rows.clamp(width, body, keepVisible).forEach { line -> Line(line, config.colour) }
         }
-
-        val o = detail.overview
-        Text(detail.service)
-        Text(
-            "  requests " + o.requests + "   errors " + o.errors + " (" + percent(o.errorRate) + ")" +
-                "   p50 " + millis(o.p50Ms) + "   p95 " + millis(o.p95Ms) + "   max " + millis(o.maxMs.toDouble()),
-        )
         Text("")
-
-        val glyphs = if (config.unicode) Glyphs.UNICODE else Glyphs.ASCII
-        val plot = (width - 10).coerceIn(10, 200)
-
-        // Laid on the grid that was asked for, then squeezed to the terminal. Both steps preserve
-        // gaps: a minute nobody reported and an incomplete window are absences, not zeroes.
-        val values = fit(align(detail.series, detail.from, detail.to), plot)
-
-        Text(
-            "p95, " +
-                detail.series.step.name
-                    .lowercase() + " steps",
-        )
-        chart(values, height = 7, glyphs = glyphs, thresholds = Thresholds(warn = 300.0, high = 1000.0), unit = "ms")
-            .forEach { row -> Line(row, config.colour) }
-
-        val axis = timeAxis(clock(detail.from), clock(detail.to), values.size)
-        if (axis.isNotEmpty()) Line(axis, config.colour)
-
-        val marks = deployColumns(detail.deploys, detail.from, detail.to, detail.series.step, values.size)
-        if (marks.isNotEmpty()) markers(marks, values.size, glyphs).forEach { row -> Line(row, config.colour) }
-
-        Text("")
-        Text("slowest routes")
-        if (detail.slow.isEmpty()) Text("  no traffic in this window")
-        detail.slow.take(8).forEach { route ->
-            Text(
-                "  " + column(route.method, 7) + column(route.route, 34) +
-                    column(route.status.toString(), 6) + column(route.count.toString(), 8) +
-                    column(millis(route.p95Ms), 9) + millis(route.maxMs.toDouble()),
-            )
-        }
-
-        if (detail.errors.isNotEmpty()) {
-            Text("")
-            Text("server errors")
-            detail.errors.take(5).forEach { route ->
-                Line(
-                    (
-                        "  " + column(route.method, 7) + column(route.route, 34) +
-                            column(route.status.toString(), 6) + route.count.toString()
-                    ).map { Cell(it, Severity.HIGH) },
-                    config.colour,
-                )
-            }
-        }
+        Text(footer.take(width))
     }
 }
 
-@Composable
-private fun Header(state: UiState) {
+/** Шапка: что за приложение и что с ним сейчас происходит. */
+private fun header(state: UiState): List<List<Cell>> {
     val status =
         when {
             state.failure != null -> "  offline: " + state.failure + " — showing last known numbers"
@@ -199,6 +92,119 @@ private fun Header(state: UiState) {
             else -> ""
         }
 
-    Text("metrik" + status)
-    Text("")
+    return listOf(row("metrik$status"), row(""))
+}
+
+/** Строки экрана со списком сервисов и индекс выбранной строки — её нельзя увести за край. */
+fun servicesRows(state: UiState): Pair<List<List<Cell>>, Int> {
+    val rows = mutableListOf<List<Cell>>()
+    rows += header(state)
+
+    if (state.services.isEmpty() && !state.loading) rows += row("no services are reporting")
+
+    rows +=
+        row(
+            "  " + column("service", 22) + column("rps", 8) + column("errors", 8) +
+                column("p95", 9) + column("inst", 5) + "last seen",
+        )
+
+    val selectedRow = rows.size + state.selected
+
+    state.services.forEachIndexed { index, service ->
+        val firing = service.firingAlerts.isNotEmpty()
+        val line =
+            (if (index == state.selected) "> " else "  ") +
+                column(service.name, 22) +
+                column(rate(service.requestsPerSecond), 8) +
+                column(percent(service.errorRate), 8) +
+                column(millis(service.p95Ms), 9) +
+                column(service.instances.toString(), 5) +
+                ago(service.lastSeenAt) +
+                // Пометка `!` — то, что переживёт пайп и монохромный терминал, в отличие от цвета.
+                if (firing) "  ! " + service.firingAlerts.joinToString(" ") else ""
+
+        rows += row(line, if (firing) Severity.HIGH else Severity.CHROME)
+    }
+
+    val firing = state.alerts.filter { it.isFiring }
+    if (firing.isNotEmpty()) {
+        rows += row("")
+        rows += row("firing:")
+        firing.forEach { alert ->
+            val muted = alert.mutedUntil?.let { " (muted, still firing)" }.orEmpty()
+            rows += row("  " + column(alert.service, 22) + column(alert.ruleId, 14) + ago(alert.since) + muted, Severity.HIGH)
+        }
+    }
+
+    return rows to selectedRow
+}
+
+/** Строки карточки сервиса. [width] нужен графику: он рисуется по колонке на точку. */
+fun detailRows(
+    state: UiState,
+    config: CliConfig,
+    width: Int,
+): List<List<Cell>> {
+    val rows = mutableListOf<List<Cell>>()
+    rows += header(state)
+
+    val detail = state.detail ?: return rows + listOf(row("loading…"))
+
+    val overview = detail.overview
+    rows += row(detail.service)
+    rows +=
+        row(
+            "  requests " + overview.requests + "   errors " + overview.errors +
+                " (" + percent(overview.errorRate) + ")   p50 " + millis(overview.p50Ms) +
+                "   p95 " + millis(overview.p95Ms) + "   max " + millis(overview.maxMs.toDouble()),
+        )
+    rows += row("")
+
+    val glyphs = if (config.unicode) Glyphs.UNICODE else Glyphs.ASCII
+    val plot = (width - 10).coerceIn(10, 200)
+
+    // Ряд кладётся на сетку запрошенного окна, потом сжимается под терминал. Оба шага сохраняют
+    // разрывы: минута без отчёта и неполное окно — это отсутствие, а не ноль.
+    val values = fit(align(detail.series, detail.from, detail.to), plot)
+
+    rows +=
+        row(
+            "p95, " +
+                detail.series.step.name
+                    .lowercase() + " steps",
+        )
+    rows += chart(values, height = 7, glyphs = glyphs, thresholds = detail.thresholds, unit = "ms")
+
+    val axis = timeAxis(clock(detail.from), clock(detail.to), values.size)
+    if (axis.isNotEmpty()) rows += axis
+
+    val marks = deployColumns(detail.deploys, detail.from, detail.to, detail.series.step, values.size)
+    if (marks.isNotEmpty()) rows += markers(marks, values.size, glyphs)
+
+    rows += row("")
+    rows += row("slowest routes")
+    if (detail.slow.isEmpty()) rows += row("  no traffic in this window")
+    detail.slow.take(8).forEach { route ->
+        rows +=
+            row(
+                "  " + column(route.method, 7) + column(route.route, 34) +
+                    column(route.status.toString(), 6) + column(route.count.toString(), 8) +
+                    column(millis(route.p95Ms), 9) + millis(route.maxMs.toDouble()),
+            )
+    }
+
+    if (detail.errors.isNotEmpty()) {
+        rows += row("")
+        rows += row("server errors")
+        detail.errors.take(5).forEach { route ->
+            rows +=
+                row(
+                    "  " + column(route.method, 7) + column(route.route, 34) +
+                        column(route.status.toString(), 6) + route.count.toString(),
+                    Severity.HIGH,
+                )
+        }
+    }
+
+    return rows
 }

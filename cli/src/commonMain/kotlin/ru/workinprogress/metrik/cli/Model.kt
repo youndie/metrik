@@ -52,6 +52,14 @@ data class ServiceDetail(
      */
     val from: Long,
     val to: Long,
+    /**
+     * Пороги этого сервиса, а не выдуманные.
+     *
+     * Раньше в карточке стояли 300 и 1000 мс константами. Цвет и пунктир при этом отвечали на
+     * вопрос «больше ли числа, которые я придумал», а выглядели как ответ на «сработало бы
+     * правило». Пустые пороги честнее выдуманных: тогда график просто не красит.
+     */
+    val thresholds: Thresholds = Thresholds(),
 )
 
 /** Everything the user can do. Named after intent, not after the key that triggers it. */

@@ -8,6 +8,7 @@ import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.StreamableHttpClientTransport
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import ru.workinprogress.metrik.api.AlertRuleView
 import ru.workinprogress.metrik.api.AlertView
 import ru.workinprogress.metrik.api.DeployMarker
 import ru.workinprogress.metrik.api.Overview
@@ -82,6 +83,8 @@ class MetrikClient(
         to: Long,
         limit: Int,
     ): List<RouteRow> = decode(call("server_errors", window(service, from, to) + ("limit" to limit)))
+
+    suspend fun alertRules(service: String): List<AlertRuleView> = decode(call("alert_rules", mapOf("service" to service)))
 
     suspend fun deploys(
         service: String,

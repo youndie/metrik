@@ -94,6 +94,27 @@ class ChartTest {
     }
 
     @Test
+    fun `a threshold above the scale is not drawn at all`() {
+        // Given a quiet service: the alerting threshold is far above anything that happened
+        val values = listOf(50.0, 59.0, 40.0)
+
+        // When
+        val rows = field(chart(values, height = 7, thresholds = Thresholds(high = 1000.0)))
+
+        // Then no guide — clamping it to the top row made the chart claim the threshold was 59ms.
+        // A line that is always somewhere tells you nothing while pretending to.
+        assertTrue(rows.none { row -> row.any { it.char == Glyphs.UNICODE.guide } })
+    }
+
+    @Test
+    fun `a threshold at the very top is still drawn`() {
+        // Given the peak reaches the threshold exactly — the boundary case of the rule above
+        val rows = field(chart(listOf(100.0, 50.0), height = 6, thresholds = Thresholds(high = 100.0)))
+
+        assertTrue(rows.any { row -> row.any { it.char == Glyphs.UNICODE.guide } })
+    }
+
+    @Test
     fun `a deploy marker stands under its own sample`() {
         val marks = markers(mapOf(10 to "1.4.212"), width = 24).first().drop(FIELD).plain()
 

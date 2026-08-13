@@ -1,5 +1,6 @@
 package ru.workinprogress.metrik.server.mcp
 
+import ru.workinprogress.metrik.api.AlertRuleView
 import ru.workinprogress.metrik.api.AlertView
 import ru.workinprogress.metrik.api.DeployMarker
 import ru.workinprogress.metrik.api.Overview
@@ -9,6 +10,7 @@ import ru.workinprogress.metrik.api.Step
 import ru.workinprogress.metrik.api.TimeSeries
 import ru.workinprogress.metrik.api.isFiring
 import ru.workinprogress.metrik.server.alert.AlertWorker
+import ru.workinprogress.metrik.server.query.AdminService
 import ru.workinprogress.metrik.server.query.QueryService
 
 /**
@@ -25,6 +27,7 @@ import ru.workinprogress.metrik.server.query.QueryService
 class ToolFacade(
     private val query: QueryService,
     private val alerts: AlertWorker,
+    private val admin: AdminService,
 ) {
     suspend fun listServices(): List<ServiceSummary> = query.services()
 
@@ -87,6 +90,15 @@ class ToolFacade(
     ): List<DeployMarker> = query.deploys(serviceId(service), from, to)
 
     suspend fun firingAlerts(): List<AlertView> = alerts.active().filter { it.isFiring }
+
+    /**
+     * Пороги правил сервиса.
+     *
+     * Нужны тому, кто рисует: без них «медленно» приходится придумывать, а придуманный порог на
+     * графике неотличим от настоящего. `inherited` показывает, дефолт это инсталляции или
+     * переопределение сервиса — разница важна, когда обсуждают, почему правило не сработало.
+     */
+    suspend fun alertRules(service: String): List<AlertRuleView> = admin.rules(serviceId(service))
 
     /**
      * Имя → id, с внятной ошибкой вместо пустого ответа.

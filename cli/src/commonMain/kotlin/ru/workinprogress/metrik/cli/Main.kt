@@ -89,6 +89,7 @@ private suspend fun renderApp(
 
     val terminal = LocalTerminalState.current
     val width = terminal.size.width.takeIf { it > 20 } ?: 80
+    val height = terminal.size.height.takeIf { it > 6 } ?: 24
 
     Box(
         modifier =
@@ -131,8 +132,20 @@ private suspend fun renderApp(
             },
     ) {
         when (state.screen) {
-            Screen.SERVICES -> ServicesScreen(state, config)
-            Screen.DETAIL -> DetailScreen(state, config, width)
+            Screen.SERVICES -> {
+                val (rows, selected) = servicesRows(state)
+                Screen(rows, "↑↓ move   enter open   r refresh   q quit", config, width, height, selected)
+            }
+
+            Screen.DETAIL -> {
+                Screen(
+                    detailRows(state, config, width),
+                    if (state.detail == null) "esc back   q quit" else "esc back   r refresh   q quit",
+                    config,
+                    width,
+                    height,
+                )
+            }
         }
     }
 
@@ -163,6 +176,7 @@ private suspend fun renderApp(
                             deploys = client.deploys(name, from, now),
                             from = from,
                             to = now,
+                            thresholds = latencyThresholds(client.alertRules(name)),
                         )
                     }
 

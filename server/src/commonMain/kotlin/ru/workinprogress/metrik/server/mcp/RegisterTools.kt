@@ -178,6 +178,30 @@ internal fun Server.registerTools(facade: ToolFacade) {
     }
 
     addTool(
+        name = "alert_rules",
+        description =
+            "Пороги правил сервиса: значение порога, сколько окон подряд нужно для срабатывания, " +
+                "включено ли правило и заглушено ли оно. `inherited: true` — это дефолт инсталляции, " +
+                "`false` — переопределение для этого сервиса. " +
+                "Отвечает на вопрос «а сработало бы тут правило»: без порогов «медленно» приходится " +
+                "придумывать, а придуманный порог неотличим от настоящего.",
+        inputSchema =
+            schema(
+                required = listOf("service"),
+                properties =
+                    buildJsonObject {
+                        putJsonObject("service") {
+                            put("type", "string")
+                            put("description", "имя сервиса — то же, что в `list_services`")
+                        }
+                    },
+            ),
+        toolAnnotations = readOnly,
+    ) { request ->
+        ok(MetrikJson.encodeToString(facade.alertRules(args(request).service())))
+    }
+
+    addTool(
         name = "firing_alerts",
         description =
             "Правила, горящие прямо сейчас, по всем сервисам, с моментом срабатывания. " +

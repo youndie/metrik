@@ -137,7 +137,7 @@ fun Application.module(
     // Строго после ContentNegotiation: `mcpStatelessStreamableHttp` ставит его сам, если тот ещё
     // не стоит, и приложение падало с DuplicatePluginException. Найдя плагин на месте, SDK
     // ограничивается предупреждением.
-    installMcp(config, ToolFacade(query, alerts))
+    installMcp(config, ToolFacade(query, alerts, admin))
 
     routing {
         // Дашборд отдаёт сам сервер — отдельного контейнера с nginx нет (M-98). Каталог
