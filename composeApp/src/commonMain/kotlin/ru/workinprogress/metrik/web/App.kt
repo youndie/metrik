@@ -21,10 +21,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import io.ktor.client.HttpClient
 import org.koin.compose.KoinApplication
@@ -147,6 +149,17 @@ private fun AppShellContent(
             NavDisplay(
                 backStack = backStack,
                 onBack = { backStack.removeLastOrNull() },
+                // Свой `ViewModelStore` на каждую запись стека (M-96). Без этого записи делят
+                // хранилище хоста, и `koinViewModel()` на экране сервиса отдаёт ViewModel,
+                // созданный под предыдущий сервис: подсветка в рельсе меняется, а контент нет.
+                //
+                // `SaveableStateHolder` идёт первым, потому что его требует сам декоратор
+                // ViewModel-стора: без него он падает на старте.
+                entryDecorators =
+                    listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator(),
+                    ),
                 entryProvider =
                     entryProvider {
                         entry<Route.Overview> {
