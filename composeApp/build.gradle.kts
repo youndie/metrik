@@ -1,16 +1,35 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
-    kotlin("multiplatform")
-    alias(libs.plugins.composeMultiplatform)
-    alias(libs.plugins.composeCompiler)
+    id("org.jetbrains.kotlin.multiplatform")
+    id("ru.workinprogress.sborka.kmp")
+    id("ru.workinprogress.sborka.lint")
+    id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
     // Маршруты Navigation 3 обязаны быть @Serializable: на wasm рефлексии для восстановления
     // стека нет.
-    alias(libs.plugins.pluginSerialization)
+    id("org.jetbrains.kotlin.plugin.serialization")
+}
+
+// AN APPLICATION, not a library: nothing resolves this module, so there is no consumer for a
+// spelled-out public API to be spelled out for.
+kotlin {
+    explicitApi = null
+
+    // AND WARNINGS ARE NOT ERRORS HERE, which the conventions otherwise make them. Koin 4.2.2
+    // deprecates the `KoinApplication(application = { … })` composable and names
+    // `KoinApplication(config = koinConfiguration { … })` as the replacement — and that overload does
+    // not exist in 4.2.2: "No parameter with name 'config' found". A deprecation whose replacement
+    // has not shipped yet cannot be acted on, and failing the build on it would leave the choice
+    // between pinning an older Koin and not building at all.
+    //
+    // Narrow on purpose: every other module in this repository keeps -Werror.
+    compilerOptions {
+        allWarningsAsErrors.set(false)
+    }
 }
 
 kotlin {
-    jvmToolchain(25)
 
     // Desktop-таргет существует ради скорости цикла: wasm собирается заметно дольше, а UI
     // разрабатывается и отлаживается одинаково. Продовая цель — всё равно wasm.

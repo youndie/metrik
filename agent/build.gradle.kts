@@ -1,28 +1,29 @@
 plugins {
-    kotlin("multiplatform")
-    alias(libs.plugins.pluginSerialization)
-    `maven-publish`
+    id("org.jetbrains.kotlin.multiplatform")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    id("ru.workinprogress.sborka.kmp")
+    id("ru.workinprogress.sborka.lint")
+    id("ru.workinprogress.sborka.publish")
 }
 
 // Published so a Ktor service can depend on the agent without vendoring its source.
-publishing {
-    repositories {
-        maven {
-            name = "wip"
-            url = uri("https://reposilite.kotlin.website/snapshots")
-            credentials {
-                username = findProperty("REPOSILITE_USER")?.toString()
-                password = findProperty("REPOSILITE_SECRET")?.toString()
-            }
-        }
-    }
-}
 
 kotlin {
+    // OPTED IN OUT LOUD. The conventions compile with `allWarningsAsErrors`, and this API was being
+    // used with the compiler asking to be told so on every build — a warning nobody read because
+    // nothing failed on it. Saying it here is the same statement the annotation would make at each
+    // use site, made once and visible.
+    compilerOptions {
+        optIn.add("kotlinx.coroutines.ExperimentalCoroutinesApi")
+        // `newSingleThreadContext`, in the UDP test. Delicate because the thread it creates has to
+        // be closed by hand; the test does close it, and saying so here is the acknowledgement the
+        // compiler is asking for.
+        optIn.add("kotlinx.coroutines.DelicateCoroutinesApi")
+    }
+
     withSourcesJar()
 
     jvm()
-    jvmToolchain(25)
 
     macosArm64()
     linuxX64()

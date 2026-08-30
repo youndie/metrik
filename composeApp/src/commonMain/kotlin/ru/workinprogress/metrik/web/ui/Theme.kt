@@ -122,7 +122,12 @@ private fun rememberFlexFamily(opticalSize: Float): FontFamily {
                 resource = Res.font.RobotoFlex,
                 weight = weight,
                 style = FontStyle.Normal,
-                variationSettings = FontVariation.Settings(weight, FontStyle.Normal, FontVariation.opticalSizing(opticalSize.sp)),
+                variationSettings =
+                    FontVariation.Settings(
+                        weight,
+                        FontStyle.Normal,
+                        FontVariation.opticalSizing(opticalSize.sp),
+                    ),
             )
         }
     return remember(fonts) { FontFamily(fonts) }

@@ -132,7 +132,8 @@ private fun MetrikAgent.recordSafely(
  * Сырой путь дал бы неограниченную кардинальность и сделал бы базу бесполезной. Если запрос не
  * сматчился ни на один роут, серия одна на всех — [ROUTE_UNMATCHED].
  */
-private fun routeTemplateOf(call: ApplicationCall): String = call.attributes.getOrNull(RouteTemplateKey) ?: ROUTE_UNMATCHED
+private fun routeTemplateOf(call: ApplicationCall): String =
+    call.attributes.getOrNull(RouteTemplateKey) ?: ROUTE_UNMATCHED
 
 /**
  * Достаёт из `RoutingNode.toString()` только путь.

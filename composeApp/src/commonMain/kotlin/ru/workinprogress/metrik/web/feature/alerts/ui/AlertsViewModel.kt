@@ -137,22 +137,34 @@ class AlertsViewModel(
         when (action) {
             is AlertsUiAction.MuteAlert -> {
                 val id = serviceIdByName[action.alert.service] ?: return
-                mutate(action.alert.ruleId, id) { muteAlertRule(MuteAlertRuleUseCase.Params(id, action.alert.ruleId, action.minutes)) }
+                mutate(
+                    action.alert.ruleId,
+                    id,
+                ) { muteAlertRule(MuteAlertRuleUseCase.Params(id, action.alert.ruleId, action.minutes)) }
             }
 
             is AlertsUiAction.UnmuteAlert -> {
                 val id = serviceIdByName[action.alert.service] ?: return
-                mutate(action.alert.ruleId, id) { unmuteAlertRule(UnmuteAlertRuleUseCase.Params(id, action.alert.ruleId)) }
+                mutate(
+                    action.alert.ruleId,
+                    id,
+                ) { unmuteAlertRule(UnmuteAlertRuleUseCase.Params(id, action.alert.ruleId)) }
             }
 
             is AlertsUiAction.MuteRule -> {
                 val id = _uiState.value.rulesService?.id ?: return
-                mutate(action.rule.ruleId, id) { muteAlertRule(MuteAlertRuleUseCase.Params(id, action.rule.ruleId, action.minutes)) }
+                mutate(
+                    action.rule.ruleId,
+                    id,
+                ) { muteAlertRule(MuteAlertRuleUseCase.Params(id, action.rule.ruleId, action.minutes)) }
             }
 
             is AlertsUiAction.UnmuteRule -> {
                 val id = _uiState.value.rulesService?.id ?: return
-                mutate(action.rule.ruleId, id) { unmuteAlertRule(UnmuteAlertRuleUseCase.Params(id, action.rule.ruleId)) }
+                mutate(
+                    action.rule.ruleId,
+                    id,
+                ) { unmuteAlertRule(UnmuteAlertRuleUseCase.Params(id, action.rule.ruleId)) }
             }
 
             is AlertsUiAction.SaveRule -> {

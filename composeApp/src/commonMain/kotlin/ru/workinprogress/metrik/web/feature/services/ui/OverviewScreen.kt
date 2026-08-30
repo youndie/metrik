@@ -114,7 +114,11 @@ fun OverviewContent(
             )
             RangeSelector(uiState.range, onRange, Modifier.fillMaxWidth())
         } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(
                         "${services.size} " + plural(services.size, "SERVICE") +
@@ -456,10 +460,27 @@ private fun ServiceGridCard(
                     color = fg,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Box(Modifier.clip(RoundedCornerShape(9.dp)).background(chipBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
-                        Text(stateLabel, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = chipFg)
+                    Box(
+                        Modifier
+                            .clip(
+                                RoundedCornerShape(9.dp),
+                            ).background(chipBg)
+                            .padding(horizontal = 9.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            stateLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = chipFg,
+                        )
                     }
-                    Box(Modifier.clip(RoundedCornerShape(9.dp)).background(chipBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
+                    Box(
+                        Modifier
+                            .clip(
+                                RoundedCornerShape(9.dp),
+                            ).background(chipBg)
+                            .padding(horizontal = 9.dp, vertical = 3.dp),
+                    ) {
                         Text(
                             "${service.instances} inst.",
                             style = MaterialTheme.typography.labelSmall,
@@ -470,7 +491,12 @@ private fun ServiceGridCard(
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(rpsLabel, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = fg)
+                Text(
+                    rpsLabel,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = fg,
+                )
                 Text("rps", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
             }
         }
@@ -488,18 +514,33 @@ private fun ServiceGridCard(
                 Arrangement.spacedBy(Spacing.xl + Spacing.xs),
         ) {
             Column {
-                Text(errLabel, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = fg)
+                Text(
+                    errLabel,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = fg,
+                )
                 Text("errors", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
             }
             Column {
-                Text(p95Label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = fg)
+                Text(
+                    p95Label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = fg,
+                )
                 Text("p95 ≈ ±20 %", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
             }
             if (note != null) {
                 Text(
                     note,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (firing) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.tertiary,
+                    color =
+                        if (firing) {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        } else {
+                            MaterialTheme.colorScheme.tertiary
+                        },
                     textAlign = TextAlign.End,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -564,7 +605,12 @@ private fun MobileServiceRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Text("$errLabel err.", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
+                Text(
+                    "$errLabel err.",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = MetrikMono,
+                    color = dim,
+                )
                 Text("p95 $p95Label", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
             }
         }

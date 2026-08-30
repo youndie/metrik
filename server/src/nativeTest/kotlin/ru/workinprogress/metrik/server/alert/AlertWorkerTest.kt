@@ -206,7 +206,10 @@ class AlertWorkerTest {
             alerts.tick()
 
             // Then — уведомления молчат, но алерт горит: «заглушил» это «не буди», а не «всё хорошо».
-            assertTrue(notifier.messages.none { it.contains("error_rate") }, "muted rule notified: ${notifier.messages}")
+            assertTrue(
+                notifier.messages.none { it.contains("error_rate") },
+                "muted rule notified: ${notifier.messages}",
+            )
             assertTrue(alerts.active().any { it.ruleId == AlertRuleIds.ERROR_RATE })
             assertTrue(alerts.active().first { it.ruleId == AlertRuleIds.ERROR_RATE }.mutedUntil != null)
         }

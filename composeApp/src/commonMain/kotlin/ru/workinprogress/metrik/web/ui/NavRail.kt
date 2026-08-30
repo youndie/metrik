@@ -195,7 +195,12 @@ private fun NavRailItem(
             label,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
-            color = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+            color =
+                if (active) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
             modifier = Modifier.weight(1f),
         )
         trailing?.invoke(this)
@@ -253,7 +258,12 @@ private fun ServiceRailRow(
             style = MaterialTheme.typography.bodyMedium,
             fontFamily = MetrikMono,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+            color =
+                if (selected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),

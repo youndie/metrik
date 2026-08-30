@@ -1,11 +1,25 @@
 plugins {
-    kotlin("multiplatform")
-    alias(libs.plugins.pluginSerialization)
+    id("org.jetbrains.kotlin.multiplatform")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    id("ru.workinprogress.sborka.kmp")
+    id("ru.workinprogress.sborka.lint")
+}
+
+// NOT PUBLISHED: the server ships as a container image, not as an artefact. Explicit API is off for
+// the same reason — nothing resolves this module as a library.
+kotlin {
+    explicitApi = null
+
+    // OPTED IN OUT LOUD, for the same reason as in `:agent`: the conventions compile with
+    // `allWarningsAsErrors`, and the UDP receiver was using this API with the compiler asking to be
+    // told so on every build.
+    compilerOptions {
+        optIn.add("kotlinx.coroutines.ExperimentalCoroutinesApi")
+    }
 }
 
 kotlin {
     jvm()
-    jvmToolchain(25)
 
     listOf(
         macosArm64(),

@@ -49,7 +49,8 @@ data class Glyphs(
 ) {
     companion object {
         /** Box drawing plus a half block, which doubles the vertical resolution for free. */
-        val UNICODE = Glyphs(bar = '█', half = '▄', gap = '┊', guide = '┈', axis = '─', corner = '┼', wall = '│', marker = '▲')
+        val UNICODE =
+            Glyphs(bar = '█', half = '▄', gap = '┊', guide = '┈', axis = '─', corner = '┼', wall = '│', marker = '▲')
 
         /**
          * For terminals that render blocks and box drawing badly.
@@ -57,7 +58,8 @@ data class Glyphs(
          * There is no half step here, so the chart holds half the detail. That is the price of
          * the fallback, and the reason it is not the default.
          */
-        val ASCII = Glyphs(bar = '#', half = '.', gap = ':', guide = '-', axis = '-', corner = '+', wall = '|', marker = '^')
+        val ASCII =
+            Glyphs(bar = '#', half = '.', gap = ':', guide = '-', axis = '-', corner = '+', wall = '|', marker = '^')
     }
 }
 
@@ -140,10 +142,24 @@ fun chart(
                             val filled = level(value)
                             val full = if (glyphs.half == '.') row else row * 2
                             when {
-                                filled >= full -> Cell(glyphs.bar, severityOf(value))
-                                glyphs.half != '.' && filled >= full - 1 && filled > 0 -> Cell(glyphs.half, severityOf(value))
-                                row == guideRow -> Cell(glyphs.guide, Severity.CHROME)
-                                else -> Cell(' ', Severity.CHROME)
+                                filled >= full -> {
+                                    Cell(glyphs.bar, severityOf(value))
+                                }
+
+                                glyphs.half != '.' && filled >= full - 1 && filled > 0 -> {
+                                    Cell(
+                                        glyphs.half,
+                                        severityOf(value),
+                                    )
+                                }
+
+                                row == guideRow -> {
+                                    Cell(glyphs.guide, Severity.CHROME)
+                                }
+
+                                else -> {
+                                    Cell(' ', Severity.CHROME)
+                                }
                             }
                         }
                     }
@@ -152,7 +168,11 @@ fun chart(
             head + body
         }
 
-    val axis = text("0".padStart(LABEL_WIDTH) + " " + glyphs.corner + glyphs.axis.toString().repeat(values.size), Severity.CHROME)
+    val axis =
+        text(
+            "0".padStart(LABEL_WIDTH) + " " + glyphs.corner + glyphs.axis.toString().repeat(values.size),
+            Severity.CHROME,
+        )
 
     return rows + listOf(axis)
 }

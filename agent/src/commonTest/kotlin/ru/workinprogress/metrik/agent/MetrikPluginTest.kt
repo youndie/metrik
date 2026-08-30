@@ -32,7 +32,8 @@ private class RecordingSender(
 }
 
 class MetrikPluginTest {
-    private fun frames(sender: RecordingSender): List<Frame> = sender.packets.map { MetrikJson.decodeFromString<Frame>(it) }
+    private fun frames(sender: RecordingSender): List<Frame> =
+        sender.packets.map { MetrikJson.decodeFromString<Frame>(it) }
 
     /**
      * Ждёт, пока в отправленных окнах наберётся нужное число запросов по [route].

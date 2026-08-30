@@ -20,7 +20,15 @@ class SeriesTest {
         at: Long,
         p95: Double,
         partial: Boolean = false,
-    ) = TimePoint(at = at, requestsPerSecond = 1.0, errorRate = 0.0, p50Ms = p95 / 2, p95Ms = p95, maxMs = p95.toLong(), partial = partial)
+    ) = TimePoint(
+        at = at,
+        requestsPerSecond = 1.0,
+        errorRate = 0.0,
+        p50Ms = p95 / 2,
+        p95Ms = p95,
+        maxMs = p95.toLong(),
+        partial = partial,
+    )
 
     @Test
     fun `minutes nobody reported become gaps`() {
