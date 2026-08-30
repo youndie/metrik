@@ -58,7 +58,8 @@ class UdpSender(
 
     // Имя разрешается здесь, а не в конструкторе: сокет пересоздаётся после ошибки, и переехавший
     // под metrik должен подхватываться новым адресом, а не старым закешированным.
-    private suspend fun connect(): ConnectedDatagramSocket = aSocket(selector).udp().connect(InetSocketAddress(resolveHost(host), port))
+    private suspend fun connect(): ConnectedDatagramSocket =
+        aSocket(selector).udp().connect(InetSocketAddress(resolveHost(host), port))
 
     private fun closeSocket() {
         runCatching { socket?.close() }

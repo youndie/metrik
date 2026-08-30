@@ -1,29 +1,18 @@
 plugins {
-    kotlin("multiplatform")
-    alias(libs.plugins.pluginSerialization)
-    `maven-publish`
+    id("org.jetbrains.kotlin.multiplatform")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    id("ru.workinprogress.sborka.kmp")
+    id("ru.workinprogress.sborka.lint")
+    id("ru.workinprogress.sborka.publish")
 }
 
 // :agent exposes this module through `api`, so it has to be resolvable for anyone
 // consuming the agent from a Maven repository.
-publishing {
-    repositories {
-        maven {
-            name = "wip"
-            url = uri("https://reposilite.kotlin.website/snapshots")
-            credentials {
-                username = findProperty("REPOSILITE_USER")?.toString()
-                password = findProperty("REPOSILITE_SECRET")?.toString()
-            }
-        }
-    }
-}
 
 kotlin {
     withSourcesJar()
 
     jvm()
-    jvmToolchain(25)
 
     macosArm64()
     linuxX64()

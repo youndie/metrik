@@ -57,5 +57,6 @@ class AlertsRepositoryImpl(
                     .Mute(alertsOf(serviceId), ruleId),
             ).body()
 
-    override suspend fun sendTest(): Boolean = client.post(Api.Admin.AlertsTest()).body<TestNotificationResult>().delivered
+    override suspend fun sendTest(): Boolean =
+        client.post(Api.Admin.AlertsTest()).body<TestNotificationResult>().delivered
 }

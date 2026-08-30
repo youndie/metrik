@@ -116,7 +116,11 @@ fun AlertsContent(
                 color = MaterialTheme.colorScheme.onSurface,
             )
         } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(
                         // Кулдаун — 30 минут (`AlertWorker.cooldownMs`), в подписи стояло 15.
@@ -140,14 +144,30 @@ fun AlertsContent(
 
         if (compact) {
             if (firing.isNotEmpty()) {
-                FiringRulesCard(firing, uiState.totalRules, nowMs, zone, compact = true, onMute = onMute, onUnmute = onUnmute)
+                FiringRulesCard(
+                    firing,
+                    uiState.totalRules,
+                    nowMs,
+                    zone,
+                    compact = true,
+                    onMute = onMute,
+                    onUnmute = onUnmute,
+                )
             }
             HistoryCard(uiState.history, uiState.historyError, nowMs, zone)
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xl - Spacing.xs)) {
                 Column(Modifier.weight(1.25f), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                     if (firing.isNotEmpty()) {
-                        FiringRulesCard(firing, uiState.totalRules, nowMs, zone, compact = false, onMute = onMute, onUnmute = onUnmute)
+                        FiringRulesCard(
+                            firing,
+                            uiState.totalRules,
+                            nowMs,
+                            zone,
+                            compact = false,
+                            onMute = onMute,
+                            onUnmute = onUnmute,
+                        )
                     }
                     HistoryCard(uiState.history, uiState.historyError, nowMs, zone)
                 }
@@ -212,7 +232,11 @@ private fun TestAlertButton(
             }
 
             is TestAlertState.Failed -> {
-                Text("error: ${s.message}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                Text(
+                    "error: ${s.message}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
 
             else -> {}
@@ -239,7 +263,10 @@ private fun MuteControl(
 
     when {
         muted -> {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 Text(
                     "silent until " + absoluteAgo(nowMs, mutedUntil, zone, labelToday = true),
                     style = MaterialTheme.typography.labelSmall,
@@ -255,7 +282,12 @@ private fun MuteControl(
                         .padding(horizontal = Spacing.md),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("Unmute", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = foreground)
+                    Text(
+                        "Unmute",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = foreground,
+                    )
                 }
             }
         }
@@ -274,7 +306,12 @@ private fun MuteControl(
                             }.padding(horizontal = Spacing.sm + Spacing.xs),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = foreground)
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = foreground,
+                        )
                     }
                 }
             }
@@ -290,7 +327,12 @@ private fun MuteControl(
                     .padding(horizontal = Spacing.lg),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("Mute", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = foreground)
+                Text(
+                    "Mute",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = foreground,
+                )
             }
         }
     }
@@ -317,7 +359,11 @@ private fun FiringRulesCard(
                     bottomStart = if (compact) 36.dp else 40.dp,
                 ),
             ).background(MaterialTheme.colorScheme.errorContainer)
-            .padding(horizontal = if (compact) Spacing.lg + Spacing.xs else Spacing.xl, vertical = Spacing.xl - Spacing.sm),
+            .padding(
+                horizontal = if (compact) Spacing.lg + Spacing.xs else Spacing.xl,
+                vertical =
+                    Spacing.xl - Spacing.sm,
+            ),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         if (compact) {
@@ -345,9 +391,17 @@ private fun FiringRulesCard(
         }
         firing.forEach { alert ->
             if (compact) {
-                FiringRuleRowCompact(alert, nowMs, zone, onMute = { onMute(alert, 60L) }, onUnmute = { onUnmute(alert) })
+                FiringRuleRowCompact(
+                    alert,
+                    nowMs,
+                    zone,
+                    onMute = { onMute(alert, 60L) },
+                    onUnmute = { onUnmute(alert) },
+                )
             } else {
-                FiringRuleRow(alert, nowMs, zone, onMute = { minutes -> onMute(alert, minutes) }, onUnmute = { onUnmute(alert) })
+                FiringRuleRow(alert, nowMs, zone, onMute = { minutes ->
+                    onMute(alert, minutes)
+                }, onUnmute = { onUnmute(alert) })
             }
         }
     }
@@ -425,7 +479,11 @@ private fun FiringRuleRowCompact(
             .padding(horizontal = Spacing.lg, vertical = Spacing.md + Spacing.xs),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm + Spacing.xs)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement =
+                Arrangement.spacedBy(Spacing.sm + Spacing.xs),
+        ) {
             Box(Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onErrorContainer))
             Text(
                 alert.service,
@@ -576,7 +634,12 @@ private fun HistoryRow(
 ) {
     val active = alert.state.equals("firing", ignoreCase = true)
     val dotColor = if (active) MaterialTheme.colorScheme.error else MetrikExtra.neutralDot
-    val stateBg = if (active) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+    val stateBg =
+        if (active) {
+            MaterialTheme.colorScheme.errorContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        }
     val stateFg = if (active) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
 
     Row(
@@ -725,7 +788,12 @@ private fun ThresholdCard(
 
         onAction(
             AlertsUiAction.SaveRule(
-                rule.copy(threshold = thresholdValue, minCount = minCountValue, windows = windowsValue, enabled = enabled),
+                rule.copy(
+                    threshold = thresholdValue,
+                    minCount = minCountValue,
+                    windows = windowsValue,
+                    enabled = enabled,
+                ),
             ),
         )
     }
@@ -792,16 +860,39 @@ private fun ThresholdCard(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            ThresholdInputField("THRESHOLD", thresholdText, { thresholdText = it }, fieldBg, fg, dim, Modifier.weight(1f))
-            ThresholdInputField("WINDOWS", windowsText, { windowsText = it }, fieldBg, fg, dim, Modifier.weight(1f), integer = true)
-            ThresholdInputField("MIN COUNT", minCountText, { minCountText = it }, fieldBg, fg, dim, Modifier.weight(1f), integer = true)
+            ThresholdInputField(
+                "THRESHOLD",
+                thresholdText,
+                { thresholdText = it },
+                fieldBg,
+                fg,
+                dim,
+                Modifier.weight(1f),
+            )
+            ThresholdInputField(
+                "WINDOWS",
+                windowsText,
+                { windowsText = it },
+                fieldBg,
+                fg,
+                dim,
+                Modifier.weight(1f),
+                integer = true,
+            )
+            ThresholdInputField("MIN COUNT", minCountText, {
+                minCountText = it
+            }, fieldBg, fg, dim, Modifier.weight(1f), integer = true)
         }
 
         if (shownError != null) {
             Text(shownError, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             MuteControl(
                 mutedUntil = rule.mutedUntil,
                 nowMs = nowMs,
@@ -857,7 +948,10 @@ private fun ThresholdInputField(
                     fontWeight = FontWeight.SemiBold,
                     color = foreground,
                 ),
-            keyboardOptions = KeyboardOptions(keyboardType = if (integer) KeyboardType.Number else KeyboardType.Decimal),
+            keyboardOptions =
+                KeyboardOptions(
+                    keyboardType = if (integer) KeyboardType.Number else KeyboardType.Decimal,
+                ),
             cursorBrush = SolidColor(foreground),
             modifier = Modifier.fillMaxWidth(),
         )

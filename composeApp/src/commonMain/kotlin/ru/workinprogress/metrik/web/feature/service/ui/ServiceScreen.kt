@@ -179,7 +179,10 @@ fun ServiceContent(
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         if (compact) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
                 Box(
                     Modifier
                         .size(40.dp)
@@ -188,7 +191,11 @@ fun ServiceContent(
                         .clickable(onClick = onBack),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("←", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "←",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 Text(
                     service?.name.orEmpty(),
@@ -209,7 +216,11 @@ fun ServiceContent(
             }
             RangeSelector(uiState.range, onRange, Modifier.fillMaxWidth())
         } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
                 // weight(1f) обязателен: без него длинное имя сервиса занимает всю ширину по
                 // своему размеру и выдавливает правую колонку за край окна.
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -265,7 +276,10 @@ private fun RemoveFromMonitoring(
 ) {
     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         if (uiState.deleteRequested) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 Text(
                     "Delete it along with all its history?",
                     style = MaterialTheme.typography.labelMedium,
@@ -295,7 +309,11 @@ private fun RemoveFromMonitoring(
                         .padding(horizontal = Spacing.md),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("Cancel", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Cancel",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         } else {
@@ -316,7 +334,11 @@ private fun RemoveFromMonitoring(
         }
 
         if (uiState.deleteError != null) {
-            Text(uiState.deleteError, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            Text(
+                uiState.deleteError,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+            )
         }
     }
 }
@@ -399,7 +421,11 @@ private fun ChartsTab(
                 .padding(horizontal = Spacing.xl, vertical = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                     Text(
                         "REQUESTS PER SECOND",
@@ -407,7 +433,10 @@ private fun ChartsTab(
                         fontFamily = MetrikMono,
                         color = MaterialTheme.colorScheme.outline,
                     )
-                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
                         Text(
                             lastRps?.let { format(it) } ?: "—",
                             style = MaterialTheme.typography.displayMedium,
@@ -548,7 +577,11 @@ private fun SmallMetricChart(
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
                 title,
                 style = MaterialTheme.typography.labelSmall,
@@ -561,7 +594,11 @@ private fun SmallMetricChart(
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     .padding(horizontal = 8.dp, vertical = 2.dp),
             ) {
-                Text(badge, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    badge,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -754,7 +791,14 @@ private fun RouteCardItem(
             warn -> MaterialTheme.colorScheme.onTertiaryContainer
             else -> MetrikExtra.onHealthyContainer
         }
-    val methodBg = if (row.method == "POST") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+    val methodBg =
+        if (row.method ==
+            "POST"
+        ) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.secondaryContainer
+        }
     val methodFg =
         if (row.method == "POST") {
             MaterialTheme.colorScheme.onPrimaryContainer
@@ -778,7 +822,11 @@ private fun RouteCardItem(
         // Первая строка — метод и маршрут, как требует задание.
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Box(
-                Modifier.clip(RoundedCornerShape(8.dp)).background(methodBg).padding(horizontal = 9.dp, vertical = 3.dp),
+                Modifier
+                    .clip(
+                        RoundedCornerShape(8.dp),
+                    ).background(methodBg)
+                    .padding(horizontal = 9.dp, vertical = 3.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -801,7 +849,13 @@ private fun RouteCardItem(
         }
         // Вторая строка — статус и цифры (кол-во, p50, max), как требует задание.
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Box(Modifier.clip(RoundedCornerShape(9.dp)).background(statusBg).padding(horizontal = 10.dp, vertical = 3.dp)) {
+            Box(
+                Modifier
+                    .clip(
+                        RoundedCornerShape(9.dp),
+                    ).background(statusBg)
+                    .padding(horizontal = 10.dp, vertical = 3.dp),
+            ) {
                 Text(
                     row.status.toString(),
                     style = MaterialTheme.typography.labelMedium,
@@ -868,10 +922,26 @@ private fun routeRowShape(
     size: Int,
 ): Shape =
     when {
-        size == 1 -> RoundedCornerShape(16.dp)
-        index == 0 -> RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
-        index == size - 1 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 26.dp, bottomEnd = 26.dp)
-        else -> RoundedCornerShape(12.dp)
+        size == 1 -> {
+            RoundedCornerShape(16.dp)
+        }
+
+        index == 0 -> {
+            RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
+        }
+
+        index == size - 1 -> {
+            RoundedCornerShape(
+                topStart = 12.dp,
+                topEnd = 12.dp,
+                bottomStart = 26.dp,
+                bottomEnd = 26.dp,
+            )
+        }
+
+        else -> {
+            RoundedCornerShape(12.dp)
+        }
     }
 
 @Composable
@@ -926,7 +996,14 @@ private fun RouteRowItem(
             warn -> MaterialTheme.colorScheme.onTertiaryContainer
             else -> MetrikExtra.onHealthyContainer
         }
-    val methodBg = if (row.method == "POST") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+    val methodBg =
+        if (row.method ==
+            "POST"
+        ) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.secondaryContainer
+        }
     val methodFg =
         if (row.method == "POST") {
             MaterialTheme.colorScheme.onPrimaryContainer
@@ -955,7 +1032,11 @@ private fun RouteRowItem(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                Modifier.clip(RoundedCornerShape(8.dp)).background(methodBg).padding(horizontal = 9.dp, vertical = 3.dp),
+                Modifier
+                    .clip(
+                        RoundedCornerShape(8.dp),
+                    ).background(methodBg)
+                    .padding(horizontal = 9.dp, vertical = 3.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -970,7 +1051,11 @@ private fun RouteRowItem(
         }
         Box(Modifier.weight(0.7f)) {
             Box(
-                Modifier.clip(RoundedCornerShape(9.dp)).background(statusBg).padding(horizontal = 10.dp, vertical = 3.dp),
+                Modifier
+                    .clip(
+                        RoundedCornerShape(9.dp),
+                    ).background(statusBg)
+                    .padding(horizontal = 10.dp, vertical = 3.dp),
             ) {
                 Text(
                     row.status.toString(),
@@ -1105,7 +1190,14 @@ private fun SlowRowItem(
             row.status >= 400 -> MaterialTheme.colorScheme.onTertiaryContainer
             else -> MetrikExtra.onHealthyContainer
         }
-    val methodBg = if (row.method == "POST") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+    val methodBg =
+        if (row.method ==
+            "POST"
+        ) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.secondaryContainer
+        }
     val methodFg =
         if (row.method == "POST") {
             MaterialTheme.colorScheme.onPrimaryContainer
@@ -1128,8 +1220,17 @@ private fun SlowRowItem(
         if (compact) {
             // На узкой ширине метод+маршрут и статус+время не помещаются в одну строку без
             // обрезания — разносим на две, порядок элементов внутри строк тот же, что на десктопе.
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(methodBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Box(
+                    Modifier
+                        .clip(
+                            RoundedCornerShape(8.dp),
+                        ).background(methodBg)
+                        .padding(horizontal = 9.dp, vertical = 3.dp),
+                ) {
                     Text(
                         row.method,
                         style = MaterialTheme.typography.labelSmall,
@@ -1148,8 +1249,17 @@ private fun SlowRowItem(
                     modifier = Modifier.weight(1f),
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(statusBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Box(
+                    Modifier
+                        .clip(
+                            RoundedCornerShape(8.dp),
+                        ).background(statusBg)
+                        .padding(horizontal = 9.dp, vertical = 3.dp),
+                ) {
                     Text(
                         row.status.toString(),
                         style = MaterialTheme.typography.labelSmall,
@@ -1171,7 +1281,13 @@ private fun SlowRowItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(methodBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
+                Box(
+                    Modifier
+                        .clip(
+                            RoundedCornerShape(8.dp),
+                        ).background(methodBg)
+                        .padding(horizontal = 9.dp, vertical = 3.dp),
+                ) {
                     Text(
                         row.method,
                         style = MaterialTheme.typography.labelSmall,
@@ -1187,7 +1303,13 @@ private fun SlowRowItem(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
-                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(statusBg).padding(horizontal = 9.dp, vertical = 3.dp)) {
+                Box(
+                    Modifier
+                        .clip(
+                            RoundedCornerShape(8.dp),
+                        ).background(statusBg)
+                        .padding(horizontal = 9.dp, vertical = 3.dp),
+                ) {
                     Text(
                         row.status.toString(),
                         style = MaterialTheme.typography.labelSmall,
@@ -1271,7 +1393,14 @@ private fun InstanceCard(
     val usedMb = last.heapUsedBytes / 1024 / 1024
     // Долю от лимита рисуем только для JVM: у нативного процесса heapMaxBytes — это лимит cgroup,
     // а доля RSS от лимита контейнера и «сколько занято в heap» отвечают на разные вопросы.
-    val ratio = if (jvm) last.heapMaxBytes?.let { max -> (last.heapUsedBytes.toFloat() / max).coerceIn(0f, 1f) } else null
+    val ratio =
+        if (jvm) {
+            last.heapMaxBytes?.let { max ->
+                (last.heapUsedBytes.toFloat() / max).coerceIn(0f, 1f)
+            }
+        } else {
+            null
+        }
     val hot = ratio != null && ratio > 0.85f
     val memColor = if (hot) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
     val memLabel =
@@ -1289,8 +1418,18 @@ private fun InstanceCard(
             ServiceRuntime.JVM -> "JVM"
             ServiceRuntime.UNKNOWN -> "runtime unknown"
         }
-    val kindBg = if (native) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.secondaryContainer
-    val kindFg = if (native) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
+    val kindBg =
+        if (native) {
+            MaterialTheme.colorScheme.tertiaryContainer
+        } else {
+            MaterialTheme.colorScheme.secondaryContainer
+        }
+    val kindFg =
+        if (native) {
+            MaterialTheme.colorScheme.onTertiaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        }
     val gcMissing = last.gcCollections == null
 
     Column(
@@ -1314,16 +1453,33 @@ private fun InstanceCard(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
-            Box(Modifier.clip(RoundedCornerShape(9.dp)).background(kindBg).padding(horizontal = 10.dp, vertical = 3.dp)) {
-                Text(kindLabel, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = kindFg)
+            Box(
+                Modifier.clip(RoundedCornerShape(9.dp)).background(kindBg).padding(horizontal = 10.dp, vertical = 3.dp),
+            ) {
+                Text(
+                    kindLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = kindFg,
+                )
             }
         }
 
         val memInfo: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Text("$usedMb MB", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = memColor)
-                    Text(memLabel, style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = MetrikExtra.dim)
+                    Text(
+                        "$usedMb MB",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = memColor,
+                    )
+                    Text(
+                        memLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = MetrikMono,
+                        color = MetrikExtra.dim,
+                    )
                 }
                 if (ratio != null) {
                     Box(
@@ -1373,7 +1529,10 @@ private fun InstanceCard(
                 )
             }
         } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Box(Modifier.weight(1f)) { memInfo() }
                 Sparkline(
                     memSparkline,
@@ -1390,8 +1549,18 @@ private fun InstanceCard(
                 "GC",
                 if (gcMissing) "no data" else last.gcCollections.toString(),
                 Modifier.weight(1.4f),
-                background = if (gcMissing) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-                foreground = if (gcMissing) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,
+                background =
+                    if (gcMissing) {
+                        MaterialTheme.colorScheme.tertiaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainer
+                    },
+                foreground =
+                    if (gcMissing) {
+                        MaterialTheme.colorScheme.onTertiaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                 labelColor = if (gcMissing) MaterialTheme.colorScheme.onTertiaryContainer else MetrikExtra.dim,
             )
         }

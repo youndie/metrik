@@ -109,7 +109,13 @@ private fun BottomNavItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Box(Modifier.size(12.dp).clip(dotShape).background(if (active) activeFg else MaterialTheme.colorScheme.onSurfaceVariant))
+            Box(
+                Modifier
+                    .size(
+                        12.dp,
+                    ).clip(dotShape)
+                    .background(if (active) activeFg else MaterialTheme.colorScheme.onSurfaceVariant),
+            )
             Spacer(Modifier.height(3.dp))
             Text(
                 label,

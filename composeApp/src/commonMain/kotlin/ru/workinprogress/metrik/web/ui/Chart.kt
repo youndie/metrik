@@ -217,7 +217,11 @@ private fun DrawScope.drawSeries(
         areaPath.close()
 
         drawPath(areaPath, brush = fillBrush)
-        drawPath(linePath, color = color, style = Stroke(width = 5f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+        drawPath(
+            linePath,
+            color = color,
+            style = Stroke(width = 5f, cap = androidx.compose.ui.graphics.StrokeCap.Round),
+        )
     }
 
     points.forEach { point ->

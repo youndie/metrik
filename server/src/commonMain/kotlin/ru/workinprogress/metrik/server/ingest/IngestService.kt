@@ -74,7 +74,8 @@ class IngestService(
             }
         }
 
-    private suspend fun TransactionContext.rows(statement: Statement): List<ResultSet.Row> = fetchAll(statement).getOrThrow().rows
+    private suspend fun TransactionContext.rows(statement: Statement): List<ResultSet.Row> =
+        fetchAll(statement).getOrThrow().rows
 
     private suspend fun TransactionContext.upsertService(
         name: String,

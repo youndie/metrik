@@ -8,5 +8,6 @@ import ru.workinprogress.metrik.web.core.domain.suspendRunCatching
 class GetAlertHistoryUseCase(
     private val alertsRepository: AlertsRepository,
 ) : UseCase<NoParams, List<AlertView>> {
-    override suspend fun invoke(params: NoParams): Result<List<AlertView>> = suspendRunCatching { alertsRepository.history() }
+    override suspend fun invoke(params: NoParams): Result<List<AlertView>> =
+        suspendRunCatching { alertsRepository.history() }
 }

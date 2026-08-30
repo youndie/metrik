@@ -84,7 +84,8 @@ class MetrikClient(
         limit: Int,
     ): List<RouteRow> = decode(call("server_errors", window(service, from, to) + ("limit" to limit)))
 
-    suspend fun alertRules(service: String): List<AlertRuleView> = decode(call("alert_rules", mapOf("service" to service)))
+    suspend fun alertRules(service: String): List<AlertRuleView> =
+        decode(call("alert_rules", mapOf("service" to service)))
 
     suspend fun deploys(
         service: String,

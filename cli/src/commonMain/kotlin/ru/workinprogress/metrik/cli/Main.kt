@@ -82,7 +82,20 @@ private suspend fun renderApp(
     config: CliConfig,
     startService: String?,
 ) = runMosaic {
-    var state by remember { mutableStateOf(UiState(screen = if (startService != null) Screen.DETAIL else Screen.SERVICES)) }
+    var state by remember {
+        mutableStateOf(
+            UiState(
+                screen =
+                    if (startService !=
+                        null
+                    ) {
+                        Screen.DETAIL
+                    } else {
+                        Screen.SERVICES
+                    },
+            ),
+        )
+    }
     var reload by remember { mutableStateOf(0) }
     var quit by remember { mutableStateOf(false) }
     var opened by remember { mutableStateOf(startService) }

@@ -184,4 +184,5 @@ class AlertEvaluator(
     }
 }
 
-private fun io.github.smyrgeorge.sqlx4k.ResultSet.Row.Column.asDoubleOrNull(): Double? = asStringOrNull()?.toDoubleOrNull()
+private fun io.github.smyrgeorge.sqlx4k.ResultSet.Row.Column.asDoubleOrNull(): Double? =
+    asStringOrNull()?.toDoubleOrNull()

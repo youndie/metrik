@@ -47,7 +47,12 @@ fun RangeSelector(
                     range.label,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                    color = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color =
+                        if (active) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                 )
             }
         }

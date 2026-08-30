@@ -1,9 +1,14 @@
 plugins {
-    kotlin("jvm")
+    id("org.jetbrains.kotlin.jvm")
+    id("ru.workinprogress.sborka.jvm")
+    id("ru.workinprogress.sborka.lint")
     application
 }
 
-kotlin { jvmToolchain(25) }
+// A SAMPLE, not a library.
+kotlin {
+    explicitApi = null
+}
 
 application { mainClass.set("ru.workinprogress.metrik.sample.MainKt") }
 

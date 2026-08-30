@@ -61,7 +61,8 @@ fun splitWindow(
         val last = plans.last()
         val withSlow = PacketPlan(last.routes, last.system, slow)
 
-        if (sizeOf(frameOf(header, withSlow, PROBE_PACKET_INDEX, PROBE_PACKET_COUNT, includeRelease = true)) <= maxPacketBytes ||
+        if (sizeOf(frameOf(header, withSlow, PROBE_PACKET_INDEX, PROBE_PACKET_COUNT, includeRelease = true)) <=
+            maxPacketBytes ||
             last.routes.isEmpty()
         ) {
             plans[plans.lastIndex] = withSlow

@@ -9,7 +9,14 @@ class GetTimeSeriesUseCase(
     private val serviceMetricsRepository: ServiceMetricsRepository,
 ) : UseCase<GetTimeSeriesUseCase.Params, TimeSeries> {
     override suspend fun invoke(params: Params): Result<TimeSeries> =
-        suspendRunCatching { serviceMetricsRepository.timeSeries(params.serviceId, params.from, params.to, params.step) }
+        suspendRunCatching {
+            serviceMetricsRepository.timeSeries(
+                params.serviceId,
+                params.from,
+                params.to,
+                params.step,
+            )
+        }
 
     class Params(
         val serviceId: Long,

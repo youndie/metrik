@@ -1,23 +1,19 @@
-import org.jlleitschuh.gradle.ktlint.KtlintExtension
-
 plugins {
+    // Declared here with `apply false` so the versions are named once and the modules ask by bare id.
+    // Asking for a version in a module as well is refused when the root applies a plugin from the
+    // same jar: "plugin is already on the classpath with an unknown version".
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.pluginSerialization) apply false
-    alias(libs.plugins.ktlintPlugin)
+    alias(libs.plugins.composeMultiplatform) apply false
+    alias(libs.plugins.composeCompiler) apply false
+    alias(libs.plugins.sborkaKmp) apply false
+    alias(libs.plugins.sborkaJvm) apply false
+    alias(libs.plugins.sborkaLint) apply false
+    alias(libs.plugins.sborkaPublish) apply false
 }
 
-// Значение читается здесь: внутри subprojects { } аксессор `libs` не виден.
-val ktlintVersion = libs.versions.ktlint.get()
-
-subprojects {
-    apply(plugin = "org.jlleitschuh.gradle.ktlint")
-
-    version = libVersion()
-    group = "ru.workinprogress.metrik"
-
-    configure<KtlintExtension> {
-        version.set(ktlintVersion)
-    }
-}
-
-fun Project.libVersion(): String = findProperty("VERSION")?.toString() ?: ("0.1." + (findProperty("BUILD_NUMBER") ?: "snapshot"))
+// The group, the version and the ktlint wiring used to be handed out from a `subprojects { }` block
+// here, and `libVersion()` composed `0.1.<BUILD_NUMBER>` at the bottom of the file. All of it is
+// `gradle.properties` now — `sborka.group` and `version` — applied per module by
+// `ru.workinprogress.sborka.base`. CI passes the composed number as `-PVERSION`, which is the same
+// scheme with one property fewer.

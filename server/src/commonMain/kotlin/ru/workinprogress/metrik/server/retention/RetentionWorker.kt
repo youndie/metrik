@@ -160,7 +160,10 @@ class RetentionWorker(
         delete("DELETE FROM window_receipts WHERE window_start < :t", now - minuteRetentionMs)
         delete("DELETE FROM system_windows WHERE window_start < :t", now - minuteRetentionMs)
         delete("DELETE FROM slow_samples WHERE ts < :t", now - slowRetentionMs)
-        delete("DELETE FROM route_rollups WHERE granularity = '$GRANULARITY_HOUR' AND bucket_start < :t", now - hourRetentionMs)
+        delete(
+            "DELETE FROM route_rollups WHERE granularity = '$GRANULARITY_HOUR' AND bucket_start < :t",
+            now - hourRetentionMs,
+        )
 
         // Инстансы в k8s пересоздаются каждый выкат: без уборки их список растёт линейно по деплоям
         // и ничего не сообщает.

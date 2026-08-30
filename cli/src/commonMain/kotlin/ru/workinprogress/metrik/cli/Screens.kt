@@ -132,7 +132,11 @@ fun servicesRows(state: UiState): Pair<List<List<Cell>>, Int> {
         rows += row("firing:")
         firing.forEach { alert ->
             val muted = alert.mutedUntil?.let { " (muted, still firing)" }.orEmpty()
-            rows += row("  " + column(alert.service, 22) + column(alert.ruleId, 14) + ago(alert.since) + muted, Severity.HIGH)
+            rows +=
+                row(
+                    "  " + column(alert.service, 22) + column(alert.ruleId, 14) + ago(alert.since) + muted,
+                    Severity.HIGH,
+                )
         }
     }
 
