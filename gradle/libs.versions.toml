@@ -2,7 +2,7 @@
 # The shared build conventions. One number: every sborka plugin below takes its version from here.
 sborka = "0.1.0.13"
 kotlin = "2.4.10"
-composeMultiplatform = "1.11.1"
+composeMultiplatform = "1.12.0"
 kotlinxCoroutines = "1.11.0"
 kotlinxSerializationJson = "1.11.0"
 kotlinxDatetime = "0.8.0"
