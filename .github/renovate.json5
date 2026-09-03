@@ -66,6 +66,15 @@
       allowedVersions: "!/-compat$/",
     },
     {
+      // The build conventions are one release published under two names: the catalog entry
+      // `sborka` (the plugin coordinates) and the settings plugin id resolved in
+      // settings.gradle.kts. Without this they arrive as two pull requests for one number, which
+      // is what happens today in the repositories that migrated first — and, until now, here.
+      description: "sborka is one release, not one release per place it is named",
+      matchPackageNames: ["/^ru\\.workinprogress\\.sborka/"],
+      groupName: "sborka",
+    },
+    {
       description: "Compose Multiplatform and everything that releases with it (lifecycle, navigation3)",
       matchPackageNames: [
         "/^org\\.jetbrains\\.compose[:.]/",
@@ -86,7 +95,9 @@
     {
       description: "ktlint is build tooling, not a runtime dependency",
       matchPackageNames: [
-        "/^org\\.jlleitschuh\\.gradle\\.ktlint[:.]/",
+        // The plugin is named by its bare id, with nothing after it — a pattern that demands a
+        // `:` or a `.` next matches the coordinate and misses the plugin entirely.
+        "org.jlleitschuh.gradle.ktlint",
         "/^com\\.pinterest\\.ktlint[:.]/",
       ],
       matchUpdateTypes: ["minor", "patch"],
