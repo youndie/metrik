@@ -19,7 +19,7 @@ plugins {
     // mavenCentral() and google() with their content filters — Compose Multiplatform pulls
     // androidx.lifecycle and androidx.savedstate, which are not in Central — plus the shared `wip`
     // catalog and the check that this repository's `.editorconfig` is the one the rest of them use.
-    id("ru.workinprogress.sborka.settings") version "0.1.0.13"
+    id("ru.workinprogress.sborka.settings") version "0.2.0.30"
 }
 
 dependencyResolutionManagement {
