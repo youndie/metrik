@@ -10,7 +10,7 @@ owner: unassigned
 depends_on:
   - metrik-server
 publishes:
-  - ru.workinprogress.metrik:agent
+  - io.github.youndie.metrik:agent
 ---
 
 # metrik-agent

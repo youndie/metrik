@@ -31,6 +31,10 @@ jobs:
         run: |
           ./gradlew :shared:publishAllPublicationsToWipRepository :agent:publishAllPublicationsToWipRepository --no-daemon
         env:
-          ORG_GRADLE_PROJECT_BUILD_NUMBER: ${{ github.run_number }}
+          # The head of the version, and it is also written in gradle.properties — the two move
+          # together. This line used to be ORG_GRADLE_PROJECT_BUILD_NUMBER, a name nothing reads
+          # since `libVersion()` was deleted, so every run here published the fallback
+          # `0.1.0-SNAPSHOT` instead of a numbered version.
+          ORG_GRADLE_PROJECT_VERSION: 0.2.${{ github.run_number }}
           ORG_GRADLE_PROJECT_REPOSILITE_USER: ${{ secrets.REPOSILITE_USER }}
           ORG_GRADLE_PROJECT_REPOSILITE_SECRET: ${{ secrets.REPOSILITE_SECRET }}
