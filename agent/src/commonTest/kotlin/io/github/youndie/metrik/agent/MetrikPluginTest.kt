@@ -1,5 +1,8 @@
 package io.github.youndie.metrik.agent
 
+import io.github.youndie.metrik.wire.Frame
+import io.github.youndie.metrik.wire.MetrikJson
+import io.github.youndie.metrik.wire.RouteSeries
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
@@ -11,9 +14,6 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
-import io.github.youndie.metrik.wire.Frame
-import io.github.youndie.metrik.wire.MetrikJson
-import io.github.youndie.metrik.wire.RouteSeries
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

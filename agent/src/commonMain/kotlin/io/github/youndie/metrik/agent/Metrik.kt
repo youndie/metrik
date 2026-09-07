@@ -1,5 +1,8 @@
 package io.github.youndie.metrik.agent
 
+import io.github.youndie.metrik.wire.DEFAULT_WINDOW_MS
+import io.github.youndie.metrik.wire.STATUS_NO_RESPONSE
+import io.github.youndie.metrik.wire.encodeStatus
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.ApplicationStopping
 import io.ktor.server.application.createApplicationPlugin
@@ -9,9 +12,6 @@ import io.ktor.server.application.hooks.MonitoringEvent
 import io.ktor.server.application.hooks.ResponseSent
 import io.ktor.server.routing.RoutingRoot
 import io.ktor.util.AttributeKey
-import io.github.youndie.metrik.wire.DEFAULT_WINDOW_MS
-import io.github.youndie.metrik.wire.STATUS_NO_RESPONSE
-import io.github.youndie.metrik.wire.encodeStatus
 import kotlin.time.TimeSource
 
 /**

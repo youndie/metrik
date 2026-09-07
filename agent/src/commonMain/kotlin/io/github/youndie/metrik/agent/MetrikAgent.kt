@@ -1,5 +1,7 @@
 package io.github.youndie.metrik.agent
 
+import io.github.youndie.metrik.wire.WindowHeader
+import io.github.youndie.metrik.wire.splitWindow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Job
@@ -12,8 +14,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
-import io.github.youndie.metrik.wire.WindowHeader
-import io.github.youndie.metrik.wire.splitWindow
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.concurrent.atomics.fetchAndIncrement

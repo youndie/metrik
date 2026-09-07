@@ -2,11 +2,6 @@ package io.github.youndie.metrik.web.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import io.github.youndie.metrik.api.ServiceSummary
 import io.github.youndie.metrik.api.isFiring
 import io.github.youndie.metrik.web.core.domain.NoParams
@@ -14,6 +9,11 @@ import io.github.youndie.metrik.web.core.domain.REFRESH_MS
 import io.github.youndie.metrik.web.core.domain.TimeSource
 import io.github.youndie.metrik.web.feature.alerts.domain.GetActiveAlertsUseCase
 import io.github.youndie.metrik.web.feature.services.domain.GetServicesUseCase
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * Состояние оболочки приложения: то, что видно на любом маршруте — список сервисов в рельсе,

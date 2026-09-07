@@ -1,10 +1,10 @@
 package io.github.youndie.metrik.web.core
 
+import io.github.youndie.metrik.web.core.domain.TimeSource
+import io.github.youndie.metrik.web.ui.AppShellViewModel
 import io.ktor.client.HttpClient
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
-import io.github.youndie.metrik.web.core.domain.TimeSource
-import io.github.youndie.metrik.web.ui.AppShellViewModel
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 

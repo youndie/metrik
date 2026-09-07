@@ -1,12 +1,12 @@
 package io.github.youndie.metrik.web.feature.services.data
 
+import io.github.youndie.metrik.api.Api
+import io.github.youndie.metrik.api.ServiceSummary
+import io.github.youndie.metrik.web.feature.services.domain.ServicesRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.delete
 import io.ktor.client.plugins.resources.get
-import io.github.youndie.metrik.api.Api
-import io.github.youndie.metrik.api.ServiceSummary
-import io.github.youndie.metrik.web.feature.services.domain.ServicesRepository
 
 class ServicesRepositoryImpl(
     private val client: HttpClient,

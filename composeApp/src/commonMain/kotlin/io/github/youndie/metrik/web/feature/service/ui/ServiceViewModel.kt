@@ -2,14 +2,6 @@ package io.github.youndie.metrik.web.feature.service.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import io.github.youndie.metrik.api.RouteRow
 import io.github.youndie.metrik.api.ServiceSummary
 import io.github.youndie.metrik.api.SlowRow
@@ -24,6 +16,14 @@ import io.github.youndie.metrik.web.feature.service.domain.GetSystemPointsUseCas
 import io.github.youndie.metrik.web.feature.service.domain.GetTimeSeriesUseCase
 import io.github.youndie.metrik.web.feature.services.domain.DeleteServiceUseCase
 import io.github.youndie.metrik.web.feature.services.domain.GetServicesUseCase
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /** Вкладки экрана сервиса. Порядок совпадает с макетом. */
 enum class ServiceTab(

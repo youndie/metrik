@@ -3,6 +3,8 @@ package io.github.youndie.metrik.server.retention
 import io.github.smyrgeorge.sqlx4k.Statement
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asLong
 import io.github.smyrgeorge.sqlx4k.sqlite.ISQLite
+import io.github.youndie.metrik.wire.Histogram
+import io.github.youndie.metrik.wire.MetrikJson
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -10,8 +12,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import io.github.youndie.metrik.wire.Histogram
-import io.github.youndie.metrik.wire.MetrikJson
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 

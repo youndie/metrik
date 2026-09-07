@@ -1,12 +1,12 @@
 package io.github.youndie.metrik.web.core.data
 
+import io.github.youndie.metrik.wire.MetrikJson
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
-import io.github.youndie.metrik.wire.MetrikJson
 
 /**
  * HTTP-клиент к metrik-server.

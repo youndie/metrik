@@ -2,10 +2,6 @@ package io.github.youndie.metrik.server.ingest
 
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asLong
 import io.github.smyrgeorge.sqlx4k.sqlite.ISQLite
-import kotlinx.coroutines.test.runTest
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.SYSTEM
 import io.github.youndie.metrik.server.openDatabase
 import io.github.youndie.metrik.wire.Frame
 import io.github.youndie.metrik.wire.Histogram
@@ -14,6 +10,10 @@ import io.github.youndie.metrik.wire.RouteSeries
 import io.github.youndie.metrik.wire.SlowSample
 import io.github.youndie.metrik.wire.SystemSnapshot
 import io.github.youndie.metrik.wire.encodeStatus
+import kotlinx.coroutines.test.runTest
+import okio.FileSystem
+import okio.Path.Companion.toPath
+import okio.SYSTEM
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals

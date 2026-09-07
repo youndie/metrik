@@ -18,10 +18,10 @@ import androidx.compose.ui.unit.sp
 import com.materialkolor.Contrast
 import com.materialkolor.DynamicMaterialTheme
 import com.materialkolor.PaletteStyle
-import org.jetbrains.compose.resources.Font
 import io.github.youndie.metrik.web.generated.resources.Res
 import io.github.youndie.metrik.web.generated.resources.RobotoFlex
 import io.github.youndie.metrik.web.generated.resources.RobotoMono
+import org.jetbrains.compose.resources.Font
 
 /**
  * Seed-цвет светлой темы — приглушённый стальной синий.

@@ -1,5 +1,7 @@
 package io.github.youndie.metrik.server.mcp
 
+import io.github.youndie.metrik.api.Step
+import io.github.youndie.metrik.wire.MetrikJson
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequest
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
@@ -11,8 +13,6 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
-import io.github.youndie.metrik.api.Step
-import io.github.youndie.metrik.wire.MetrikJson
 
 /** Сколько строк максимум отдаёт один инструмент. Больше агенту всё равно нечем распорядиться. */
 private const val DEFAULT_LIMIT = 20

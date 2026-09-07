@@ -42,9 +42,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
-import kotlinx.datetime.TimeZone
-import org.koin.compose.viewmodel.koinViewModel
 import io.github.youndie.metrik.api.AlertView
 import io.github.youndie.metrik.api.DeployMarker
 import io.github.youndie.metrik.api.RouteRow
@@ -72,6 +69,9 @@ import io.github.youndie.metrik.web.ui.format
 import io.github.youndie.metrik.web.ui.plural
 import io.github.youndie.metrik.web.ui.statusColor
 import io.github.youndie.metrik.web.ui.toChart
+import kotlinx.coroutines.delay
+import kotlinx.datetime.TimeZone
+import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
 
 @Composable

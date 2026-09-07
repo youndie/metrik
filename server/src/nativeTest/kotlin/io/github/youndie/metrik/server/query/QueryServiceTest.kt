@@ -1,10 +1,6 @@
 package io.github.youndie.metrik.server.query
 
 import io.github.smyrgeorge.sqlx4k.Statement
-import kotlinx.coroutines.test.runTest
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.SYSTEM
 import io.github.youndie.metrik.api.Step
 import io.github.youndie.metrik.server.alert.ALERT_STATE_FIRING
 import io.github.youndie.metrik.server.ingest.IngestResult
@@ -16,6 +12,10 @@ import io.github.youndie.metrik.wire.MetrikJson
 import io.github.youndie.metrik.wire.RouteSeries
 import io.github.youndie.metrik.wire.SlowSample
 import io.github.youndie.metrik.wire.encodeStatus
+import kotlinx.coroutines.test.runTest
+import okio.FileSystem
+import okio.Path.Companion.toPath
+import okio.SYSTEM
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals

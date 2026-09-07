@@ -33,7 +33,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.koin.compose.viewmodel.koinViewModel
 import io.github.youndie.metrik.api.AlertView
 import io.github.youndie.metrik.api.ServiceSummary
 import io.github.youndie.metrik.web.core.domain.Range
@@ -47,6 +46,7 @@ import io.github.youndie.metrik.web.ui.Spacing
 import io.github.youndie.metrik.web.ui.Sparkline
 import io.github.youndie.metrik.web.ui.format
 import io.github.youndie.metrik.web.ui.plural
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Обзор: hero горящих алертов (если есть) и сетка карточек сервисов.

@@ -1,5 +1,7 @@
 package io.github.youndie.metrik.agent
 
+import io.github.youndie.metrik.wire.Frame
+import io.github.youndie.metrik.wire.MetrikJson
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.BoundDatagramSocket
 import io.ktor.network.sockets.InetSocketAddress
@@ -13,8 +15,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import io.github.youndie.metrik.wire.Frame
-import io.github.youndie.metrik.wire.MetrikJson
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

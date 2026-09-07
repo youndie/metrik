@@ -3,24 +3,6 @@ package io.github.youndie.metrik.server
 import io.github.smyrgeorge.sqlx4k.ConnectionPool
 import io.github.smyrgeorge.sqlx4k.sqlite.ISQLite
 import io.github.smyrgeorge.sqlx4k.sqlite.sqlite
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationStopping
-import io.ktor.server.application.install
-import io.ktor.server.cio.CIO
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.resources.Resources
-import io.ktor.server.resources.get
-import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.route
-import io.ktor.server.routing.routing
-import kotlinx.coroutines.runBlocking
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.SYSTEM
 import io.github.youndie.metrik.agent.Metrik
 import io.github.youndie.metrik.agent.MetrikCountersKey
 import io.github.youndie.metrik.api.Api
@@ -44,6 +26,24 @@ import io.github.youndie.metrik.server.retention.RetentionWorker
 import io.github.youndie.metrik.server.web.WebAssets
 import io.github.youndie.metrik.server.web.webRoutes
 import io.github.youndie.metrik.wire.MetrikJson
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStopping
+import io.ktor.server.application.install
+import io.ktor.server.cio.CIO
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.resources.Resources
+import io.ktor.server.resources.get
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.route
+import io.ktor.server.routing.routing
+import kotlinx.coroutines.runBlocking
+import okio.FileSystem
+import okio.Path.Companion.toPath
+import okio.SYSTEM
 
 fun main() {
     val config = ServerConfig.fromEnv()

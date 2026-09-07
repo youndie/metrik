@@ -1,5 +1,10 @@
 package io.github.youndie.metrik.web.feature.alerts.data
 
+import io.github.youndie.metrik.api.AlertRuleView
+import io.github.youndie.metrik.api.AlertView
+import io.github.youndie.metrik.api.Api
+import io.github.youndie.metrik.api.TestNotificationResult
+import io.github.youndie.metrik.web.feature.alerts.domain.AlertsRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.delete
@@ -9,11 +14,6 @@ import io.ktor.client.plugins.resources.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import io.github.youndie.metrik.api.AlertRuleView
-import io.github.youndie.metrik.api.AlertView
-import io.github.youndie.metrik.api.Api
-import io.github.youndie.metrik.api.TestNotificationResult
-import io.github.youndie.metrik.web.feature.alerts.domain.AlertsRepository
 
 class AlertsRepositoryImpl(
     private val client: HttpClient,

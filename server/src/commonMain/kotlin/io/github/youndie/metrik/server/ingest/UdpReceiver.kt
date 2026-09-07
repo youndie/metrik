@@ -1,5 +1,6 @@
 package io.github.youndie.metrik.server.ingest
 
+import io.github.youndie.metrik.wire.MAX_PACKET_BYTES
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.aSocket
 import io.ktor.utils.io.core.readText
@@ -11,7 +12,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
-import io.github.youndie.metrik.wire.MAX_PACKET_BYTES
 
 /**
  * Слушает UDP и отдаёт содержимое датаграмм в [IngestService].

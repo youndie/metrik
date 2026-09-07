@@ -1,8 +1,5 @@
 package io.github.youndie.metrik.web.feature.service.data
 
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.plugins.resources.get
 import io.github.youndie.metrik.api.Api
 import io.github.youndie.metrik.api.RouteRow
 import io.github.youndie.metrik.api.SlowRow
@@ -10,6 +7,9 @@ import io.github.youndie.metrik.api.Step
 import io.github.youndie.metrik.api.SystemPoint
 import io.github.youndie.metrik.api.TimeSeries
 import io.github.youndie.metrik.web.feature.service.domain.ServiceMetricsRepository
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.plugins.resources.get
 
 class ServiceMetricsRepositoryImpl(
     private val client: HttpClient,

@@ -1,5 +1,10 @@
 package io.github.youndie.metrik.server.query
 
+import io.github.youndie.metrik.api.Api
+import io.github.youndie.metrik.api.Step
+import io.github.youndie.metrik.api.TestNotificationResult
+import io.github.youndie.metrik.server.ServerConfig
+import io.github.youndie.metrik.server.alert.AlertWorker
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.receive
@@ -10,11 +15,6 @@ import io.ktor.server.resources.put
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingContext
-import io.github.youndie.metrik.api.Api
-import io.github.youndie.metrik.api.Step
-import io.github.youndie.metrik.api.TestNotificationResult
-import io.github.youndie.metrik.server.ServerConfig
-import io.github.youndie.metrik.server.alert.AlertWorker
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 

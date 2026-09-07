@@ -2,14 +2,6 @@ package io.github.youndie.metrik.web.feature.services.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import io.github.youndie.metrik.api.AlertView
 import io.github.youndie.metrik.api.ServiceSummary
 import io.github.youndie.metrik.api.isFiring
@@ -22,6 +14,14 @@ import io.github.youndie.metrik.web.feature.service.domain.GetTimeSeriesUseCase
 import io.github.youndie.metrik.web.feature.services.domain.GetServicesUseCase
 import io.github.youndie.metrik.web.ui.ChartPoint
 import io.github.youndie.metrik.web.ui.toChart
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class OverviewUiState(
     val range: Range = Range.HOUR,

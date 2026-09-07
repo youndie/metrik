@@ -37,9 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
-import kotlinx.datetime.TimeZone
-import org.koin.compose.viewmodel.koinViewModel
 import io.github.youndie.metrik.api.AlertRuleView
 import io.github.youndie.metrik.api.AlertView
 import io.github.youndie.metrik.api.ServiceSummary
@@ -52,6 +49,9 @@ import io.github.youndie.metrik.web.ui.absoluteAgo
 import io.github.youndie.metrik.web.ui.alertStateLabel
 import io.github.youndie.metrik.web.ui.format
 import io.github.youndie.metrik.web.ui.relativeAgo
+import kotlinx.coroutines.delay
+import kotlinx.datetime.TimeZone
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Экран «Алерты»: горящие сейчас, история переходов и пороги правил (см. [AlertsViewModel]).

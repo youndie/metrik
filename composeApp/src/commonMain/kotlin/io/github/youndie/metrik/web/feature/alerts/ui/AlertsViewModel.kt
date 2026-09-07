@@ -2,13 +2,6 @@ package io.github.youndie.metrik.web.feature.alerts.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import io.github.youndie.metrik.api.AlertRuleView
 import io.github.youndie.metrik.api.AlertView
 import io.github.youndie.metrik.api.ServiceSummary
@@ -24,6 +17,13 @@ import io.github.youndie.metrik.web.feature.alerts.domain.SendTestAlertUseCase
 import io.github.youndie.metrik.web.feature.alerts.domain.UnmuteAlertRuleUseCase
 import io.github.youndie.metrik.web.feature.alerts.domain.UpdateAlertRuleUseCase
 import io.github.youndie.metrik.web.feature.services.domain.GetServicesUseCase
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /** Состояние кнопки тестового уведомления. */
 sealed interface TestAlertState {

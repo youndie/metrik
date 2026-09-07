@@ -1,5 +1,8 @@
 package io.github.youndie.metrik.server.mcp
 
+import io.github.youndie.metrik.server.ServerConfig
+import io.github.youndie.metrik.server.module
+import io.github.youndie.metrik.server.openDatabase
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -12,9 +15,6 @@ import io.ktor.server.testing.testApplication
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import okio.SYSTEM
-import io.github.youndie.metrik.server.ServerConfig
-import io.github.youndie.metrik.server.module
-import io.github.youndie.metrik.server.openDatabase
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertContains

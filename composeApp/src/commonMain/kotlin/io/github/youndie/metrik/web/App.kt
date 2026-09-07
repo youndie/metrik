@@ -28,9 +28,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import io.ktor.client.HttpClient
-import org.koin.compose.KoinApplication
-import org.koin.compose.viewmodel.koinViewModel
 import io.github.youndie.metrik.web.core.coreModule
 import io.github.youndie.metrik.web.core.data.metrikHttpClient
 import io.github.youndie.metrik.web.feature.alerts.alertsModule
@@ -51,6 +48,9 @@ import io.github.youndie.metrik.web.ui.MobileTab
 import io.github.youndie.metrik.web.ui.NavRail
 import io.github.youndie.metrik.web.ui.Spacing
 import io.github.youndie.metrik.web.ui.TopRoute
+import io.ktor.client.HttpClient
+import org.koin.compose.KoinApplication
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Порог переключения десктоп/мобильной раскладки — по ширине окна ([BoxWithConstraints]), а не по

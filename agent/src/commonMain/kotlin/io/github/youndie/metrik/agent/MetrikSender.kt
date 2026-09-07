@@ -1,5 +1,6 @@
 package io.github.youndie.metrik.agent
 
+import io.github.youndie.metrik.wire.DEFAULT_INGEST_PORT
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.ConnectedDatagramSocket
 import io.ktor.network.sockets.Datagram
@@ -8,7 +9,6 @@ import io.ktor.network.sockets.aSocket
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.io.Buffer
-import io.github.youndie.metrik.wire.DEFAULT_INGEST_PORT
 
 /** Куда агент отправляет пакеты. Отдельный интерфейс — чтобы тесты не открывали сокет. */
 interface MetrikSender {
