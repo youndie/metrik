@@ -1,8 +1,8 @@
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("org.jetbrains.kotlin.plugin.serialization")
-    id("ru.workinprogress.sborka.kmp")
-    id("ru.workinprogress.sborka.lint")
+    id("io.github.youndie.sborka.kmp")
+    id("io.github.youndie.sborka.lint")
 }
 
 // NOT PUBLISHED: the server ships as a container image, not as an artefact. Explicit API is off for

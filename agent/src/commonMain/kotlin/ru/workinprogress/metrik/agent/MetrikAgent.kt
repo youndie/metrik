@@ -85,6 +85,10 @@ class AgentCounters {
 class MetrikAgent(
     private val config: MetrikConfig,
     private val sender: MetrikSender,
+    @Suppress(
+        "ktlint:kapkan:wall-clock",
+        "это и есть порт часов: время входит здесь одним значением по умолчанию, а тесты его подменяют",
+    )
     private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
     private val inbox = Channel<Sample>(capacity = INBOX_CAPACITY, onBufferOverflow = BufferOverflow.DROP_LATEST)

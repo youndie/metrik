@@ -1,9 +1,9 @@
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("org.jetbrains.kotlin.plugin.serialization")
-    id("ru.workinprogress.sborka.kmp")
-    id("ru.workinprogress.sborka.lint")
-    id("ru.workinprogress.sborka.publish")
+    id("io.github.youndie.sborka.kmp")
+    id("io.github.youndie.sborka.lint")
+    id("io.github.youndie.sborka.publish")
 }
 
 // Published so a Ktor service can depend on the agent without vendoring its source.
