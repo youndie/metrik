@@ -6,7 +6,7 @@ composeMultiplatform = "1.12.0"
 kotlinxCoroutines = "1.11.0"
 kotlinxSerializationJson = "1.11.0"
 kotlinxDatetime = "0.8.0"
-okio = "3.18.1"
+okio = "3.18.2"
 sqlx4k = "1.13.0"
 ktlintPlugin = "14.2.0"
 # renovate: datasource=maven depName=com.pinterest.ktlint:ktlint-cli
