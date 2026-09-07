@@ -109,6 +109,10 @@ val Metrik =
         }
     }
 
+@Suppress(
+    "ktlint:kapkan:swallowed-failure",
+    "метрика не стоит того, чтобы ронять чужой запрос: этот путь обязан быть беззвучным",
+)
 private fun MetrikAgent.recordSafely(
     call: ApplicationCall,
     httpStatus: Int,

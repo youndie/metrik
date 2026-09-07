@@ -51,6 +51,10 @@ class UdpSender(
         }
     }
 
+    @Suppress(
+        "ktlint:kapkan:swallowed-failure",
+        "закрытие уже уходящего селектора: сообщить о нём некому и делать с ним нечего",
+    )
     override fun close() {
         closeSocket()
         runCatching { selector.close() }
@@ -61,6 +65,10 @@ class UdpSender(
     private suspend fun connect(): ConnectedDatagramSocket =
         aSocket(selector).udp().connect(InetSocketAddress(resolveHost(host), port))
 
+    @Suppress(
+        "ktlint:kapkan:swallowed-failure",
+        "вызывается в том числе из catch: отказ закрытия не должен вытеснить ошибку, ради которой сюда пришли",
+    )
     private fun closeSocket() {
         runCatching { socket?.close() }
         socket = null
