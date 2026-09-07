@@ -28,6 +28,10 @@ const val GRANULARITY_DAY = "day"
  * Минутные окна живут недолго (по умолчанию 48 часов), дальше остаются часовые и дневные роллапы:
  * без этого один сервис за неделю занимал бы сотни мегабайт, что несовместимо со словом «лёгкий».
  */
+@Suppress(
+    "ktlint:kapkan:wall-clock",
+    "`nowMs` и есть порт: часы входят одним умолчанием, тесты подставляют свои",
+)
 @OptIn(ExperimentalTime::class)
 class RetentionWorker(
     private val db: ISQLite,
@@ -40,6 +44,10 @@ class RetentionWorker(
 ) {
     private var job: Job? = null
 
+    @Suppress(
+        "ktlint:kapkan:swallowed-failure",
+        "`nowMs` и есть порт: часы входят одним умолчанием, тесты подставляют свои",
+    )
     fun start(scope: CoroutineScope) {
         job =
             scope.launch(Dispatchers.Default) {

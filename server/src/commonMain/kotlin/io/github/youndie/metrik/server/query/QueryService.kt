@@ -44,6 +44,10 @@ private class WindowRow(
  * Перцентили считаются из **суммарной** гистограммы интервала: складывать перцентили нельзя,
  * складываются только бакеты. Инстансы к этому моменту уже слиты на записи.
  */
+@Suppress(
+    "ktlint:kapkan:wall-clock",
+    "сервер отвечает на запрос по своим часам — окно считается его временем",
+)
 @OptIn(ExperimentalTime::class)
 class QueryService(
     private val db: ISQLite,
