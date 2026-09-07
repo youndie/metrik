@@ -10,7 +10,7 @@ kotlin {
     explicitApi = null
 }
 
-application { mainClass.set("ru.workinprogress.metrik.sample.MainKt") }
+application { mainClass.set("io.github.youndie.metrik.sample.MainKt") }
 
 dependencies {
     implementation(projects.agent)

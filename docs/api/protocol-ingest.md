@@ -4,7 +4,7 @@ title: Ingest-протокол metrik v1 (UDP)
 status: active
 layer: api
 involved_services: [metrik-agent, metrik-server]
-contract_source: :shared (ru.workinprogress.metrik.wire)
+contract_source: :shared (io.github.youndie.metrik.wire)
 ---
 
 # protocol-ingest — провод между агентом и сервером

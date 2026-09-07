@@ -1,0 +1,130 @@
+package io.github.youndie.metrik.server.mcp
+
+import io.github.youndie.metrik.api.AlertRuleView
+import io.github.youndie.metrik.api.AlertView
+import io.github.youndie.metrik.api.DeployMarker
+import io.github.youndie.metrik.api.Overview
+import io.github.youndie.metrik.api.RouteRow
+import io.github.youndie.metrik.api.ServiceSummary
+import io.github.youndie.metrik.api.Step
+import io.github.youndie.metrik.api.SystemPoint
+import io.github.youndie.metrik.api.TimeSeries
+import io.github.youndie.metrik.api.isFiring
+import io.github.youndie.metrik.server.alert.AlertWorker
+import io.github.youndie.metrik.server.query.AdminService
+import io.github.youndie.metrik.server.query.QueryService
+
+/**
+ * Что именно инструменты MCP умеют спросить у metrik.
+ *
+ * Слой существует по двум причинам. Во-первых, агент оперирует **именами** сервисов, а не
+ * числовыми id: `metrik-server`, а не `7`. Разрешение имени в id — здесь, а не в описании каждого
+ * инструмента. Во-вторых, у фасада есть тест, а у регистрации инструментов — нет: там только
+ * описания и разбор аргументов.
+ *
+ * Логики запросов здесь нет и быть не должно — она в [QueryService], общая с HTTP-API.
+ * Разошедшиеся ответы у дашборда и у агента — это два разных мнения об одном и том же инциденте.
+ */
+class ToolFacade(
+    private val query: QueryService,
+    private val alerts: AlertWorker,
+    private val admin: AdminService,
+) {
+    suspend fun listServices(): List<ServiceSummary> = query.services()
+
+    suspend fun overview(
+        service: String,
+        from: Long,
+        to: Long,
+    ): Overview = query.overview(serviceId(service), from, to)
+
+    /**
+     * Маршруты, отсортированные по времени, а не по количеству.
+     *
+     * `QueryService.routes` сортирует по частоте — это верно для таблицы на дашборде, где человек
+     * ищет глазами. Инструмент зовут с вопросом «что тормозит», и самый частый маршрут обычно
+     * самый быстрый.
+     */
+    suspend fun slowRoutes(
+        service: String,
+        from: Long,
+        to: Long,
+        limit: Int,
+    ): List<RouteRow> =
+        query
+            .routes(serviceId(service), from, to)
+            .sortedByDescending { it.p95Ms }
+            .take(limit)
+
+    /** Только 5xx: 4xx — это про клиента, и в вопросе «что у нас сломалось» они шум. */
+    suspend fun serverErrors(
+        service: String,
+        from: Long,
+        to: Long,
+        limit: Int,
+    ): List<RouteRow> =
+        query
+            .routes(serviceId(service), from, to)
+            .filter { it.status >= 500 }
+            .sortedByDescending { it.count }
+            .take(limit)
+
+    /**
+     * Ряд по сервису.
+     *
+     * Шаг запрашивается, но не гарантируется: минутные окна живут ограниченное время, и за
+     * пределами ретенции сервер молча отдаёт часовой. Что он отдал на самом деле — в `step`
+     * ответа, и об этом сказано в описании инструмента: агент, считающий шаг тем, что попросил,
+     * ошибётся в арифметике по времени.
+     */
+    suspend fun timeSeries(
+        service: String,
+        from: Long,
+        to: Long,
+        step: Step,
+    ): TimeSeries = query.timeSeries(serviceId(service), from, to, step)
+
+    /**
+     * Системный ряд: память, CPU, потоки — с разрезом по инстансам.
+     *
+     * Единственное место в API, где разрез по инстансам сохранён: у маршрутов и рядов инстансы
+     * складываются на записи. Здесь они нужны — «один инстанс из шести упёрся в лимит» и «все шесть
+     * ровно нагружены» лечатся по-разному.
+     */
+    suspend fun systemMetrics(
+        service: String,
+        from: Long,
+        to: Long,
+    ): List<SystemPoint> = query.system(serviceId(service), from, to)
+
+    suspend fun deploys(
+        service: String,
+        from: Long,
+        to: Long,
+    ): List<DeployMarker> = query.deploys(serviceId(service), from, to)
+
+    suspend fun firingAlerts(): List<AlertView> = alerts.active().filter { it.isFiring }
+
+    /**
+     * Пороги правил сервиса.
+     *
+     * Нужны тому, кто рисует: без них «медленно» приходится придумывать, а придуманный порог на
+     * графике неотличим от настоящего. `inherited` показывает, дефолт это инсталляции или
+     * переопределение сервиса — разница важна, когда обсуждают, почему правило не сработало.
+     */
+    suspend fun alertRules(service: String): List<AlertRuleView> = admin.rules(serviceId(service))
+
+    /**
+     * Имя → id, с внятной ошибкой вместо пустого ответа.
+     *
+     * Пустой список в ответ на опечатку в имени агент читает как «проблем нет», и это худший из
+     * возможных исходов для инструмента диагностики. Поэтому здесь исключение с перечислением
+     * того, что есть на самом деле.
+     */
+    private suspend fun serviceId(name: String): Long =
+        query.serviceIdByName(name)
+            ?: error(
+                "нет сервиса с именем `$name`; известные: " +
+                    query.services().joinToString { it.name },
+            )
+}

@@ -4,7 +4,7 @@ title: HTTP API дашборда
 status: active
 layer: api
 involved_services: [metrik-server, metrik-web]
-contract_source: :shared (ru.workinprogress.metrik.api)
+contract_source: :shared (io.github.youndie.metrik.api)
 ---
 
 # endpoint-query — чтение агрегатов

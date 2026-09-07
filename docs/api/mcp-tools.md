@@ -4,7 +4,7 @@ title: MCP-инструменты metrik
 status: active
 layer: api
 involved_services: [metrik-server]
-contract_source: :server (ru.workinprogress.metrik.server.mcp)
+contract_source: :server (io.github.youndie.metrik.server.mcp)
 ---
 
 # mcp-tools — что metrik умеет рассказать агенту

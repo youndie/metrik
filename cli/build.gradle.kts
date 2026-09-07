@@ -13,7 +13,7 @@ kotlin {
         linuxArm64(),
     ).forEach { target ->
         target.binaries.executable {
-            entryPoint = "ru.workinprogress.metrik.cli.main"
+            entryPoint = "io.github.youndie.metrik.cli.main"
             baseName = "metrik"
         }
     }

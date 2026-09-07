@@ -85,12 +85,12 @@ kotlin {
 }
 
 compose.resources {
-    packageOfResClass = "ru.workinprogress.metrik.web.generated.resources"
+    packageOfResClass = "io.github.youndie.metrik.web.generated.resources"
 }
 
 compose.desktop {
     application {
-        mainClass = "ru.workinprogress.metrik.web.MainKt"
+        mainClass = "io.github.youndie.metrik.web.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg)
