@@ -74,7 +74,7 @@ web/
 Три вещи здесь не декоративны:
 
 * **Пути к API не собираются строками.** Классы `@Resource` объявлены один раз в `:shared`
-  (`ru.workinprogress.metrik.api.Api`) и используются обеими сторонами: `ktor-server-resources` на
+  (`io.github.youndie.metrik.api.Api`) и используются обеими сторонами: `ktor-server-resources` на
   сервере, `ktor-client-resources` в дашборде. Копия пути в клиенте протухает молча — переименовали
   роут, компилятор промолчал, сломалось у пользователя.
 * **Навигация — стек, а не переменная.** Navigation 3 (`NavDisplay`, `Route : NavKey`), маршруты

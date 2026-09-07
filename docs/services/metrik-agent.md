@@ -41,7 +41,7 @@ DNS, переполнен буфер — плагин молча считает 
 ## 2. Контракт
 
 Провод — [protocol-ingest](../api/protocol-ingest.md). Общий код с сервером (модель `Frame`,
-кодек гистограммы) — модуль `:shared`, пакет `ru.workinprogress.metrik.wire`.
+кодек гистограммы) — модуль `:shared`, пакет `io.github.youndie.metrik.wire`.
 
 ## 2а. Ключевые файлы (якоря кода)
 

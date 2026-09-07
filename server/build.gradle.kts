@@ -27,7 +27,7 @@ kotlin {
         linuxArm64(),
     ).forEach { target ->
         target.binaries.executable {
-            entryPoint = "ru.workinprogress.metrik.server.main"
+            entryPoint = "io.github.youndie.metrik.server.main"
         }
     }
 
