@@ -75,7 +75,7 @@ Prometheus + Grafana + Alertmanager»: один бинарь, один файл 
 Проверено по [katcher](https://github.com/youndie/katcher):
 
 - весь Tailwind лежит **строковой константой** `const val CSS` в
-  `server/src/commonMain/kotlin/ru/workinprogress/katcher/static/CSS.kt` (31 КБ исходника) и отдаётся
+  `server/src/commonMain/kotlin/io/github/youndie/katcher/static/CSS.kt` (31 КБ исходника) и отдаётся
   из `ConfigureRouting.kt` через `respondText(CSS, ContentType.Text.CSS)`;
 - UI рендерится сервером (kotlinx.html + HTMX), бандлера в проде нет вовсе.
 
@@ -198,7 +198,7 @@ UI-часть авторизуется как в katcher — заголовка�
 Сырья нет вообще (см. Р1), поэтому таблицы: минутные окна маршрутов, минутные системные снапшоты,
 медленные сэмплы (retention 24 ч), часовые/дневные роллапы для долгой ретенции, состояния алертов.
 Миграции — как в katcher, списком SQL + `PRAGMA user_version`
-(`katcher/server/src/commonMain/kotlin/ru/workinprogress/katcher/db/Migrate.kt` — образец для копирования).
+(`katcher/server/src/commonMain/kotlin/io/github/youndie/katcher/db/Migrate.kt` — образец для копирования).
 
 **Инстансы складываются на записи, минутки живут 48 часов.** Арифметика: 80 серий × 1440 окон ×
 3 инстанса × 7 дней ≈ 2,4 млн строк и ~400 МБ на **один** сервис — несовместимо с обещанием
