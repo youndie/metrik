@@ -18,6 +18,10 @@ import kotlin.time.ExperimentalTime
  * Регистрации сервисов здесь нет — ключ один на инсталляцию, сервис заводится сам при первом
  * пакете. Удаление нужно, чтобы убрать фантом, заведённый опечаткой в имени.
  */
+@Suppress(
+    "ktlint:kapkan:wall-clock",
+    "сервер ставит собственную метку — сравнивать её будут с ней же",
+)
 @OptIn(ExperimentalTime::class)
 class AdminService(
     private val db: ISQLite,

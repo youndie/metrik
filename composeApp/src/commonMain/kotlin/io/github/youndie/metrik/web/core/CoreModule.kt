@@ -12,6 +12,10 @@ import kotlin.time.ExperimentalTime
  * Клиент строится в точке входа (baseUrl и отладочный пользователь известны только там), поэтому
  * в граф он приезжает готовым инстансом — тот же приём, что и с мостом авторизации в скилле.
  */
+@Suppress(
+    "ktlint:kapkan:wall-clock",
+    "композиционный корень: ровно то место, где часы связываются с TimeSource",
+)
 @OptIn(ExperimentalTime::class)
 fun coreModule(httpClient: HttpClient) =
     module {

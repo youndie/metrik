@@ -34,6 +34,10 @@ enum class IngestResult {
  * Поэтому повторно доставленный пакет обязан отбрасываться — иначе он молча удвоит цифры.
  * Защита — расписка в `window_receipts` с первичным ключом `(service, instance, window, packet)`.
  */
+@Suppress(
+    "ktlint:kapkan:wall-clock",
+    "время приёма ставит приёмник: часы отправителя для окна не годятся",
+)
 @OptIn(ExperimentalTime::class)
 class IngestService(
     private val db: ISQLite,

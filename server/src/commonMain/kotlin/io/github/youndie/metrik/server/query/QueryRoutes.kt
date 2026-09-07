@@ -55,6 +55,10 @@ private suspend fun RoutingContext.admin(config: ServerConfig): String? {
     return user
 }
 
+@Suppress(
+    "ktlint:kapkan:wall-clock",
+    "сервер отвечает на запрос по своим часам — окно считается его временем",
+)
 @OptIn(ExperimentalTime::class)
 private fun nowMs(): Long = Clock.System.now().toEpochMilliseconds()
 
@@ -63,6 +67,10 @@ private const val HOUR_MS = 60 * MINUTE_MS
 private const val DAY_MS = 24 * HOUR_MS
 
 /** Полуфабрикат периода: `from range to withDefaultSpan span`. */
+@Suppress(
+    "ktlint:kapkan:wall-clock",
+    "сервер отвечает на запрос по своим часам — окно считается его временем",
+)
 private class RangeBuilder(
     val from: Long?,
     val to: Long?,
@@ -70,6 +78,10 @@ private class RangeBuilder(
 
 private infix fun Long?.range(to: Long?): RangeBuilder = RangeBuilder(this, to)
 
+@Suppress(
+    "ktlint:kapkan:wall-clock",
+    "сервер отвечает на запрос по своим часам — окно считается его временем",
+)
 @OptIn(ExperimentalTime::class)
 private infix fun RangeBuilder.withDefaultSpan(spanMs: Long): Pair<Long, Long> {
     val end = to ?: Clock.System.now().toEpochMilliseconds()

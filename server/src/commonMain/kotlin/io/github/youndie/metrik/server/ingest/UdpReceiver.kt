@@ -39,6 +39,10 @@ class UdpReceiver(
         job = null
     }
 
+    @Suppress(
+        "ktlint:kapkan:swallowed-failure",
+        "негодная датаграмма считается в счётчик отказов и не роняет цикл приёма",
+    )
     private suspend fun listen() {
         // Собственный поток под select()-цикл, а не воркер Dispatchers.Default.
         // Иначе селектор занимает воркер намертво: на машине с двумя ядрами двух селекторов

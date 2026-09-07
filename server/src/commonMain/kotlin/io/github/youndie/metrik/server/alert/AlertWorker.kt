@@ -29,6 +29,10 @@ private const val MINUTE_MS = 60_000L
  * гистерезис: без него шумный порог даёт флаппинг, после которого алерты перестают читать.
  * Пока инцидент длится, напоминание не чаще cooldown.
  */
+@Suppress(
+    "ktlint:kapkan:wall-clock",
+    "`nowMs` и есть порт: часы входят одним умолчанием, тесты подставляют свои",
+)
 @OptIn(ExperimentalTime::class)
 class AlertWorker(
     private val db: ISQLite,
@@ -41,6 +45,10 @@ class AlertWorker(
 ) {
     private var job: Job? = null
 
+    @Suppress(
+        "ktlint:kapkan:swallowed-failure",
+        "вычисление правила не должно останавливать цикл тревог",
+    )
     fun start(scope: CoroutineScope) {
         job =
             scope.launch(Dispatchers.Default) {
@@ -118,6 +126,10 @@ class AlertWorker(
         saveState(serviceId, verdict.ruleId, newState, since, lastNotified, breaches, recoveries)
     }
 
+    @Suppress(
+        "ktlint:kapkan:swallowed-failure",
+        "вычисление правила не должно останавливать цикл тревог",
+    )
     private suspend fun notify(
         serviceId: Long,
         serviceName: String,
