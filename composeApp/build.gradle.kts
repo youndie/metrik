@@ -2,8 +2,8 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
-    id("ru.workinprogress.sborka.kmp")
-    id("ru.workinprogress.sborka.lint")
+    id("io.github.youndie.sborka.kmp")
+    id("io.github.youndie.sborka.lint")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
     // Маршруты Navigation 3 обязаны быть @Serializable: на wasm рефлексии для восстановления

@@ -15,5 +15,5 @@ plugins {
 // The group, the version and the ktlint wiring used to be handed out from a `subprojects { }` block
 // here, and `libVersion()` composed `0.1.<BUILD_NUMBER>` at the bottom of the file. All of it is
 // `gradle.properties` now — `sborka.group` and `version` — applied per module by
-// `ru.workinprogress.sborka.base`. CI passes the composed number as `-PVERSION`, which is the same
+// `io.github.youndie.sborka.base`. CI passes the composed number as `-PVERSION`, which is the same
 // scheme with one property fewer.
