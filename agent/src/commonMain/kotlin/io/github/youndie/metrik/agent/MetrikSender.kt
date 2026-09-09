@@ -11,10 +11,10 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.io.Buffer
 
 /** Куда агент отправляет пакеты. Отдельный интерфейс — чтобы тесты не открывали сокет. */
-interface MetrikSender {
-    suspend fun send(packet: String)
+public interface MetrikSender {
+    public suspend fun send(packet: String)
 
-    fun close()
+    public fun close()
 }
 
 /**
@@ -25,7 +25,7 @@ interface MetrikSender {
  * в проблему целевого сервиса.
  */
 @OptIn(DelicateCoroutinesApi::class)
-class UdpSender(
+public class UdpSender(
     endpoint: String,
 ) : MetrikSender {
     private val host: String = endpoint.substringBeforeLast(':')

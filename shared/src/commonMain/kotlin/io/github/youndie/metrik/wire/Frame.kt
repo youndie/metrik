@@ -14,7 +14,7 @@ import kotlinx.serialization.json.Json
  * сырой путь взорвал бы кардинальность.
  */
 @Serializable
-data class RouteSeries(
+public data class RouteSeries(
     @SerialName("m") val method: String,
     @SerialName("p") val route: String,
     @SerialName("c") val status: Int,
@@ -26,7 +26,7 @@ data class RouteSeries(
 
 /** Счётчики сборщика мусора. Есть не на всякой платформе — отсутствие поля это не ошибка. */
 @Serializable
-data class GcSnapshot(
+public data class GcSnapshot(
     @SerialName("c") val collections: Int,
     @SerialName("t") val totalMs: Long,
 )
@@ -38,7 +38,7 @@ data class GcSnapshot(
  * туда подставляется лимит cgroup, если он читается.
  */
 @Serializable
-data class SystemSnapshot(
+public data class SystemSnapshot(
     /**
      * Рантайм процесса: `jvm` или `native`.
      *
@@ -64,7 +64,7 @@ data class SystemSnapshot(
  * становиться местом, где случайно оседают персональные данные.
  */
 @Serializable
-data class SlowSample(
+public data class SlowSample(
     @SerialName("m") val method: String,
     @SerialName("p") val route: String,
     @SerialName("c") val status: Int,
@@ -79,7 +79,7 @@ data class SlowSample(
  * от «пакеты не долетели»; сервер обязан их использовать.
  */
 @Serializable
-data class Frame(
+public data class Frame(
     @SerialName("v") val version: Int = PROTOCOL_VERSION,
     @SerialName("k") val apiKey: String,
     @SerialName("s") val service: String,
@@ -102,7 +102,7 @@ data class Frame(
  * не поднимая версию протокола. `explicitNulls = false` убирает из пакета `null`-поля, за которые
  * незачем платить байтами.
  */
-val MetrikJson: Json =
+public val MetrikJson: Json =
     Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
