@@ -6,16 +6,16 @@ package io.github.youndie.metrik.wire
 // сторон; значения менять вместе с документом, а не по отдельности.
 
 /** Версия ingest-протокола. Поднимается только на ломающих изменениях. */
-const val PROTOCOL_VERSION: Int = 1
+public const val PROTOCOL_VERSION: Int = 1
 
 /**
  * Потолок размера датаграммы. Ограничение не API-шное (Ktor разрешает до 64 КБ), а MTU:
  * фрагментированная датаграмма теряется целиком, поэтому окно режется на пакеты этого размера.
  */
-const val MAX_PACKET_BYTES: Int = 1200
+public const val MAX_PACKET_BYTES: Int = 1200
 
 /** Длительность окна агрегации по умолчанию. */
-const val DEFAULT_WINDOW_MS: Long = 60_000L
+public const val DEFAULT_WINDOW_MS: Long = 60_000L
 
 /** Порт приёма метрик по умолчанию. */
-const val DEFAULT_INGEST_PORT: Int = 9999
+public const val DEFAULT_INGEST_PORT: Int = 9999

@@ -5,14 +5,14 @@ package io.github.youndie.metrik.wire
 // (docs/api/protocol-ingest.md, «Инварианты»).
 
 /** Неизменная часть окна — одинаковая во всех его пакетах. */
-class WindowHeader(
-    val apiKey: String,
-    val service: String,
-    val instance: String,
-    val windowStart: Long,
-    val windowSeq: Long,
-    val release: String? = null,
-    val windowMs: Long = DEFAULT_WINDOW_MS,
+public class WindowHeader(
+    public val apiKey: String,
+    public val service: String,
+    public val instance: String,
+    public val windowStart: Long,
+    public val windowSeq: Long,
+    public val release: String? = null,
+    public val windowMs: Long = DEFAULT_WINDOW_MS,
 )
 
 /**
@@ -22,9 +22,9 @@ class WindowHeader(
  * себе больше бюджета (аномально длинный шаблон маршрута): резать серию нельзя, выбрасывать данные
  * молча — тем более, поэтому пакет уходит как есть, а счётчик даёт агенту повод это заметить.
  */
-class WindowSplit(
-    val packets: List<String>,
-    val oversized: Int,
+public class WindowSplit(
+    public val packets: List<String>,
+    public val oversized: Int,
 )
 
 private const val PROBE_PACKET_INDEX = 999
@@ -42,7 +42,7 @@ private class PacketPlan(
  * Раскладка по пакетам фиксирована контрактом: системный срез едет в пакете `q = 0`,
  * медленные сэмплы — в последнем.
  */
-fun splitWindow(
+public fun splitWindow(
     header: WindowHeader,
     routes: List<RouteSeries>,
     system: SystemSnapshot? = null,

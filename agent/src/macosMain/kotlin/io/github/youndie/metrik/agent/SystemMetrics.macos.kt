@@ -18,7 +18,7 @@ import platform.posix.sysconf
  * а не общая для всего натива.
  */
 @OptIn(ExperimentalForeignApi::class)
-actual fun readSystemMetrics(): SystemReading =
+public actual fun readSystemMetrics(): SystemReading =
     memScoped {
         val usage = alloc<rusage>()
         if (getrusage(RUSAGE_SELF, usage.ptr) != 0) {
@@ -37,4 +37,4 @@ actual fun readSystemMetrics(): SystemReading =
     }
 
 @OptIn(ExperimentalForeignApi::class)
-actual fun availableProcessors(): Int = sysconf(_SC_NPROCESSORS_ONLN).takeIf { it > 0 }?.toInt() ?: 1
+public actual fun availableProcessors(): Int = sysconf(_SC_NPROCESSORS_ONLN).takeIf { it > 0 }?.toInt() ?: 1

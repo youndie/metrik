@@ -4,6 +4,7 @@ import io.github.youndie.metrik.wire.DEFAULT_WINDOW_MS
 import io.github.youndie.metrik.wire.STATUS_NO_RESPONSE
 import io.github.youndie.metrik.wire.encodeStatus
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.ApplicationPlugin
 import io.ktor.server.application.ApplicationStopping
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.hooks.CallFailed
@@ -17,27 +18,27 @@ import kotlin.time.TimeSource
 /**
  * Конфигурация агента. Поля и дефолты — `docs/services/metrik-agent.md`.
  */
-class MetrikConfig {
+public class MetrikConfig {
     /** Логическое имя сервиса. Регистрации нет: имя и есть идентификатор, опечатка заведёт фантом. */
-    var service: String = ""
+    public var service: String = ""
 
     /** Ingest-key инсталляции metrik (один на установку, не на сервис). */
-    var apiKey: String = ""
+    public var apiKey: String = ""
 
     /** `host:port` metrik-server. */
-    var endpoint: String = ""
+    public var endpoint: String = ""
 
     /** Идентификатор инстанса. По умолчанию подставляется имя хоста. */
-    var instanceId: String = defaultInstanceId()
+    public var instanceId: String = defaultInstanceId()
 
     /** Версия релиза; смена значения рисует отметку деплоя на графиках. */
-    var release: String? = null
+    public var release: String? = null
 
-    var windowMs: Long = DEFAULT_WINDOW_MS
-    var maxSeries: Int = 200
-    var slowSamples: Int = 5
-    var systemMetrics: Boolean = true
-    var enabled: Boolean = true
+    public var windowMs: Long = DEFAULT_WINDOW_MS
+    public var maxSeries: Int = 200
+    public var slowSamples: Int = 5
+    public var systemMetrics: Boolean = true
+    public var enabled: Boolean = true
 
     internal var senderFactory: (String) -> MetrikSender = { endpoint -> UdpSender(endpoint) }
 }
@@ -54,7 +55,7 @@ private val StartMarkKey = AttributeKey<TimeSource.Monotonic.ValueTimeMark>("Met
  * ничего не отдаёт наружу, а сервер получает только то, что долетело. Хост может показать их
  * рядом со своими — metrik так и делает в `/api/self`.
  */
-val MetrikCountersKey: AttributeKey<AgentCounters> = AttributeKey("MetrikCounters")
+public val MetrikCountersKey: AttributeKey<AgentCounters> = AttributeKey("MetrikCounters")
 private val RouteTemplateKey = AttributeKey<String>("MetrikRouteTemplate")
 
 /**
@@ -71,7 +72,7 @@ private val RouteTemplateKey = AttributeKey<String>("MetrikRouteTemplate")
  * Инвариант, ради которого написан каждый `try` ниже: **отказ metrik не влияет на целевой сервис.**
  * Нет сервера, не резолвится DNS, переполнена очередь — плагин считает потерю и продолжает работать.
  */
-val Metrik =
+public val Metrik: ApplicationPlugin<MetrikConfig> =
     createApplicationPlugin(name = "Metrik", createConfiguration = ::MetrikConfig) {
         val config = pluginConfig
 

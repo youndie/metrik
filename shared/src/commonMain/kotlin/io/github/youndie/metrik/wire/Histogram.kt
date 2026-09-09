@@ -4,6 +4,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlin.math.ceil
@@ -15,13 +16,13 @@ import kotlin.math.pow
 // формат на проводе — docs/api/protocol-ingest.md, «Бакеты гистограммы».
 
 /** Основание шкалы. Ширина бакета 20 % ⇒ погрешность перцентиля ≤ 20 %. */
-const val HISTOGRAM_GAMMA: Double = 1.2
+public const val HISTOGRAM_GAMMA: Double = 1.2
 
 /** Всё, что дольше, попадает в overflow-бакет. */
-const val HISTOGRAM_MAX_MS: Long = 10_000L
+public const val HISTOGRAM_MAX_MS: Long = 10_000L
 
 /** Бакет для длительностей больше [HISTOGRAM_MAX_MS]. */
-const val HISTOGRAM_OVERFLOW_BUCKET: Int = 52
+public const val HISTOGRAM_OVERFLOW_BUCKET: Int = 52
 
 private val LN_GAMMA = ln(HISTOGRAM_GAMMA)
 
@@ -30,7 +31,7 @@ private val LN_GAMMA = ln(HISTOGRAM_GAMMA)
  *
  * `0` — быстрее миллисекунды, `1…51` — рабочий диапазон, [HISTOGRAM_OVERFLOW_BUCKET] — переполнение.
  */
-fun durationToBucket(durationMs: Long): Int =
+public fun durationToBucket(durationMs: Long): Int =
     when {
         durationMs < 1L -> 0
         durationMs > HISTOGRAM_MAX_MS -> HISTOGRAM_OVERFLOW_BUCKET
@@ -38,7 +39,7 @@ fun durationToBucket(durationMs: Long): Int =
     }
 
 /** Нижняя граница бакета, мс (включительно для бакета 0, исключительно для остальных). */
-fun bucketLowerBoundMs(bucket: Int): Double =
+public fun bucketLowerBoundMs(bucket: Int): Double =
     when {
         bucket <= 0 -> 0.0
         bucket >= HISTOGRAM_OVERFLOW_BUCKET -> HISTOGRAM_MAX_MS.toDouble()
@@ -46,7 +47,7 @@ fun bucketLowerBoundMs(bucket: Int): Double =
     }
 
 /** Верхняя граница бакета, мс (включительно). Для overflow-бакета — бесконечность. */
-fun bucketUpperBoundMs(bucket: Int): Double =
+public fun bucketUpperBoundMs(bucket: Int): Double =
     when {
         bucket <= 0 -> 1.0
         bucket >= HISTOGRAM_OVERFLOW_BUCKET -> Double.POSITIVE_INFINITY
@@ -60,20 +61,20 @@ fun bucketUpperBoundMs(bucket: Int): Double =
  * молча. Класс изменяемый: агент инкрементирует его на горячем пути, где аллокации нежелательны.
  */
 @Serializable(with = HistogramSerializer::class)
-class Histogram {
+public class Histogram {
     private val counts = HashMap<Int, Int>()
 
     /** Сумма счётчиков всех бакетов. */
-    val totalCount: Long
+    public val totalCount: Long
         get() = counts.values.fold(0L) { acc, value -> acc + value }
 
     /** Учесть одну длительность. */
-    fun record(durationMs: Long) {
+    public fun record(durationMs: Long) {
         add(durationToBucket(durationMs), 1)
     }
 
     /** Прибавить готовый счётчик к бакету. */
-    fun add(
+    public fun add(
         bucket: Int,
         count: Int,
     ) {
@@ -83,7 +84,7 @@ class Histogram {
         counts[bucket] = (counts[bucket] ?: 0) + count
     }
 
-    fun countAt(bucket: Int): Int = counts[bucket] ?: 0
+    public fun countAt(bucket: Int): Int = counts[bucket] ?: 0
 
     /**
      * Сложить с другой гистограммой побакетно.
@@ -91,11 +92,11 @@ class Histogram {
      * Именно так сервер объединяет окна разных инстансов: складывать перцентили нельзя,
      * складываются только бакеты.
      */
-    fun merge(other: Histogram) {
+    public fun merge(other: Histogram) {
         other.counts.forEach { (bucket, count) -> add(bucket, count) }
     }
 
-    operator fun plus(other: Histogram): Histogram =
+    public operator fun plus(other: Histogram): Histogram =
         Histogram().also {
             it.merge(this)
             it.merge(other)
@@ -109,7 +110,7 @@ class Histogram {
      * Если перцентиль попал в overflow-бакет, возвращается его нижняя граница ([HISTOGRAM_MAX_MS]):
      * «не быстрее 10 секунд», точнее сказать нечего.
      */
-    fun percentileMs(quantile: Double): Double {
+    public fun percentileMs(quantile: Double): Double {
         require(quantile in 0.0..1.0) { "quantile must be in 0..1, got $quantile" }
 
         val total = totalCount
@@ -138,7 +139,7 @@ class Histogram {
     }
 
     /** Представление для провода: пары `[индекс, счётчик]`, отсортированные по индексу. */
-    fun toSparse(): List<List<Int>> = counts.keys.sorted().map { listOf(it, counts.getValue(it)) }
+    public fun toSparse(): List<List<Int>> = counts.keys.sorted().map { listOf(it, counts.getValue(it)) }
 
     override fun equals(other: Any?): Boolean = other is Histogram && other.counts == counts
 
@@ -146,10 +147,10 @@ class Histogram {
 
     override fun toString(): String = "Histogram(${toSparse()})"
 
-    companion object {
-        fun of(vararg durationsMs: Long): Histogram = Histogram().also { h -> durationsMs.forEach(h::record) }
+    public companion object {
+        public fun of(vararg durationsMs: Long): Histogram = Histogram().also { h -> durationsMs.forEach(h::record) }
 
-        fun fromSparse(sparse: List<List<Int>>): Histogram =
+        public fun fromSparse(sparse: List<List<Int>>): Histogram =
             Histogram().also { histogram ->
                 sparse.forEach { pair ->
                     require(pair.size == 2) { "expected [bucket, count], got $pair" }
@@ -159,15 +160,15 @@ class Histogram {
     }
 }
 
-object HistogramSerializer : KSerializer<Histogram> {
+public object HistogramSerializer : KSerializer<Histogram> {
     private val delegate = ListSerializer(ListSerializer(Int.serializer()))
 
-    override val descriptor = delegate.descriptor
+    override val descriptor: SerialDescriptor = delegate.descriptor
 
     override fun serialize(
         encoder: Encoder,
         value: Histogram,
-    ) = delegate.serialize(encoder, value.toSparse())
+    ): Unit = delegate.serialize(encoder, value.toSparse())
 
     override fun deserialize(decoder: Decoder): Histogram = Histogram.fromSparse(delegate.deserialize(decoder))
 }

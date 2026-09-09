@@ -6,10 +6,10 @@ import io.github.youndie.metrik.wire.SlowSample
 import io.github.youndie.metrik.wire.statusClassOf
 
 /** Маршрут, который не сматчился ни на один роут: иначе каждый несуществующий путь дал бы серию. */
-const val ROUTE_UNMATCHED: String = "<unmatched>"
+public const val ROUTE_UNMATCHED: String = "<unmatched>"
 
 /** Куда сваливается всё, что не влезло в лимит кардинальности. */
-const val ROUTE_OTHER: String = "<other>"
+public const val ROUTE_OTHER: String = "<other>"
 
 private const val METHOD_OTHER = "*"
 
@@ -39,11 +39,11 @@ private class SeriesAccumulator {
 }
 
 /** Содержимое закрытого окна. */
-class WindowData(
-    val routes: List<RouteSeries>,
-    val slow: List<SlowSample>,
+public class WindowData(
+    public val routes: List<RouteSeries>,
+    public val slow: List<SlowSample>,
     /** Сколько запросов ушло в [ROUTE_OTHER] из-за лимита кардинальности. */
-    val collapsed: Int,
+    public val collapsed: Int,
 )
 
 /**
@@ -53,7 +53,7 @@ class WindowData(
  * доезжают через канал. Так на замере запроса нет ни локов, ни contention, а здесь — ни атомиков,
  * ни синхронизации.
  */
-class WindowAggregator(
+public class WindowAggregator(
     private val maxSeries: Int = 200,
     private val slowSampleLimit: Int = 5,
 ) {
@@ -61,7 +61,7 @@ class WindowAggregator(
     private val slow = ArrayList<SlowSample>()
     private var collapsed = 0
 
-    fun record(
+    public fun record(
         method: String,
         route: String,
         status: Int,
@@ -111,7 +111,7 @@ class WindowAggregator(
     }
 
     /** Забирает накопленное и обнуляет состояние под следующее окно. */
-    fun drain(): WindowData {
+    public fun drain(): WindowData {
         val routes =
             series.map { (key, accumulator) ->
                 RouteSeries(

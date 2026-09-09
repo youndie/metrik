@@ -9,13 +9,13 @@ import io.github.youndie.metrik.wire.SystemSnapshot
  * Отсутствующее значение это `null`, а не ноль: «нет данных» и «ноль» это разные вещи, и путать их
  * в мониторинге нельзя.
  */
-class SystemReading(
-    val memoryUsedBytes: Long?,
-    val memoryLimitBytes: Long?,
-    val cpuMillis: Long?,
-    val threads: Int?,
-    val gcCollections: Int? = null,
-    val gcTotalMs: Long? = null,
+public class SystemReading(
+    public val memoryUsedBytes: Long?,
+    public val memoryLimitBytes: Long?,
+    public val cpuMillis: Long?,
+    public val threads: Int?,
+    public val gcCollections: Int? = null,
+    public val gcTotalMs: Long? = null,
 )
 
 /**
@@ -23,21 +23,21 @@ class SystemReading(
  * на нативе — `/proc` или `getrusage`. Расширенные счётчики (GC) необязательны и приезжают только
  * там, где источник доступен.
  */
-expect fun readSystemMetrics(): SystemReading
+public expect fun readSystemMetrics(): SystemReading
 
 /** Число доступных процессу ядер — знаменатель для CPU в промилле. */
-expect fun availableProcessors(): Int
+public expect fun availableProcessors(): Int
 
 /**
  * Считает срез за окно: CPU переводится из кумулятивных миллисекунд в промилле одного ядра,
  * GC-счётчики — в дельту за окно.
  */
-class SystemSampler {
+public class SystemSampler {
     private var previousCpuMillis: Long? = null
     private var previousGcCollections: Int? = null
     private var previousGcMillis: Long? = null
 
-    fun sample(
+    public fun sample(
         windowMs: Long,
         uptimeSeconds: Long,
     ): SystemSnapshot? {

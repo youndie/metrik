@@ -7,7 +7,7 @@ package io.github.youndie.metrik.agent
  * `OperatingSystemMXBean` — поэтому базовый набор работает и на рантайме, собранном jlink без
  * модуля `java.management`.
  */
-actual fun readSystemMetrics(): SystemReading {
+public actual fun readSystemMetrics(): SystemReading {
     val runtime = Runtime.getRuntime()
     val used = runtime.totalMemory() - runtime.freeMemory()
     val max = runtime.maxMemory().takeIf { it != Long.MAX_VALUE }
@@ -34,7 +34,7 @@ actual fun readSystemMetrics(): SystemReading {
     )
 }
 
-actual fun availableProcessors(): Int = Runtime.getRuntime().availableProcessors()
+public actual fun availableProcessors(): Int = Runtime.getRuntime().availableProcessors()
 
 /**
  * GC-счётчики требуют `java.management`, которого может не быть в урезанном рантайме.

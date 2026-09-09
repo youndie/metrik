@@ -11,122 +11,122 @@ import kotlinx.serialization.Serializable
 
 @Resource("/api")
 @Serializable
-class Api {
+public class Api {
     /** Список сервисов. Период необязателен: по умолчанию сервер считает последние пять минут. */
     @Resource("services")
     @Serializable
-    class Services(
-        val parent: Api = Api(),
-        val from: Long? = null,
-        val to: Long? = null,
+    public class Services(
+        public val parent: Api = Api(),
+        public val from: Long? = null,
+        public val to: Long? = null,
     ) {
         @Resource("{id}")
         @Serializable
-        class ById(
-            val parent: Services = Services(),
-            val id: Long,
+        public class ById(
+            public val parent: Services = Services(),
+            public val id: Long,
         ) {
             @Resource("overview")
             @Serializable
-            class Overview(
-                val parent: ById,
-                val from: Long? = null,
-                val to: Long? = null,
+            public class Overview(
+                public val parent: ById,
+                public val from: Long? = null,
+                public val to: Long? = null,
             )
 
             @Resource("timeseries")
             @Serializable
-            class TimeSeries(
-                val parent: ById,
-                val from: Long? = null,
-                val to: Long? = null,
-                val step: String? = null,
+            public class TimeSeries(
+                public val parent: ById,
+                public val from: Long? = null,
+                public val to: Long? = null,
+                public val step: String? = null,
             )
 
             @Resource("routes")
             @Serializable
-            class Routes(
-                val parent: ById,
-                val from: Long? = null,
-                val to: Long? = null,
+            public class Routes(
+                public val parent: ById,
+                public val from: Long? = null,
+                public val to: Long? = null,
             )
 
             @Resource("system")
             @Serializable
-            class System(
-                val parent: ById,
-                val from: Long? = null,
-                val to: Long? = null,
+            public class System(
+                public val parent: ById,
+                public val from: Long? = null,
+                public val to: Long? = null,
             )
 
             @Resource("slow")
             @Serializable
-            class Slow(
-                val parent: ById,
-                val from: Long? = null,
-                val to: Long? = null,
+            public class Slow(
+                public val parent: ById,
+                public val from: Long? = null,
+                public val to: Long? = null,
             )
 
             @Resource("deploys")
             @Serializable
-            class Deploys(
-                val parent: ById,
-                val from: Long? = null,
-                val to: Long? = null,
+            public class Deploys(
+                public val parent: ById,
+                public val from: Long? = null,
+                public val to: Long? = null,
             )
         }
     }
 
     @Resource("alerts")
     @Serializable
-    class Alerts(
-        val parent: Api = Api(),
+    public class Alerts(
+        public val parent: Api = Api(),
     ) {
         @Resource("history")
         @Serializable
-        class History(
-            val parent: Alerts = Alerts(),
+        public class History(
+            public val parent: Alerts = Alerts(),
         )
     }
 
     /** Внутренние счётчики приёма: без них потери и отброшенные пакеты невидимы. */
     @Resource("self")
     @Serializable
-    class Self(
-        val parent: Api = Api(),
+    public class Self(
+        public val parent: Api = Api(),
     )
 
     @Resource("admin")
     @Serializable
-    class Admin(
-        val parent: Api = Api(),
+    public class Admin(
+        public val parent: Api = Api(),
     ) {
         @Resource("services/{id}")
         @Serializable
-        class Service(
-            val parent: Admin = Admin(),
-            val id: Long,
+        public class Service(
+            public val parent: Admin = Admin(),
+            public val id: Long,
         ) {
             @Resource("alerts")
             @Serializable
-            class Alerts(
-                val parent: Service,
+            public class Alerts(
+                public val parent: Service,
             ) {
                 /** Заглушение уведомлений по правилу; глушится только доставка, не сам алерт. */
                 @Resource("{rule}/mute")
                 @Serializable
-                class Mute(
-                    val parent: Alerts,
-                    val rule: String,
-                    val minutes: Long? = null,
+                public class Mute(
+                    public val parent: Alerts,
+                    public val rule: String,
+                    public val minutes: Long? = null,
                 )
             }
         }
 
         @Resource("alerts/test")
         @Serializable
-        class AlertsTest(
-            val parent: Admin = Admin(),
+        public class AlertsTest(
+            public val parent: Admin = Admin(),
         )
     }
 }

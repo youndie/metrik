@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
 
 /** Шаг ряда. Сервер сам выбирает источник данных под шаг, клиент об этом не знает. */
 @Serializable
-enum class Step {
+public enum class Step {
     MINUTE,
     HOUR,
     DAY,
@@ -19,7 +19,7 @@ enum class Step {
 
 /** Карточка сервиса в списке. */
 @Serializable
-data class ServiceSummary(
+public data class ServiceSummary(
     val id: Long,
     val name: String,
     val requestsPerSecond: Double,
@@ -38,7 +38,7 @@ data class ServiceSummary(
  * а не значением: «данных меньше» и «нагрузки меньше» это разные вещи.
  */
 @Serializable
-data class TimePoint(
+public data class TimePoint(
     val at: Long,
     val requestsPerSecond: Double,
     val errorRate: Double,
@@ -50,20 +50,20 @@ data class TimePoint(
 
 /** Отметка деплоя на графике: «здесь выкатили 1.4.212». */
 @Serializable
-data class DeployMarker(
+public data class DeployMarker(
     val release: String,
     val at: Long,
 )
 
 @Serializable
-data class TimeSeries(
+public data class TimeSeries(
     val step: Step,
     val points: List<TimePoint>,
     val deploys: List<DeployMarker> = emptyList(),
 )
 
 @Serializable
-data class Overview(
+public data class Overview(
     val service: String,
     val requests: Long,
     val errors: Long,
@@ -75,7 +75,7 @@ data class Overview(
 
 /** Строка таблицы маршрутов. Статус — точный код для 4xx/5xx, класс для остальных. */
 @Serializable
-data class RouteRow(
+public data class RouteRow(
     val method: String,
     val route: String,
     val status: Int,
@@ -86,7 +86,7 @@ data class RouteRow(
 )
 
 @Serializable
-data class SlowRow(
+public data class SlowRow(
     val method: String,
     val route: String,
     val status: Int,
@@ -100,7 +100,7 @@ data class SlowRow(
  * `heapMaxBytes` может отсутствовать: у нативного процесса нет максимума heap в смысле JVM.
  */
 @Serializable
-data class SystemPoint(
+public data class SystemPoint(
     val instance: String,
     val at: Long,
     /** `jvm`, `native` или `null` — агент старый и платформу не сообщает. Угадывать её нельзя. */
@@ -114,7 +114,7 @@ data class SystemPoint(
 )
 
 /** Рантайм, в котором работает инстанс. */
-enum class ServiceRuntime {
+public enum class ServiceRuntime {
     JVM,
     NATIVE,
 
@@ -129,7 +129,7 @@ enum class ServiceRuntime {
  * нативный агент кладёт туда лимит cgroup, и все нативные сервисы подписывались как JVM, а RSS
  * выдавался за heap. Разница существенная — «heap» и «RSS» отвечают на разные вопросы.
  */
-val SystemPoint.serviceRuntime: ServiceRuntime
+public val SystemPoint.serviceRuntime: ServiceRuntime
     get() =
         when (runtime) {
             "native" -> ServiceRuntime.NATIVE
@@ -139,7 +139,7 @@ val SystemPoint.serviceRuntime: ServiceRuntime
 
 /** Состояние правила алертинга. */
 @Serializable
-data class AlertView(
+public data class AlertView(
     val service: String,
     val ruleId: String,
     val state: String,
@@ -160,7 +160,7 @@ data class AlertView(
  * `state` — строка протокола (`FIRING`/`OK`), и сравнение с ней расползалось по клиенту копиями
  * `state.equals("firing", ignoreCase = true)`. Смысл строки принадлежит контракту, а не экрану.
  */
-val AlertView.isFiring: Boolean
+public val AlertView.isFiring: Boolean
     get() = state.equals("firing", ignoreCase = true)
 
 /**
@@ -170,13 +170,13 @@ val AlertView.isFiring: Boolean
  * Ktor подбирает сериализатор по типу, и для приватного класса на wasm этот поиск падает.
  */
 @Serializable
-data class TestNotificationResult(
+public data class TestNotificationResult(
     val delivered: Boolean,
 )
 
 /** Порог правила: либо дефолт инсталляции, либо переопределение сервиса. */
 @Serializable
-data class AlertRuleView(
+public data class AlertRuleView(
     val ruleId: String,
     val threshold: Double,
     val minCount: Int,

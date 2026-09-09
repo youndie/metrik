@@ -6,14 +6,14 @@ package io.github.youndie.metrik.wire
 // 401 против 404 и 500 против 503 это разные инциденты.
 
 /** Ответа не было: исключение до отправки, обрыв соединения. */
-const val STATUS_NO_RESPONSE: Int = 0
+public const val STATUS_NO_RESPONSE: Int = 0
 
 /**
  * Кодирует HTTP-статус для поля `c`.
  *
  * `0` — ответа не было, `1…5` — класс статуса, `400…599` — точный код.
  */
-fun encodeStatus(httpStatus: Int): Int =
+public fun encodeStatus(httpStatus: Int): Int =
     when {
         httpStatus < 100 -> STATUS_NO_RESPONSE
         httpStatus in 400..599 -> httpStatus
@@ -22,7 +22,7 @@ fun encodeStatus(httpStatus: Int): Int =
     }
 
 /** Класс статуса (`1…5`) для закодированного значения — по нему считается error rate. */
-fun statusClassOf(encoded: Int): Int = if (encoded >= 100) encoded / 100 else encoded
+public fun statusClassOf(encoded: Int): Int = if (encoded >= 100) encoded / 100 else encoded
 
 /** Считается ли ответ ошибкой сервера. Именно это правило смотрит алерт `error_rate`. */
-fun isServerError(encoded: Int): Boolean = statusClassOf(encoded) == 5
+public fun isServerError(encoded: Int): Boolean = statusClassOf(encoded) == 5

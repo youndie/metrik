@@ -42,7 +42,7 @@ private class Sample(
 
 /** Счётчики самого агента: без них потери невидимы. */
 @OptIn(ExperimentalAtomicApi::class)
-class AgentCounters {
+public class AgentCounters {
     internal val droppedCounter = AtomicInt(0)
     internal val sendFailureCounter = AtomicInt(0)
     internal val oversizedCounter = AtomicInt(0)
@@ -52,26 +52,26 @@ class AgentCounters {
     internal val exitCounter = AtomicInt(0)
 
     /** Замеры, не влезшие в очередь. */
-    val dropped: Int get() = droppedCounter.load()
+    public val dropped: Int get() = droppedCounter.load()
 
     /** Сколько окон агент закрыл и попытался отправить. */
-    val windows: Int get() = windowCounter.load()
+    public val windows: Int get() = windowCounter.load()
 
     /**
      * Итерации цикла окон. Ноль означает, что корутина агента вообще не получила выполнения;
      * ненулевое значение при нулевых [windows] — что не срабатывает таймер окна.
      * Без этого различия «данных нет» диагностике не поддаётся.
      */
-    val loops: Int get() = loopCounter.load()
+    public val loops: Int get() = loopCounter.load()
 
     /** Вышел ли цикл окон. Отличает «корутину отменили» от «залипли в ожидании». */
-    val exited: Int get() = exitCounter.load()
+    public val exited: Int get() = exitCounter.load()
 
     /** Окна, которые не удалось отправить. */
-    val sendFailures: Int get() = sendFailureCounter.load()
+    public val sendFailures: Int get() = sendFailureCounter.load()
 
     /** Пакеты, превысившие MTU-бюджет (аномально длинный шаблон маршрута). */
-    val oversized: Int get() = oversizedCounter.load()
+    public val oversized: Int get() = oversizedCounter.load()
 }
 
 /**
@@ -82,7 +82,7 @@ class AgentCounters {
  * агрегатор не нуждается ни в локах, ни в атомиках.
  */
 @OptIn(ExperimentalAtomicApi::class)
-class MetrikAgent(
+public class MetrikAgent(
     private val config: MetrikConfig,
     private val sender: MetrikSender,
     @Suppress(
@@ -99,7 +99,7 @@ class MetrikAgent(
     private var job: Job? = null
     private var windowSeq = 0L
 
-    val counters = AgentCounters()
+    public val counters: AgentCounters = AgentCounters()
 
     /**
      * Собственный поток, а не `Dispatchers.Default`.
@@ -121,11 +121,11 @@ class MetrikAgent(
     // Останавливается явно в stop().
     private val scope = CoroutineScope(dispatcher + SupervisorJob())
 
-    fun start(host: CoroutineScope) {
+    public fun start(host: CoroutineScope) {
         job = scope.launch { run() }
     }
 
-    fun stop() {
+    public fun stop() {
         job?.cancel()
         job = null
         scope.cancel()
@@ -134,7 +134,7 @@ class MetrikAgent(
     }
 
     /** Вызывается с горячего пути. Никогда не suspend, никогда не бросает. */
-    fun record(
+    public fun record(
         method: String,
         route: String,
         status: Int,

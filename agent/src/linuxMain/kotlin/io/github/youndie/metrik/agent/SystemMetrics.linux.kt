@@ -13,7 +13,7 @@ import platform.posix.sysconf
  * нет «максимума heap» — вместо него подставляется лимит cgroup, если он читается.
  */
 @OptIn(ExperimentalForeignApi::class)
-actual fun readSystemMetrics(): SystemReading {
+public actual fun readSystemMetrics(): SystemReading {
     val statm = readSmallFile("/proc/self/statm")?.trim()?.split(" ")
     val pageSize = sysconf(_SC_PAGESIZE).takeIf { it > 0 } ?: 4096L
     val residentBytes = statm?.getOrNull(1)?.toLongOrNull()?.times(pageSize)
@@ -39,7 +39,7 @@ actual fun readSystemMetrics(): SystemReading {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-actual fun availableProcessors(): Int = sysconf(_SC_NPROCESSORS_ONLN).takeIf { it > 0 }?.toInt() ?: 1
+public actual fun availableProcessors(): Int = sysconf(_SC_NPROCESSORS_ONLN).takeIf { it > 0 }?.toInt() ?: 1
 
 /**
  * Лимит памяти контейнера. cgroup v2 пишет `max` вместо числа, когда лимита нет, — это `null`,
