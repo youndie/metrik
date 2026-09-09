@@ -48,6 +48,10 @@ class IngestService(
 ) {
     suspend fun accept(payload: String): IngestResult {
         val frame =
+            @Suppress(
+                "ktlint:kapkan:cancellation-swallowed",
+                "разбор JSON синхронный, точки приостановки внутри нет — отмене там не взяться",
+            )
             runCatching { MetrikJson.decodeFromString<Frame>(payload) }.getOrNull()
                 ?: return counters.record(IngestResult.MALFORMED)
 
