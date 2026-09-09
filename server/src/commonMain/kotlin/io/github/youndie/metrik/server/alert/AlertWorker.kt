@@ -167,8 +167,15 @@ class AlertWorker(
         if (rule?.mutedUntil != null) return
 
         // Ошибка доставки не должна ни ронять воркер, ни терять состояние: следующая проверка
-        // попробует снова.
-        runCatching { notifier.notify(text, rule?.telegramChatId) }
+        // попробует снова. Отмена — не ошибка доставки: `runCatching` глотал её здесь, и внешний
+        // цикл, который её как раз перебрасывает, до неё не доходил.
+        try {
+            notifier.notify(text, rule?.telegramChatId)
+        } catch (cause: CancellationException) {
+            throw cause
+        } catch (_: Throwable) {
+            // Следующая проверка попробует снова.
+        }
     }
 
     private suspend fun loadState(
@@ -240,9 +247,20 @@ class AlertWorker(
      * @return false, если нотификатор не настроен или доставка не удалась — UI обязан показать
      *   именно это, а не бодрое «отправлено».
      */
+    @Suppress(
+        "ktlint:kapkan:swallowed-failure",
+        "контракт функции — Boolean, и KDoc выше говорит почему: UI показывает «не доставлено»",
+    )
     suspend fun sendTest(chatId: String? = null): Boolean =
-        runCatching { notifier.notify("🧪 metrik: тестовое уведомление, проверка доставки", chatId) }
-            .getOrDefault(false)
+        // Отмена не «доставка не удалась»: запрос ушёл вместе с тем, кто его ждал, и отвечать ему
+        // `false` некому. Она уходит наверх, а `false` остаётся ответом про настоящую неудачу.
+        try {
+            notifier.notify("🧪 metrik: тестовое уведомление, проверка доставки", chatId)
+        } catch (cause: CancellationException) {
+            throw cause
+        } catch (_: Throwable) {
+            false
+        }
 
     suspend fun active(): List<AlertView> =
         db
