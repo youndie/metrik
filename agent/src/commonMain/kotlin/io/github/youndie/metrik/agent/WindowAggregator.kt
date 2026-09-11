@@ -112,18 +112,34 @@ public class WindowAggregator(
 
     /** Забирает накопленное и обнуляет состояние под следующее окно. */
     public fun drain(): WindowData {
+        // ПОРЯДОК ЗАДАЁТСЯ ЗДЕСЬ, а не порядком обхода `HashMap`.
+        //
+        // Модуль публикуется и под `jvm`, и под нативные таргеты, а `HashMap` обходится на них
+        // по-разному — измерено в sborka, `docs/research/research-parity.md` §1.2: те же ключи,
+        // разный порядок. Пока сервер сливает окна по ключу, это ничего не ломает; сломается оно
+        // молча, когда на пакет ляжет голден, хеш или ключ идемпотентности.
+        //
+        // Сортировка строк, в отличие от обхода `HashMap`, на обоих таргетах одинакова — 19 проб
+        // на строки и Unicode в том же замере совпали все. То есть компаратор не вносит того самого
+        // расхождения, которое убирает.
+        //
+        // Рядом уже есть тот же приём: `Histogram.toSparse()` сортирует бакеты перед сериализацией
+        // ровно по этой причине.
         val routes =
-            series.map { (key, accumulator) ->
-                RouteSeries(
-                    method = key.method,
-                    route = key.route,
-                    status = key.status,
-                    count = accumulator.count,
-                    sumMs = accumulator.sumMs,
-                    maxMs = accumulator.maxMs,
-                    buckets = accumulator.histogram,
-                )
-            }
+            series.entries
+                .sortedWith(
+                    compareBy({ it.key.route }, { it.key.method }, { it.key.status }),
+                ).map { (key, accumulator) ->
+                    RouteSeries(
+                        method = key.method,
+                        route = key.route,
+                        status = key.status,
+                        count = accumulator.count,
+                        sumMs = accumulator.sumMs,
+                        maxMs = accumulator.maxMs,
+                        buckets = accumulator.histogram,
+                    )
+                }
 
         val data = WindowData(routes = routes, slow = slow.toList(), collapsed = collapsed)
 

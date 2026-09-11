@@ -109,6 +109,40 @@ class WindowAggregatorTest {
     }
 
     @Test
+    fun `series should reach the wire in a target-independent order`() {
+        // Given — порядок вставки намеренно не совпадает ни с алфавитным, ни с обратным ему.
+        val aggregator = WindowAggregator()
+        val recorded =
+            listOf(
+                Triple("GET", "/zeta", 200),
+                Triple("POST", "/alpha", 201),
+                Triple("GET", "/alpha", 200),
+                Triple("DELETE", "/mu", 204),
+                Triple("GET", "/alpha", 500),
+            )
+
+        // When
+        recorded.forEach { (method, route, status) ->
+            aggregator.record(method, route, encodeStatus(status), 5, 0)
+        }
+
+        // Then — порядок задаёт сортировка, а не обход HashMap: у `HashMap` он на JVM и на
+        // Kotlin/Native разный, и пакет агента иначе выглядел бы по-разному в зависимости от того,
+        // чем собран хост. Тест общий и потому идёт на обоих таргетах — в этом весь смысл.
+        val order = aggregator.drain().routes.map { "${it.route} ${it.method} ${it.status}" }
+        assertEquals(
+            listOf(
+                "/alpha GET ${encodeStatus(200)}",
+                "/alpha GET ${encodeStatus(500)}",
+                "/alpha POST ${encodeStatus(201)}",
+                "/mu DELETE ${encodeStatus(204)}",
+                "/zeta GET ${encodeStatus(200)}",
+            ),
+            order,
+        )
+    }
+
+    @Test
     fun `histogram inside a series should match the recorded durations`() {
         // Given
         val aggregator = WindowAggregator()
