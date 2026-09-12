@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("io.github.youndie.sborka.kmp")
     id("io.github.youndie.sborka.lint")
+    id("io.github.youndie.sborka.parity")
 }
 
 // NOT PUBLISHED: the server ships as a container image, not as an artefact. Explicit API is off for
@@ -16,6 +17,13 @@ kotlin {
     compilerOptions {
         optIn.add("kotlinx.coroutines.ExperimentalCoroutinesApi")
     }
+}
+
+// WHERE THE PLATFORM PROBE LOOKS. `localhost` is the name it resolves; the port is bound by the test
+// itself, so the suite needs nothing running beside it. `PlatformTest` says what that covers.
+parityProbe {
+    host = "localhost"
+    port = 0
 }
 
 kotlin {

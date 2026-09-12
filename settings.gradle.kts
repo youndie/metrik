@@ -25,7 +25,7 @@ plugins {
     // mavenCentral() and google() with their content filters — Compose Multiplatform pulls
     // androidx.lifecycle and androidx.savedstate, which are not in Central — plus the shared `wip`
     // catalog and the check that this repository's `.editorconfig` is the one the rest of them use.
-    id("io.github.youndie.sborka.settings") version "0.4.0.43"
+    id("io.github.youndie.sborka.settings") version "0.4.0.58"
 }
 
 dependencyResolutionManagement {
