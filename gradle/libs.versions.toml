@@ -1,6 +1,6 @@
 [versions]
 # The shared build conventions. One number: every sborka plugin below takes its version from here.
-sborka = "0.4.0.43"
+sborka = "0.4.0.58"
 kotlin = "2.4.10"
 composeMultiplatform = "1.12.0"
 kotlinxCoroutines = "1.11.0"
@@ -47,6 +47,7 @@ mosaic-runtime = { module = "com.jakewharton.mosaic:mosaic-runtime", version.ref
 
 [plugins]
 sborkaKmp = { id = "io.github.youndie.sborka.kmp", version.ref = "sborka" }
+sborkaParity = { id = "io.github.youndie.sborka.parity", version.ref = "sborka" }
 sborkaJvm = { id = "io.github.youndie.sborka.jvm", version.ref = "sborka" }
 sborkaLint = { id = "io.github.youndie.sborka.lint", version.ref = "sborka" }
 sborkaPublish = { id = "io.github.youndie.sborka.publish", version.ref = "sborka" }
