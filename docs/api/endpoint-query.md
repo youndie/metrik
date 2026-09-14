@@ -45,7 +45,10 @@ contract_source: :shared (io.github.youndie.metrik.api)
 | DELETE | `/api/admin/services/{id}/alerts/{rule}/mute` | admin | снять заглушение |
 | POST | `/api/admin/alerts/test` | admin | тестовое уведомление; отвечает `{"delivered": true\|false}` |
 | DELETE | `/api/admin/services/{id}` | admin | удалить сервис и его данные (в том числе заведённый по опечатке) |
-| GET | `/health` | — | живость процесса + ping БД, без auth |
+| GET | `/health/startup` | — | защёлка старта: `200` после миграций и запуска движка, дальше всегда `200` |
+| GET | `/health/ready` | — | готовность: `SELECT 1` по базе **и** защёлка остановки |
+| GET | `/health/live` | — | живость процесса, базу не трогает. `GET /health` — её алиас |
+| GET | `/version` | — | версия, коммит и время сборки, вкомпилированные в бинарь |
 | GET | `/api/self` | user | внутренние счётчики ingest (`unknown_version`, `bad_key`, `malformed`, `dropped`) |
 
 `/api/self` — не «на будущее»: без него потери и отброшенные пакеты остаются невидимыми, а именно

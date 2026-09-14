@@ -2,16 +2,21 @@
 # The shared build conventions. One number: every sborka plugin below takes its version from here.
 sborka = "0.4.0.58"
 kotlin = "2.4.10"
+# kore: жизненный цикл серверного бинарника — упорядоченная остановка, три пробы, /version.
+# Одно число на библиотеки и на Gradle-плагин идентичности сборки: они публикуются вместе, и
+# плагин одной версии с библиотекой другой сойдётся при компиляции и разойдётся в объекте,
+# который генерирует.
+kore = "0.1.4"
 composeMultiplatform = "1.12.0"
 kotlinxCoroutines = "1.11.0"
 kotlinxSerializationJson = "1.11.0"
 kotlinxDatetime = "0.8.0"
-okio = "3.18.1"
-sqlx4k = "1.13.0"
+okio = "3.18.2"
+sqlx4k = "1.13.1"
 ktlintPlugin = "14.2.0"
 # renovate: datasource=maven depName=com.pinterest.ktlint:ktlint-cli
 ktlint = "1.8.0"
-materialKolor = "5.0.0"
+materialKolor = "5.0.1"
 androidxLifecycle = "2.11.0"
 navigation3Ui = "1.1.1"
 navigation3Browser = "1.1.0"
@@ -20,6 +25,8 @@ mcpSdk = "0.15.0"
 mosaic = "0.18.0"
 
 [libraries]
+kore-core = { module = "io.github.youndie:kore-core", version.ref = "kore" }
+kore-ktor = { module = "io.github.youndie:kore-ktor", version.ref = "kore" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
@@ -46,6 +53,7 @@ mcp-client = { module = "io.modelcontextprotocol:kotlin-sdk-client", version.ref
 mosaic-runtime = { module = "com.jakewharton.mosaic:mosaic-runtime", version.ref = "mosaic" }
 
 [plugins]
+koreBuild = { id = "io.github.youndie.kore.build", version.ref = "kore" }
 sborkaKmp = { id = "io.github.youndie.sborka.kmp", version.ref = "sborka" }
 sborkaParity = { id = "io.github.youndie.sborka.parity", version.ref = "sborka" }
 sborkaJvm = { id = "io.github.youndie.sborka.jvm", version.ref = "sborka" }

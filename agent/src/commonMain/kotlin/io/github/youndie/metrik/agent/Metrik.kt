@@ -13,6 +13,7 @@ import io.ktor.server.application.hooks.MonitoringEvent
 import io.ktor.server.application.hooks.ResponseSent
 import io.ktor.server.routing.RoutingRoot
 import io.ktor.util.AttributeKey
+import kotlinx.coroutines.runBlocking
 import kotlin.time.TimeSource
 
 /**
@@ -86,7 +87,20 @@ public val Metrik: ApplicationPlugin<MetrikConfig> =
         application.attributes.put(MetrikCountersKey, agent.counters)
         agent.start(application)
 
-        application.monitor.subscribe(ApplicationStopping) { agent.stop() }
+        // Досылаем открытое окно, а не просто гасим агента (issue #29). До этого каждое
+        // выключение теряло всё, что насчитано после последнего тика — до минуты на умолчаниях,
+        // и ровно ту минуту, в которую сервис останавливали.
+        //
+        // `runBlocking` здесь не украшение: событие — не suspend-колбэк, а `launch` вернулся бы
+        // сразу и дал процессу уйти из-под отправки, то есть починка превратилась бы в ту же
+        // потерю строкой ниже.
+        //
+        // **На Kotlin/Native это событие приходит ДО слива движка**, потому что `EmbeddedServer.stop`
+        // исполняет шаги в обратном порядке относительно JVM. Значит запросы, дочитываемые во время
+        // слива, попадут уже в следующее окно, которого не будет. Сервису с собственным порядком
+        // остановки (kore) стоит звать `stopAndFlush` из своей группы телеметрии — двойной вызов
+        // безопасен, второй раз просто нечего отправлять.
+        application.monitor.subscribe(ApplicationStopping) { runBlocking { agent.stopAndFlush() } }
 
         // CallSetup, а не хук Metrics: последний в Ktor 3.5 помечен @InternalAPI, хотя ровно для
         // замеров и предназначен. Setup — самая ранняя публичная фаза, разница в наносекундах.

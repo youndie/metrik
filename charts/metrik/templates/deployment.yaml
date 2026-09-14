@@ -15,6 +15,11 @@ spec:
       labels:
         app: {{ .Release.Name }}-metrik
     spec:
+      # ЧИСЛО, ПРОТИВ КОТОРОГО ПРОВЕРЯЕТСЯ ПЛАН ОСТАНОВКИ. `DEADLINES` в `Application.kt`
+      # складывается в 21 секунду и объявляет 30 своим бюджетом; настоящий grace period процессу
+      # не сообщает ни одна платформа, поэтому это одно число в двух местах. Опустишь здесь —
+      # процесс убьют посреди слива, и проверка kore промолчит, потому что ей сказали 30.
+      terminationGracePeriodSeconds: 30
       containers:
         - name: server
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -72,15 +77,33 @@ spec:
             - name: METRIK_MCP_ALLOWED_HOSTS
               value: {{ .Values.mcp.allowedHosts | default (ternary .Values.traefik.hostname "" .Values.traefik.enabled) | quote }}
             {{- end }}
+          # ТРИ ПРОБЫ, ТРИ РАЗНЫХ ВОПРОСА. Обе пробы стояли на `/health`, а тот пинговал базу:
+          # проба живости падала от недоступного хранилища и перезапускала под — а хранилище
+          # недоступно всем подам сразу, так что перезапуск растягивал восстановление вместо того,
+          # чтобы его ускорить. И одновременно readiness не могла упасть ни по какой другой
+          # причине, включая остановку.
+          #
+          # `failureThreshold: 60` при `periodSeconds: 1` вместо длинного `initialDelaySeconds`:
+          # под входит в строй, когда готов, а не в назначенный час. Миграции идут до того, как
+          # движок начнёт отвечать, — минута отведена им.
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: http
+            periodSeconds: 1
+            failureThreshold: 60
           livenessProbe:
             httpGet:
-              path: /health
+              path: /health/live
               port: http
-            initialDelaySeconds: 5
+            periodSeconds: 20
+            failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /health
+              path: /health/ready
               port: http
+            periodSeconds: 2
+            failureThreshold: 3
           resources: {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: data
