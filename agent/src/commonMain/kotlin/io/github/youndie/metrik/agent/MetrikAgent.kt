@@ -14,10 +14,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.concurrent.Volatile
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.concurrent.atomics.fetchAndIncrement
 import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 
 /**
@@ -121,13 +125,59 @@ public class MetrikAgent(
     // Останавливается явно в stop().
     private val scope = CoroutineScope(dispatcher + SupervisorJob())
 
+    /**
+     * Начало окна, которое сейчас набирается.
+     *
+     * Поле, а не только локальная переменная цикла, потому что [stopAndFlush] зовут снаружи — с
+     * чужого потока, когда цикл уже отменён, — и ему нужно знать, каким окном подписать то, что
+     * осталось. `@Volatile` здесь ровно за этим: запись делает поток агента, читает чужой.
+     */
+    @Volatile
+    private var currentWindowStart: Long = 0L
+
     public fun start(host: CoroutineScope) {
         job = scope.launch { run() }
     }
 
+    /**
+     * Останавливает агента, **не** отправив открытое окно.
+     *
+     * Оставлен для вызывающего, которому нечего ждать: тест, локальный прогон, аварийное
+     * выключение. Всё, что останавливается по-человечески, зовёт [stopAndFlush] — иначе каждое
+     * выключение стоит до одного окна агрегации, а это до минуты на умолчаниях.
+     */
     public fun stop() {
         job?.cancel()
         job = null
+        scope.cancel()
+        sender.close()
+        dispatcher.close()
+    }
+
+    /**
+     * Досылает открытое окно и только потом останавливается — issue #29.
+     *
+     * `stop()` отменял цикл, scope, sender и dispatcher и **не сбрасывал то, что уже насчитано**:
+     * агрегатор держит текущее окно в памяти и отдаёт его по таймеру, так что выключение между
+     * двумя тиками теряло всё, что случилось после последнего. При окне по умолчанию это до минуты
+     * метрик на каждой остановке — и ровно той минуты, в которую сервис останавливали.
+     *
+     * Порядок здесь — тоже часть починки: цикл отменяется первым, чтобы он не отправил то же окно
+     * параллельно, потом разбирается входящая очередь (иначе последние записи остались бы в
+     * канале), потом отправка под таймаутом, и только после — закрытие отправителя. Отправитель,
+     * закрытый раньше отправки, превратил бы починку в тихий no-op.
+     *
+     * @param grace сколько ждать саму отправку. Не бюджет всей остановки: вызывающий знает свой.
+     */
+    public suspend fun stopAndFlush(grace: Duration = config.windowMs.milliseconds) {
+        job?.cancel()
+        job = null
+
+        withTimeoutOrNull(grace) {
+            drainInbox()
+            flush(currentWindowStart)
+        }
+
         scope.cancel()
         sender.close()
         dispatcher.close()
@@ -155,6 +205,7 @@ public class MetrikAgent(
      */
     private suspend fun run() {
         var windowStart = alignToWindow(nowMs())
+        currentWindowStart = windowStart
 
         try {
             while (currentScopeIsActive()) {
@@ -166,6 +217,7 @@ public class MetrikAgent(
                 if (remaining <= 0) {
                     flush(windowStart)
                     windowStart = deadline
+                    currentWindowStart = windowStart
                     continue
                 }
 
