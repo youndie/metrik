@@ -54,6 +54,49 @@ jobs:
             type=ref,event=tag
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
+      # СНАЧАЛА СОБРАТЬ И ЗАПУСТИТЬ, ПОТОМ ПУШИТЬ. До этого шага образ никто никогда не
+      # запускал: пуш шёл сразу за сборкой, и проверялось ровно то, что `docker build` не упал.
+      # Ломается здесь не сборка — в рантайме нет оболочки, и недостающая разделяемая библиотека
+      # видна только при старте процесса. Проверено на живом образе: база без `libz.so.1`
+      # (`distroless/cc-debian12`) собирается зелёной и падает при exec с
+      # `error while loading shared libraries: libz.so.1`, exit 127.
+      #
+      # Второй вызов build-push-action ниже переиспользует кэш buildx этого — он не пересобирает,
+      # а дотягивает тот же образ до registry.
+      - name: Build the image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/server.Dockerfile
+          load: true
+          tags: metrik:ci
+
+      - name: It runs, serves the dashboard and takes a datagram
+        run: |
+          docker run --detach --name metrik-ci --network host \
+            -e METRIK_INGEST_KEY=smoke-key -e METRIK_DB_PATH=/data/metrik.db metrik:ci
+          ./dev/image-smoke.sh http://localhost:8080 9999
+
+      # Остановка — половина жизненного цикла, за которой никто не смотрит, и на Kotlin/Native
+      # она исполняет шаги в порядке, обратном JVM. Транскрипт — единственное, что отличает
+      # «последовательность отработала» от «процесс убили по истечении grace period».
+      - name: It stops in order, and says so
+        run: |
+          docker stop --timeout 40 metrik-ci
+          log=$(docker logs metrik-ci 2>&1)
+          for stage in SIGNAL ANNOUNCE DRAIN RELEASE_CONSUMERS RELEASE_POOLS EXIT; do
+            if ! printf '%s\n' "$log" | grep -q "$stage COMPLETED"; then
+              echo "в транскрипте остановки нет завершённой стадии $stage" >&2
+              printf '%s\n' "$log" | tail -40 >&2
+              exit 1
+            fi
+          done
+
+      # В контейнере нет оболочки — это единственный отчёт о том, что пошло не так.
+      - name: What it said, if it did not
+        if: failure()
+        run: docker logs metrik-ci || true
+
       - uses: docker/build-push-action@v7
         with:
           context: .
