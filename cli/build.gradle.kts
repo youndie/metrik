@@ -1,7 +1,7 @@
 plugins {
     kotlin("multiplatform")
-    alias(libs.plugins.pluginSerialization)
-    alias(libs.plugins.composeCompiler)
+    alias(wip.plugins.kotlinSerialization)
+    alias(wip.plugins.composeCompiler)
 }
 
 kotlin {
