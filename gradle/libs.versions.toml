@@ -3,7 +3,7 @@
 # and so does the compiler — the `wip` catalog this release publishes carries `kotlin` and the
 # Compose Multiplatform version that moves with it, so neither has a version in this file to drift
 # from the rest of the portfolio.
-sborka = "0.4.0.87"
+sborka = "0.4.0.90"
 # kore: жизненный цикл серверного бинарника — упорядоченная остановка, три пробы, /version.
 # Одно число на библиотеки и на Gradle-плагин идентичности сборки: они публикуются вместе, и
 # плагин одной версии с библиотекой другой сойдётся при компиляции и разойдётся в объекте,
