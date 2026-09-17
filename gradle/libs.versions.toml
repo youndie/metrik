@@ -1,13 +1,14 @@
 [versions]
-# The shared build conventions. One number: every sborka plugin below takes its version from here.
-sborka = "0.4.0.58"
-kotlin = "2.4.10"
+# The shared build conventions. One number: every sborka plugin below takes its version from here,
+# and so does the compiler — the `wip` catalog this release publishes carries `kotlin` and the
+# Compose Multiplatform version that moves with it, so neither has a version in this file to drift
+# from the rest of the portfolio.
+sborka = "0.4.0.87"
 # kore: жизненный цикл серверного бинарника — упорядоченная остановка, три пробы, /version.
 # Одно число на библиотеки и на Gradle-плагин идентичности сборки: они публикуются вместе, и
 # плагин одной версии с библиотекой другой сойдётся при компиляции и разойдётся в объекте,
 # который генерирует.
 kore = "0.1.4"
-composeMultiplatform = "1.12.0"
 kotlinxCoroutines = "1.11.0"
 kotlinxSerializationJson = "1.11.0"
 kotlinxDatetime = "0.8.0"
@@ -59,9 +60,4 @@ sborkaParity = { id = "io.github.youndie.sborka.parity", version.ref = "sborka" 
 sborkaJvm = { id = "io.github.youndie.sborka.jvm", version.ref = "sborka" }
 sborkaLint = { id = "io.github.youndie.sborka.lint", version.ref = "sborka" }
 sborkaPublish = { id = "io.github.youndie.sborka.publish", version.ref = "sborka" }
-kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-pluginSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
-composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ktlintPlugin = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintPlugin" }
