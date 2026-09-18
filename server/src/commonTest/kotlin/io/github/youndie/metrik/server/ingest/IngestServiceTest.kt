@@ -1,8 +1,7 @@
 package io.github.youndie.metrik.server.ingest
 
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asLong
-import io.github.smyrgeorge.sqlx4k.sqlite.ISQLite
-import io.github.youndie.metrik.server.openDatabase
+import io.github.youndie.metrik.server.TestDatabase
 import io.github.youndie.metrik.wire.Frame
 import io.github.youndie.metrik.wire.Histogram
 import io.github.youndie.metrik.wire.MetrikJson
@@ -11,9 +10,6 @@ import io.github.youndie.metrik.wire.SlowSample
 import io.github.youndie.metrik.wire.SystemSnapshot
 import io.github.youndie.metrik.wire.encodeStatus
 import kotlinx.coroutines.test.runTest
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.SYSTEM
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -23,15 +19,13 @@ private const val KEY = "test-ingest-key"
 private const val WINDOW = 1_754_049_600_000L
 
 class IngestServiceTest {
-    private val dbPath = "/tmp/metrik-ingest-test-${randomSuffix()}.db"
-    private val db: ISQLite = openDatabase(dbPath)
+    private val database = TestDatabase("ingest")
+    private val db = database.db
     private val now = WINDOW + 10_000
     private val ingest = IngestService(db, KEY, nowMs = { now })
 
     @AfterTest
-    fun cleanup() {
-        FileSystem.SYSTEM.delete(dbPath.toPath(), mustExist = false)
-    }
+    fun cleanup() = database.close()
 
     private fun frame(
         instance: String = "instance-a",
@@ -265,7 +259,3 @@ class IngestServiceTest {
             assertTrue(stats.badKey == 0)
         }
 }
-
-private var counter = 0
-
-private fun randomSuffix(): String = "${counter++}-${WINDOW % 100_000}"

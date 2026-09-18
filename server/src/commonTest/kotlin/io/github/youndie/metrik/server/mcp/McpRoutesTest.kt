@@ -1,8 +1,8 @@
 package io.github.youndie.metrik.server.mcp
 
 import io.github.youndie.metrik.server.ServerConfig
+import io.github.youndie.metrik.server.TestDatabase
 import io.github.youndie.metrik.server.module
-import io.github.youndie.metrik.server.openDatabase
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -12,9 +12,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.SYSTEM
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -28,13 +25,11 @@ import kotlin.test.assertNotEquals
  * соседних сервисах.
  */
 class McpRoutesTest {
-    private val dbPath = "/tmp/metrik-mcp-test.db"
-    private val db = openDatabase(dbPath)
+    private val database = TestDatabase("mcp")
+    private val db = database.db
 
     @AfterTest
-    fun cleanup() {
-        FileSystem.SYSTEM.delete(dbPath.toPath(), mustExist = false)
-    }
+    fun cleanup() = database.close()
 
     private fun config(
         token: String? = "secret",
@@ -42,7 +37,7 @@ class McpRoutesTest {
     ) = ServerConfig(
         httpPort = 0,
         udpPort = 0,
-        dbPath = dbPath,
+        dbPath = database.path,
         ingestKey = "key",
         mcpToken = token,
         mcpAllowedHosts = hosts,

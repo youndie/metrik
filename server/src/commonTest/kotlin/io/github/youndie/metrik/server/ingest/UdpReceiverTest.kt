@@ -1,7 +1,7 @@
 package io.github.youndie.metrik.server.ingest
 
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asLong
-import io.github.youndie.metrik.server.openDatabase
+import io.github.youndie.metrik.server.TestDatabase
 import io.github.youndie.metrik.wire.Frame
 import io.github.youndie.metrik.wire.Histogram
 import io.github.youndie.metrik.wire.MetrikJson
@@ -17,9 +17,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.io.Buffer
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.SYSTEM
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -31,14 +28,12 @@ private const val WINDOW = 1_754_049_600_000L
 private const val PORT = 19_313
 
 class UdpReceiverTest {
-    private val dbPath = "/tmp/metrik-udp-test.db"
-    private val db = openDatabase(dbPath)
+    private val database = TestDatabase("udp")
+    private val db = database.db
     private val ingest = IngestService(db, KEY, nowMs = { WINDOW + 1_000 })
 
     @AfterTest
-    fun cleanup() {
-        FileSystem.SYSTEM.delete(dbPath.toPath(), mustExist = false)
-    }
+    fun cleanup() = database.close()
 
     private fun frame(
         service: String,
