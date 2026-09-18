@@ -14,7 +14,8 @@ low overhead.
 
 Unlike traditional monitoring stacks, metrik is one self-contained binary compiled with Kotlin/Native
 and one SQLite file. No JVM, no time-series database, no scrape configuration. The agent costs the
-monitored service **106 nanoseconds per request** and one UDP packet per minute.
+monitored service **well under a microsecond per request** — tens to low hundreds of nanoseconds,
+depending on the machine — and one UDP packet per minute.
 
 <img src="docs/images/metrik-cli.png" width="640" alt="metrik-cli: a service, its latency chart and its slowest routes in a terminal">
 
