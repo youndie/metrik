@@ -7,7 +7,6 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -30,8 +29,11 @@ import kotlin.time.ExperimentalTime
  * Очередь **ограничена** намеренно: неограниченный канал под нагрузкой превращается в утечку
  * памяти в чужом процессе. Переполнение — это потеря замеров, но потеря видимая (счётчик
  * [AgentCounters.dropped]), а не съеденная память целевого сервиса.
+ *
+ * `internal`, а не `private`: на этой величине держится тест переполнения, и повторять её в тесте
+ * числом значило бы проверять совпадение двух констант, а не поведение очереди.
  */
-private const val INBOX_CAPACITY = 16_384
+internal const val INBOX_CAPACITY = 16_384
 
 /** Шаг опроса очереди. Окно минутное, так что точность здесь роли не играет. */
 private const val POLL_INTERVAL_MS = 200L
@@ -95,7 +97,18 @@ public class MetrikAgent(
     )
     private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
-    private val inbox = Channel<Sample>(capacity = INBOX_CAPACITY, onBufferOverflow = BufferOverflow.DROP_LATEST)
+    /**
+     * Очередь **без** `onBufferOverflow`: политика переполнения здесь — отказ `trySend`, и только
+     * он доходит до счётчика.
+     *
+     * Раньше стояло `BufferOverflow.DROP_LATEST`, и это молча отменяло всю видимость потерь:
+     * канал с политикой переполнения не отказывает — `trySend` возвращает успех и выбрасывает
+     * замер сам. Ветка `isFailure` в [record] не исполнялась никогда, [AgentCounters.dropped]
+     * оставался нулём при любой потере, а документация обещала обратное. Поведение очереди от
+     * правки не меняется — переполнение по-прежнему теряет самый свежий замер, — меняется
+     * только то, что теперь оно посчитано.
+     */
+    private val inbox = Channel<Sample>(capacity = INBOX_CAPACITY)
     private val aggregator = WindowAggregator(config.maxSeries, config.slowSamples)
     private val sampler = SystemSampler()
     private val startedAtMs = nowMs()
