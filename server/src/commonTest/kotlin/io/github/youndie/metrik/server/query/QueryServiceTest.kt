@@ -2,10 +2,10 @@ package io.github.youndie.metrik.server.query
 
 import io.github.smyrgeorge.sqlx4k.Statement
 import io.github.youndie.metrik.api.Step
+import io.github.youndie.metrik.server.TestDatabase
 import io.github.youndie.metrik.server.alert.ALERT_STATE_FIRING
 import io.github.youndie.metrik.server.ingest.IngestResult
 import io.github.youndie.metrik.server.ingest.IngestService
-import io.github.youndie.metrik.server.openDatabase
 import io.github.youndie.metrik.wire.Frame
 import io.github.youndie.metrik.wire.Histogram
 import io.github.youndie.metrik.wire.MetrikJson
@@ -13,9 +13,6 @@ import io.github.youndie.metrik.wire.RouteSeries
 import io.github.youndie.metrik.wire.SlowSample
 import io.github.youndie.metrik.wire.encodeStatus
 import kotlinx.coroutines.test.runTest
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.SYSTEM
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -27,16 +24,14 @@ private const val WINDOW = 1_754_049_600_000L
 private const val MINUTE = 60_000L
 
 class QueryServiceTest {
-    private val dbPath = "/tmp/metrik-query-test.db"
-    private val db = openDatabase(dbPath)
+    private val database = TestDatabase("query")
+    private val db = database.db
     private val now = WINDOW + 5 * MINUTE
     private val ingest = IngestService(db, KEY, nowMs = { now })
     private val query = QueryService(db, nowMs = { now })
 
     @AfterTest
-    fun cleanup() {
-        FileSystem.SYSTEM.delete(dbPath.toPath(), mustExist = false)
-    }
+    fun cleanup() = database.close()
 
     private suspend fun send(
         windowStart: Long = WINDOW,

@@ -1,8 +1,8 @@
 package io.github.youndie.metrik.server.alert
 
 import io.github.youndie.metrik.api.AlertRuleView
+import io.github.youndie.metrik.server.TestDatabase
 import io.github.youndie.metrik.server.ingest.IngestService
-import io.github.youndie.metrik.server.openDatabase
 import io.github.youndie.metrik.server.query.AdminService
 import io.github.youndie.metrik.wire.Frame
 import io.github.youndie.metrik.wire.Histogram
@@ -10,9 +10,6 @@ import io.github.youndie.metrik.wire.MetrikJson
 import io.github.youndie.metrik.wire.RouteSeries
 import io.github.youndie.metrik.wire.encodeStatus
 import kotlinx.coroutines.test.runTest
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.SYSTEM
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,8 +35,8 @@ private class RecordingNotifier : AlertNotifier {
 }
 
 class AlertWorkerTest {
-    private val dbPath = "/tmp/metrik-alert-test.db"
-    private val db = openDatabase(dbPath)
+    private val database = TestDatabase("alert")
+    private val db = database.db
     private val admin = AdminService(db, nowMs = { clock })
     private val notifier = RecordingNotifier()
     private var clock = WINDOW + MINUTE
@@ -47,9 +44,7 @@ class AlertWorkerTest {
     private fun worker() = AlertWorker(db, admin, notifier, nowMs = { clock })
 
     @AfterTest
-    fun cleanup() {
-        FileSystem.SYSTEM.delete(dbPath.toPath(), mustExist = false)
-    }
+    fun cleanup() = database.close()
 
     private suspend fun ingest(
         okCount: Int,

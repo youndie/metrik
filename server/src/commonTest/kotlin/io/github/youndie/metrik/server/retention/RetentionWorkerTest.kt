@@ -1,17 +1,14 @@
 package io.github.youndie.metrik.server.retention
 
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asLong
+import io.github.youndie.metrik.server.TestDatabase
 import io.github.youndie.metrik.server.ingest.IngestService
-import io.github.youndie.metrik.server.openDatabase
 import io.github.youndie.metrik.wire.Frame
 import io.github.youndie.metrik.wire.Histogram
 import io.github.youndie.metrik.wire.MetrikJson
 import io.github.youndie.metrik.wire.RouteSeries
 import io.github.youndie.metrik.wire.encodeStatus
 import kotlinx.coroutines.test.runTest
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.SYSTEM
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,14 +19,12 @@ private const val MINUTE = 60_000L
 private const val HOUR = 60 * MINUTE
 
 class RetentionWorkerTest {
-    private val dbPath = "/tmp/metrik-retention-test.db"
-    private val db = openDatabase(dbPath)
+    private val database = TestDatabase("retention")
+    private val db = database.db
     private var clock = 1_754_049_600_000L
 
     @AfterTest
-    fun cleanup() {
-        FileSystem.SYSTEM.delete(dbPath.toPath(), mustExist = false)
-    }
+    fun cleanup() = database.close()
 
     private suspend fun ingest(
         windowStart: Long,

@@ -1,33 +1,28 @@
 package io.github.youndie.metrik.server.query
 
 import io.github.youndie.metrik.server.ServerConfig
+import io.github.youndie.metrik.server.TestDatabase
 import io.github.youndie.metrik.server.module
-import io.github.youndie.metrik.server.openDatabase
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.SYSTEM
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class QueryRoutesTest {
-    private val dbPath = "/tmp/metrik-routes-test.db"
-    private val db = openDatabase(dbPath)
+    private val database = TestDatabase("routes")
+    private val db = database.db
 
     @AfterTest
-    fun cleanup() {
-        FileSystem.SYSTEM.delete(dbPath.toPath(), mustExist = false)
-    }
+    fun cleanup() = database.close()
 
     private fun config(admins: Set<String> = emptySet()) =
         ServerConfig(
             httpPort = 0,
             udpPort = 0,
-            dbPath = dbPath,
+            dbPath = database.path,
             ingestKey = "key",
             admins = admins,
         )
