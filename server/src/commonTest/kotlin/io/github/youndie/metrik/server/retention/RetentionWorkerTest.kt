@@ -3,6 +3,7 @@ package io.github.youndie.metrik.server.retention
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asLong
 import io.github.youndie.metrik.server.TestDatabase
 import io.github.youndie.metrik.server.ingest.IngestService
+import io.github.youndie.metrik.wire.AgentSnapshot
 import io.github.youndie.metrik.wire.Frame
 import io.github.youndie.metrik.wire.Histogram
 import io.github.youndie.metrik.wire.MetrikJson
@@ -30,6 +31,7 @@ class RetentionWorkerTest {
         windowStart: Long,
         windowSeq: Long,
         count: Int = 10,
+        agent: AgentSnapshot? = null,
     ) {
         IngestService(db, KEY, nowMs = { windowStart + 1_000 }).accept(
             MetrikJson.encodeToString(
@@ -53,6 +55,7 @@ class RetentionWorkerTest {
                                 buckets = Histogram().also { h -> repeat(count) { h.record(10) } },
                             ),
                         ),
+                    agent = agent,
                 ),
             ),
         )
@@ -131,6 +134,23 @@ class RetentionWorkerTest {
 
             // Then
             assertEquals(0, scalar("SELECT COUNT(*) FROM instances"))
+        }
+
+    @Test
+    fun `agent losses should not outlive the windows they belong to`() =
+        runTest {
+            // Given — таблица новая, а список на уборку в purge() пишется руками: без строки
+            // здесь она растёт вечно, и узнать об этом было бы неоткуда.
+            val base = clock
+            ingest(base, 1, agent = AgentSnapshot(dropped = 5, sendFailures = 0, oversized = 0))
+            assertTrue(scalar("SELECT COUNT(*) FROM agent_windows") > 0)
+
+            // When
+            clock = base + 3 * HOUR
+            worker().tick()
+
+            // Then
+            assertEquals(0, scalar("SELECT COUNT(*) FROM agent_windows"))
         }
 
     @Test

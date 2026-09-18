@@ -162,6 +162,20 @@ fun detailRows(
                 " (" + percent(overview.errorRate) + ")   p50 " + millis(overview.p50Ms) +
                 "   p95 " + millis(overview.p95Ms) + "   max " + millis(overview.maxMs.toDouble()),
         )
+
+    // Строка стоит НАД цифрами, а не под графиком: потерянные агентом замеры занижают и requests,
+    // и перцентили, и график — а выглядит это как более тихая минута. Разрыв тут не нарисуешь:
+    // окно пришло целым.
+    val dropped = detail.series.points.sumOf { it.droppedSamples }
+    if (dropped > 0) {
+        rows +=
+            row(
+                "  ! $dropped measurements never reached a window (agent queue overflow): " +
+                    "everything below is understated",
+                Severity.HIGH,
+            )
+    }
+
     rows += row("")
 
     val glyphs = if (config.unicode) Glyphs.UNICODE else Glyphs.ASCII

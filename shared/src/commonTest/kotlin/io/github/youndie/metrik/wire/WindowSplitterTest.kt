@@ -60,11 +60,14 @@ class WindowSplitterTest {
 
     @Test
     fun `a large window should split into packets that all fit the mtu budget`() {
-        // Given — 300 серий это заметно больше лимита кардинальности агента (200).
+        // Given — 300 серий это заметно больше лимита кардинальности агента (200). Потери агента
+        // здесь не для проверки размещения, а ради бюджета: они занимают место в пакете `q = 0`,
+        // и раскладка обязана это учитывать при нарезке, а не только при отправке.
         val routes = (1..300).map(::series)
+        val losses = AgentSnapshot(dropped = 999_999, sendFailures = 999, oversized = 99)
 
         // When
-        val split = splitWindow(header, routes, system)
+        val split = splitWindow(header = header, routes = routes, system = system, agent = losses)
         val frames = parse(split.packets)
 
         // Then
@@ -108,6 +111,21 @@ class WindowSplitterTest {
         // Then
         assertNotNull(frames.first().system)
         frames.drop(1).forEach { assertNull(it.system) }
+    }
+
+    @Test
+    fun `agent losses should travel only in the first packet`() {
+        // Given
+        val routes = (1..300).map(::series)
+        val losses = AgentSnapshot(dropped = 1_204, sendFailures = 2, oversized = 1)
+
+        // When — потери едут отдельным аргументом от системного среза: тот выключается конфигом,
+        // а право сказать «я потерял замеры» от этой настройки зависеть не должно.
+        val frames = parse(splitWindow(header = header, routes = routes, system = null, agent = losses).packets)
+
+        // Then
+        assertEquals(losses, frames.first().agent)
+        frames.drop(1).forEach { assertNull(it.agent) }
     }
 
     @Test

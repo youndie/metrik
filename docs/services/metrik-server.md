@@ -54,6 +54,7 @@ SQLite, sqlx4k. Сырых запросов **нет** — агент присы
 | `route_windows` | service_id, window_start, method, route, status, count, sum_ms, max_ms, buckets | **48 часов** |
 | `route_rollups` | то же, гранулярность час / день | 90 дней / вечно |
 | `system_windows` | instance_id, window_start, heap_used, heap_max, cpu_permille, threads, uptime, gc_count, gc_ms | 48 часов (+ часовые роллапы, 30 дней) |
+| `agent_windows` | instance_id, window_start, dropped, send_failures, oversized | 48 часов |
 | `slow_samples` | service_id, route, method, status, duration_ms, ts | 24 часа |
 | `alert_rules` | service_id (NULL = дефолт инсталляции), rule_id, threshold, min_count, windows, enabled, telegram_chat_id | вечно |
 | `window_receipts` | service_id, instance_id, window_start, packet_index, packet_count | 48 часов |

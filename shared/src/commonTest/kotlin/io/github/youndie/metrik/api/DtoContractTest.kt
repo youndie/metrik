@@ -41,6 +41,24 @@ class DtoContractTest {
     }
 
     /**
+     * Дашборд новее сервера — обычное состояние во время выката, а не экзотика: статика едет из
+     * образа дашборда, сервер из своего.
+     */
+    @Test
+    fun `a point from a server that does not report losses should read as zero`() {
+        // Given — ответ сервера, у которого поля ещё нет.
+        val json =
+            """{"at":1754049600000,"requestsPerSecond":12.5,"errorRate":0.0,""" +
+                """"p50Ms":10.0,"p95Ms":40.0,"maxMs":120}"""
+
+        // When
+        val point = MetrikJson.decodeFromString<TimePoint>(json)
+
+        // Then — ноль, а не отказ разбора всего ряда.
+        assertEquals(0L, point.droppedSamples)
+    }
+
+    /**
      * У нативного процесса нет ни максимума heap, ни счётчиков GC — то есть у любого
      * Kotlin/Native-сервиса эти поля null всегда, и вкладка «Система» ломалась именно на них.
      */

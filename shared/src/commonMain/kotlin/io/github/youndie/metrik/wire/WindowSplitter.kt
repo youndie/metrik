@@ -34,32 +34,39 @@ private class PacketPlan(
     val routes: List<RouteSeries>,
     val system: SystemSnapshot?,
     val slow: List<SlowSample>?,
+    val agent: AgentSnapshot? = null,
 )
 
 /**
  * Режет окно на пакеты не длиннее [maxPacketBytes].
  *
- * Раскладка по пакетам фиксирована контрактом: системный срез едет в пакете `q = 0`,
- * медленные сэмплы — в последнем.
+ * Раскладка по пакетам фиксирована контрактом: системный срез и потери агента едут в пакете
+ * `q = 0`, медленные сэмплы — в последнем.
  */
 public fun splitWindow(
     header: WindowHeader,
     routes: List<RouteSeries>,
     system: SystemSnapshot? = null,
     slow: List<SlowSample> = emptyList(),
+    agent: AgentSnapshot? = null,
     maxPacketBytes: Int = MAX_PACKET_BYTES,
 ): WindowSplit {
-    val chunks = chunkRoutes(header, routes, system, maxPacketBytes)
+    val chunks = chunkRoutes(header, routes, system, agent, maxPacketBytes)
 
     val plans =
         chunks
             .mapIndexed { index, chunk ->
-                PacketPlan(routes = chunk, system = if (index == 0) system else null, slow = null)
+                PacketPlan(
+                    routes = chunk,
+                    system = if (index == 0) system else null,
+                    slow = null,
+                    agent = if (index == 0) agent else null,
+                )
             }.toMutableList()
 
     if (slow.isNotEmpty()) {
         val last = plans.last()
-        val withSlow = PacketPlan(last.routes, last.system, slow)
+        val withSlow = PacketPlan(last.routes, last.system, slow, last.agent)
 
         if (sizeOf(frameOf(header, withSlow, PROBE_PACKET_INDEX, PROBE_PACKET_COUNT, includeRelease = true)) <=
             maxPacketBytes ||
@@ -68,7 +75,7 @@ public fun splitWindow(
             plans[plans.lastIndex] = withSlow
         } else {
             // Сэмплы не влезли к последним сериям — уезжают отдельным пакетом, он и станет последним.
-            plans += PacketPlan(routes = emptyList(), system = null, slow = slow)
+            plans += PacketPlan(routes = emptyList(), system = null, slow = slow, agent = null)
         }
     }
 
@@ -87,6 +94,7 @@ private fun chunkRoutes(
     header: WindowHeader,
     routes: List<RouteSeries>,
     system: SystemSnapshot?,
+    agent: AgentSnapshot?,
     maxPacketBytes: Int,
 ): List<List<RouteSeries>> {
     if (routes.isEmpty()) return listOf(emptyList())
@@ -100,7 +108,13 @@ private fun chunkRoutes(
         val probe =
             frameOf(
                 header = header,
-                plan = PacketPlan(current, if (chunks.isEmpty()) system else null, null),
+                plan =
+                    PacketPlan(
+                        routes = current,
+                        system = if (chunks.isEmpty()) system else null,
+                        slow = null,
+                        agent = if (chunks.isEmpty()) agent else null,
+                    ),
                 packetIndex = PROBE_PACKET_INDEX,
                 packetCount = PROBE_PACKET_COUNT,
                 includeRelease = true,
@@ -140,6 +154,7 @@ private fun frameOf(
         routes = plan.routes,
         system = plan.system,
         slow = plan.slow,
+        agent = plan.agent,
     )
 
 private fun sizeOf(frame: Frame): Int = MetrikJson.encodeToString(frame).encodeToByteArray().size
