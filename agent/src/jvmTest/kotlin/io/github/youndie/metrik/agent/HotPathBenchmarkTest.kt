@@ -1,8 +1,6 @@
 package io.github.youndie.metrik.agent
 
 import io.github.youndie.metrik.wire.encodeStatus
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -86,7 +84,7 @@ class HotPathBenchmarkTest {
                 systemMetrics = false
             }
         val agent = MetrikAgent(config, NoopSender)
-        agent.start(CoroutineScope(Dispatchers.Default))
+        agent.start()
 
         try {
             repeat(chunk) { agent.record("GET", "/x", 2, 5) }

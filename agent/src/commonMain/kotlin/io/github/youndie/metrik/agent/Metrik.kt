@@ -85,7 +85,7 @@ public val Metrik: ApplicationPlugin<MetrikConfig> =
 
         val agent = MetrikAgent(config, config.senderFactory(config.endpoint))
         application.attributes.put(MetrikCountersKey, agent.counters)
-        agent.start(application)
+        agent.start()
 
         // Досылаем открытое окно, а не просто гасим агента (issue #29). До этого каждое
         // выключение теряло всё, что насчитано после последнего тика — до минуты на умолчаниях,
