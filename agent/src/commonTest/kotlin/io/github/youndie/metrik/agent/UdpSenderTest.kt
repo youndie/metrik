@@ -99,7 +99,7 @@ class UdpSenderTest {
                     systemMetrics = false
                 }
             val agent = MetrikAgent(config, UdpSender(config.endpoint))
-            agent.start(scope)
+            agent.start()
             agent.record("GET", "/probe/{id}", 200, 12)
 
             // When
