@@ -155,7 +155,24 @@ private val migrationV3 =
         """ALTER TABLE system_windows ADD COLUMN runtime TEXT;""",
     )
 
-private val allMigrations = listOf(migrationV1, migrationV2, migrationV3)
+// Потери самого агента за окно. Своя таблица, а не колонки в system_windows: системный срез
+// выключается конфигом агента (`systemMetrics = false`), а видимость потерь от этой настройки
+// зависеть не должна — иначе сервис, которому системные метрики не нужны, молча теряет и право
+// сказать, что он что-то потерял.
+private val migrationV4 =
+    listOf(
+        """CREATE TABLE agent_windows (
+instance_id INTEGER NOT NULL,
+window_start INTEGER NOT NULL,
+dropped INTEGER NOT NULL,
+send_failures INTEGER NOT NULL,
+oversized INTEGER NOT NULL,
+PRIMARY KEY (instance_id, window_start),
+FOREIGN KEY (instance_id) REFERENCES instances(id) ON DELETE CASCADE
+);""",
+    )
+
+private val allMigrations = listOf(migrationV1, migrationV2, migrationV3, migrationV4)
 
 suspend fun ISQLite.migrateDb() {
     val current =

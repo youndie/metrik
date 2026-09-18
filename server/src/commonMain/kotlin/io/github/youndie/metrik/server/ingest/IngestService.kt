@@ -6,6 +6,7 @@ import io.github.smyrgeorge.sqlx4k.impl.coroutines.TransactionContext
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asLong
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asLongOrNull
 import io.github.smyrgeorge.sqlx4k.sqlite.ISQLite
+import io.github.youndie.metrik.wire.AgentSnapshot
 import io.github.youndie.metrik.wire.Frame
 import io.github.youndie.metrik.wire.Histogram
 import io.github.youndie.metrik.wire.MetrikJson
@@ -77,6 +78,7 @@ class IngestService(
             } else {
                 frame.routes.forEach { series -> mergeSeries(serviceId, frame.windowStart, series) }
                 frame.system?.let { snapshot -> writeSystem(instanceId, frame.windowStart, snapshot) }
+                frame.agent?.let { losses -> writeAgentLosses(instanceId, frame.windowStart, losses) }
                 frame.slow?.forEach { sample -> writeSlow(serviceId, sample) }
                 IngestResult.ACCEPTED
             }
@@ -319,6 +321,33 @@ class IngestService(
                 .bind("gcCount", snapshot.gc?.collections)
                 .bind("gcMs", snapshot.gc?.totalMs)
                 .bind("runtime", snapshot.runtime),
+        ).getOrThrow()
+    }
+
+    /**
+     * Потери агента за окно.
+     *
+     * `INSERT OR REPLACE`, как и у системного среза: повторная доставка того же пакета не должна
+     * удваивать потери. Числа приходят дельтой за окно, складывать их с уже записанными нельзя.
+     */
+    private suspend fun TransactionContext.writeAgentLosses(
+        instanceId: Long,
+        windowStart: Long,
+        losses: AgentSnapshot,
+    ) {
+        execute(
+            Statement
+                .create(
+                    """
+                    INSERT OR REPLACE INTO agent_windows
+                        (instance_id, window_start, dropped, send_failures, oversized)
+                    VALUES (:instanceId, :window, :dropped, :sendFailures, :oversized)
+                    """.trimIndent(),
+                ).bind("instanceId", instanceId)
+                .bind("window", windowStart)
+                .bind("dropped", losses.dropped)
+                .bind("sendFailures", losses.sendFailures)
+                .bind("oversized", losses.oversized),
         ).getOrThrow()
     }
 

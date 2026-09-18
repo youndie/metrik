@@ -402,6 +402,7 @@ private fun ChartsTab(
     val lastRps = points.lastOrNull()?.takeUnless { it.partial }?.requestsPerSecond
     val maxRps = points.filterNot { it.partial }.maxOfOrNull { it.requestsPerSecond } ?: 0.0
     val partialCount = points.count { it.partial }
+    val droppedSamples = points.sumOf { it.droppedSamples }
     val heroHeight = if (compact) 128.dp else 236.dp
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
@@ -410,6 +411,17 @@ private fun ChartsTab(
                 "hourly data: the minute windows for this period have been deleted",
                 MaterialTheme.colorScheme.tertiaryContainer,
                 MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+        }
+
+        // Наверху, а не под графиками: потерянные замеры занижают КАЖДОЕ число на экране, а не
+        // рисуют разрыв в одном ряду. Без этой строки провал rps читается как «нагрузка упала».
+        if (droppedSamples > 0) {
+            HonestyChip(
+                "$droppedSamples measurements never reached a window: the agent's queue overflowed, " +
+                    "so rps and percentiles here are lower than what the service actually served",
+                MaterialTheme.colorScheme.errorContainer,
+                MaterialTheme.colorScheme.onErrorContainer,
             )
         }
 

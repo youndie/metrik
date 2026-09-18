@@ -6,6 +6,7 @@ import io.github.youndie.metrik.server.TestDatabase
 import io.github.youndie.metrik.server.alert.ALERT_STATE_FIRING
 import io.github.youndie.metrik.server.ingest.IngestResult
 import io.github.youndie.metrik.server.ingest.IngestService
+import io.github.youndie.metrik.wire.AgentSnapshot
 import io.github.youndie.metrik.wire.Frame
 import io.github.youndie.metrik.wire.Histogram
 import io.github.youndie.metrik.wire.MetrikJson
@@ -41,6 +42,7 @@ class QueryServiceTest {
         windowSeq: Long = 1,
         routes: List<RouteSeries> = listOf(okSeries()),
         slow: List<SlowSample>? = null,
+        agent: AgentSnapshot? = null,
     ): IngestResult =
         ingest.accept(
             MetrikJson.encodeToString(
@@ -54,6 +56,7 @@ class QueryServiceTest {
                     packetCount = packetCount,
                     routes = routes,
                     slow = slow,
+                    agent = agent,
                 ),
             ),
         )
@@ -244,6 +247,64 @@ class QueryServiceTest {
 
             // Then
             assertFalse(series.points.single().partial)
+        }
+
+    @Test
+    fun `samples the agent dropped should reach the point they were lost in`() =
+        runTest {
+            // Given — окно пришло целым, и в нём же агент отчитался о потерянных замерах.
+            send(agent = AgentSnapshot(dropped = 120, sendFailures = 0, oversized = 0))
+
+            // When
+            val series = query.timeSeries(serviceId(), WINDOW, now, Step.MINUTE)
+
+            // Then — без этого числа точка неотличима от честного падения нагрузки: окно целое,
+            // `partial` не выставлен, просто запросов меньше, чем сервис обслужил.
+            val point = series.points.single()
+            assertEquals(120L, point.droppedSamples)
+            assertFalse(point.partial, "окно целое: потеря случилась в агенте, а не на проводе")
+        }
+
+    @Test
+    fun `losses of every instance should land in the same point`() =
+        runTest {
+            // Given — сервис в двух подах, потеряли оба.
+            send(instance = "pod-a", agent = AgentSnapshot(dropped = 30, sendFailures = 0, oversized = 0))
+            send(instance = "pod-b", agent = AgentSnapshot(dropped = 12, sendFailures = 1, oversized = 0))
+
+            // When
+            val series = query.timeSeries(serviceId(), WINDOW, now, Step.MINUTE)
+
+            // Then — ряд сервисный, инстансы в нём слиты, и потери обязаны складываться так же.
+            assertEquals(42L, series.points.single().droppedSamples)
+        }
+
+    @Test
+    fun `a window without losses should report zero`() =
+        runTest {
+            // Given — агент старой версии: поля нет вовсе.
+            send()
+
+            // When
+            val series = query.timeSeries(serviceId(), WINDOW, now, Step.MINUTE)
+
+            // Then
+            assertEquals(0L, series.points.single().droppedSamples)
+        }
+
+    @Test
+    fun `a redelivered packet should not double the losses`() =
+        runTest {
+            // Given — тот же пакет пришёл дважды: UDP этого не исключает.
+            val losses = AgentSnapshot(dropped = 9, sendFailures = 0, oversized = 0)
+            send(agent = losses)
+            send(agent = losses)
+
+            // When
+            val series = query.timeSeries(serviceId(), WINDOW, now, Step.MINUTE)
+
+            // Then — числа на проводе дельта за окно, складывать повторы нельзя.
+            assertEquals(9L, series.points.single().droppedSamples)
         }
 
     @Test

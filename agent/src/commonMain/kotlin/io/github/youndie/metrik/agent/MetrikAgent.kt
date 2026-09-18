@@ -1,5 +1,6 @@
 package io.github.youndie.metrik.agent
 
+import io.github.youndie.metrik.wire.AgentSnapshot
 import io.github.youndie.metrik.wire.WindowHeader
 import io.github.youndie.metrik.wire.splitWindow
 import kotlinx.coroutines.CoroutineScope
@@ -115,6 +116,11 @@ public class MetrikAgent(
 
     private var job: Job? = null
     private var windowSeq = 0L
+
+    // Сколько потерь уже уехало на сервер: провод возит дельту за окно, см. lossesSinceLastWindow.
+    private var reportedDropped = 0
+    private var reportedSendFailures = 0
+    private var reportedOversized = 0
 
     public val counters: AgentCounters = AgentCounters()
 
@@ -296,6 +302,7 @@ public class MetrikAgent(
         // и различить их сервер может только по приходящим окнам.
         val split =
             splitWindow(
+                agent = lossesSinceLastWindow(),
                 header =
                     WindowHeader(
                         apiKey = config.apiKey,
@@ -321,6 +328,37 @@ public class MetrikAgent(
                 counters.sendFailureCounter.fetchAndIncrement()
             }
         }
+    }
+
+    /**
+     * Потери за одно окно: разница между счётчиками и тем, что уже отчитано.
+     *
+     * Счётчики агента накапливаются с запуска процесса, а на провод едет дельта — вопрос всегда
+     * «сколько потеряно в этом окне». Так же поступает [SystemSampler] с GC.
+     *
+     * Снимается **до** отправки окна, поэтому отказы отправки этого самого окна приедут со
+     * следующим: раньше о них знать неоткуда, пакет ещё не ушёл.
+     *
+     * Вызывается только из потока агента (цикл окон и [stopAndFlush] после его отмены), поэтому
+     * поля обычные, без атомиков.
+     */
+    private fun lossesSinceLastWindow(): AgentSnapshot {
+        val dropped = counters.dropped
+        val sendFailures = counters.sendFailures
+        val oversized = counters.oversized
+
+        val snapshot =
+            AgentSnapshot(
+                dropped = dropped - reportedDropped,
+                sendFailures = sendFailures - reportedSendFailures,
+                oversized = oversized - reportedOversized,
+            )
+
+        reportedDropped = dropped
+        reportedSendFailures = sendFailures
+        reportedOversized = oversized
+
+        return snapshot
     }
 
     private fun alignToWindow(timestampMs: Long): Long = timestampMs - timestampMs % config.windowMs

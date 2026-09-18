@@ -143,6 +143,7 @@ class QueryService(
         val stepMs = step.durationMs()
         val windows = windowRows(serviceId, from, to)
         val partial = partialWindows(serviceId, from, to)
+        val dropped = droppedByWindow(serviceId, from, to)
 
         val points =
             windows
@@ -159,6 +160,11 @@ class QueryService(
                         p95Ms = merged.histogram.percentileMs(0.95),
                         maxMs = merged.maxMs,
                         partial = rowsInBucket.any { row -> row.windowStart in partial },
+                        droppedSamples =
+                            rowsInBucket
+                                .map { row -> row.windowStart }
+                                .distinct()
+                                .sumOf { windowStart -> dropped[windowStart] ?: 0L },
                     )
                 }
 
@@ -287,6 +293,33 @@ class QueryService(
             Step.HOUR -> HOUR_MS
             Step.DAY -> DAY_MS
         }
+
+    /**
+     * Сколько замеров агенты потеряли в каждом окне.
+     *
+     * Сумма по инстансам: ряд сервисный, инстансы в нём и так слиты. Окна без записи — это либо
+     * «потерь не было», либо «агент старше поля», и различить их ряд не берётся: обе ситуации
+     * рисуются как ноль.
+     */
+    private suspend fun droppedByWindow(
+        serviceId: Long,
+        from: Long,
+        to: Long,
+    ): Map<Long, Long> =
+        rows(
+            Statement
+                .create(
+                    """
+                    SELECT a.window_start, SUM(a.dropped) AS dropped
+                    FROM agent_windows a
+                    JOIN instances i ON i.id = a.instance_id
+                    WHERE i.service_id = :id AND a.window_start BETWEEN :from AND :to
+                    GROUP BY a.window_start
+                    """.trimIndent(),
+                ).bind("id", serviceId)
+                .bind("from", from)
+                .bind("to", to),
+        ).associate { row -> row.get("window_start").asLong() to row.get("dropped").asLong() }
 
     /** Окна, от которых пришли не все пакеты: неполноту считаем при чтении, а не храним. */
     private suspend fun partialWindows(
