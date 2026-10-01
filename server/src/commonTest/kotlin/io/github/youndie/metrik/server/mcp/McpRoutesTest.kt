@@ -11,6 +11,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.ktor.http.encodedPath
 import io.ktor.server.testing.testApplication
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -167,6 +168,56 @@ class McpRoutesTest {
                 "deploys",
                 "firing_alerts",
             ).forEach { tool -> assertContains(body, tool) }
+        }
+
+    /**
+     * Роутер Ktor выбрасывает пустые сегменты пути и раскодирует каждый, поэтому все эти пути
+     * попадают в тот же обработчик, что и `/mcp`. Строка `request.path()` у них при этом другая, и
+     * проверка, сравнивавшая её с `/mcp`, пропускала такие запросы в транспорт без токена.
+     */
+    private val foldedPaths = listOf("//mcp", "///mcp", "/%6Dcp", "/%6dcp")
+
+    @Test
+    fun `a path the router folds into the endpoint should still need the token`() =
+        testApplication {
+            // Given
+            application { module(config(), db) }
+
+            foldedPaths.forEach { path ->
+                // When — путь задаётся закодированным: иначе клиент нормализовал бы его сам и
+                // тест проверял бы ровно `/mcp`.
+                val response =
+                    client.post {
+                        url { encodedPath = path }
+                        contentType(ContentType.Application.Json)
+                        setBody(initialize)
+                    }
+
+                // Then
+                assertEquals(HttpStatusCode.Unauthorized, response.status, path)
+            }
+        }
+
+    @Test
+    fun `the folded paths should reach the transport with a valid token`() =
+        testApplication {
+            // Given — контроль к тесту выше: без него его 401 мог бы значить «путь до роутера
+            // не дошёл таким, как задан», а не «проверка его узнала».
+            application { module(config(), db) }
+
+            foldedPaths.forEach { path ->
+                // When
+                val response =
+                    client.post {
+                        url { encodedPath = path }
+                        header(HttpHeaders.Authorization, "Bearer secret")
+                        contentType(ContentType.Application.Json)
+                        setBody(initialize)
+                    }
+
+                // Then
+                assertEquals(HttpStatusCode.OK, response.status, path)
+            }
         }
 
     @Test

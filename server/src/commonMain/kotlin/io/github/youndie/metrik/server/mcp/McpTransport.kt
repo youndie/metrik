@@ -4,9 +4,10 @@ import io.github.youndie.metrik.server.ServerConfig
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationCallPipeline
-import io.ktor.server.request.path
+import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.response.respondText
+import io.ktor.server.routing.route
+import io.ktor.server.routing.routing
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.mcpStatelessStreamableHttp
@@ -18,9 +19,14 @@ internal const val MCP_PATH: String = "/mcp"
 /**
  * Ставит MCP-транспорт — и только если токен задан.
  *
- * Авторизация сделана перехватчиком, а не `authenticate { }`: `mcpStatelessStreamableHttp` —
- * расширение на [Application], оно ставит собственный роутинг и внутрь блока авторизации не
- * вкладывается.
+ * Авторизация не через `authenticate { }`: `mcpStatelessStreamableHttp` — расширение на
+ * [Application], оно ставит собственный роутинг и внутрь блока авторизации не вкладывается.
+ *
+ * Проверка висит **на узле маршрута**, а не на сравнении строки пути. Раньше это был перехватчик
+ * уровня приложения с `if (request.path() != "/mcp") пропустить`, и он судил о запросе не так,
+ * как роутер: роутер Ktor выбрасывает пустые сегменты и раскодирует каждый, поэтому `//mcp` и
+ * `/%6Dcp` доходили до транспорта, а проверка их не узнавала и пропускала без токена. Теперь
+ * «это запрос к MCP?» решает тот же роутер, который выбирает обработчик, — разойтись им не в чем.
  *
  * Транспорт stateless осознанно: инструменты только читают, и сессии, которую стоило бы
  * возобновлять, здесь нет.
@@ -32,34 +38,42 @@ fun Application.installMcp(
     val token = config.mcpToken ?: return
     val auth = McpAuth(token, config.mcpAllowedHosts)
 
-    intercept(ApplicationCallPipeline.Plugins) {
-        // В перехватчике вызов лежит в `context`, а не в `call`: это pipeline, а не роут.
-        val call = context
-        if (call.request.path() != MCP_PATH) return@intercept
+    // Отказ окончателен и без `finish()`: обработчики маршрута пропускают уже отвеченный вызов,
+    // а ответ проверки хоста из SDK, идущей следом в той же фазе, Ktor на отвеченном вызове
+    // отбрасывает.
+    val authorization =
+        createRouteScopedPlugin("McpAuthorization") {
+            onCall { call ->
+                when (val verdict = auth.check(call)) {
+                    is McpAuthResult.InvalidHost -> {
+                        call.respondText(
+                            """{"error":"invalid host: ${verdict.host}"}""",
+                            ContentType.Application.Json,
+                            HttpStatusCode.BadRequest,
+                        )
+                    }
 
-        when (val verdict = auth.check(call)) {
-            is McpAuthResult.InvalidHost -> {
-                call.respondText(
-                    """{"error":"invalid host: ${verdict.host}"}""",
-                    ContentType.Application.Json,
-                    HttpStatusCode.BadRequest,
-                )
-                finish()
+                    McpAuthResult.Unauthorized -> {
+                        // Код, а не страница входа: клиент здесь — машина.
+                        call.respondText(
+                            """{"error":"unauthorized"}""",
+                            ContentType.Application.Json,
+                            HttpStatusCode.Unauthorized,
+                        )
+                    }
+
+                    // Пропускаем дальше, в транспорт.
+                    McpAuthResult.Allowed -> {}
+                }
             }
-
-            McpAuthResult.Unauthorized -> {
-                // Код, а не страница входа: клиент здесь — машина.
-                call.respondText(
-                    """{"error":"unauthorized"}""",
-                    ContentType.Application.Json,
-                    HttpStatusCode.Unauthorized,
-                )
-                finish()
-            }
-
-            // Пропускаем дальше, в транспорт.
-            McpAuthResult.Allowed -> {}
         }
+
+    // Тот же узел, который SDK получит ниже своим `route(path)`: узел с равным селектором
+    // не создаётся заново, а находится (`RoutingNode.createChild`), и всё, что SDK повесит под
+    // ним, проходит через эту проверку. Ставится раньше транспорта — значит, и раньше
+    // собственной проверки хоста из SDK в той же фазе.
+    routing {
+        route(MCP_PATH) { install(authorization) }
     }
 
     mcpStatelessStreamableHttp(
