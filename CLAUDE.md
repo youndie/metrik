@@ -40,7 +40,7 @@ reverse proxy; `:cli` — в `/mcp` по токену, потому что фо�
 может, а второй способ входа пришлось бы охранять вечно. Оба разбирают ответы **в одни и те же DTO
 из `:shared`** — второй копии контракта в репозитории нет.
 
-Дашборд разложен по слоям `feature/<name>/{domain,data,ui}` (скилл `client-feature-impl`),
+Дашборд разложен по слоям `feature/<name>/{domain,data,ui}` (скилл `compose-client-feature`),
 навигация — Navigation 3 со связкой с историей браузера, пути к API берутся из `@Resource`-классов
 в `:shared` и никогда не собираются строками. Подробности —
 [docs/services/metrik-web.md](docs/services/metrik-web.md), раздел «Устройство модуля».

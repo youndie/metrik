@@ -36,7 +36,7 @@ data class AppShellUiState(
  * ViewModel оболочки. Действий у неё нет: всё, что делает пользователь на этом уровне, — это
  * навигация, а она живёт в back stack (см. `navigation/Route.kt`), не в состоянии экрана.
  *
- * Зависит от юзкейсов двух фич — это нормальный кросс-фичевый экран (см. скилл `client-feature-impl`).
+ * Зависит от юзкейсов двух фич — это нормальный кросс-фичевый экран (см. скилл `compose-client-feature`).
  */
 class AppShellViewModel(
     private val getServices: GetServicesUseCase,
