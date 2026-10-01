@@ -41,6 +41,7 @@ Kotlin/Native + Ktor CIO + sqlx4k + Helm, те же грабли уже прой
 | `server/src/commonMain/.../query/` | эндпоинты дашборда |
 | `server/src/commonMain/.../alert/` | правила, машина состояний, Telegram |
 | `server/src/commonMain/.../retention/` | роллапы и удаление старых данных |
+| `server/src/commonMain/.../mcp/` | инструменты MCP (`RegisterTools`, `ToolFacade`); транспорт и охрана — `installKoreMcp` из kore-mcp |
 
 ## 3. Схема данных
 
@@ -117,8 +118,8 @@ SQLite, sqlx4k. Сырых запросов **нет** — агент присы
 | `METRIK_ALERT_*` | см. [feature-alerting](../features/feature-alerting.md) | дефолтные пороги правил |
 | `METRIK_ADMINS` | пусто | email'ы админов через запятую; пусто = админ любой прошедший прокси |
 | `METRIK_SELF_SERVICE` | пусто | имя, под которым сервер мониторит сам себя; пусто = выключено |
-| `METRIK_MCP_TOKEN` | — | Bearer-токен для `/mcp`; **пусто = эндпоинта нет вовсе** ([mcp-tools](../api/mcp-tools.md)) |
-| `METRIK_MCP_ALLOWED_HOSTS` | пусто | хосты через запятую, с которых принимается MCP-запрос; пусто = проверка `Host` выключена |
+| `METRIK_MCP_TOKEN` | — | токен для `/mcp`, клиент шлёт `Authorization: Bearer <token>`; **пусто = эндпоинта нет вовсе** ([mcp-tools](../api/mcp-tools.md)) |
+| `METRIK_MCP_ALLOWED_HOSTS` | пусто | хосты через запятую, с которых принимается MCP-запрос; пусто = проверка `Host` выключена; запись, не разбирающаяся как имя хоста, роняет старт |
 
 ### Почему пул к базе — два соединения, а не десять
 

@@ -9,6 +9,12 @@ sborka = "0.4.0.111"
 # плагин одной версии с библиотекой другой сойдётся при компиляции и разойдётся в объекте,
 # который генерирует.
 kore = "0.1.4"
+# kore-mcp — охраняемый MCP-эндпоинт из той же библиотеки, но своим числом, и это намеренно. Поднять
+# весь kore до 0.1.14 значит перевести старт на `startForKore()`: `EngineDrain` там отказывается
+# строиться рядом с включённым shutdown hook Ktor, а `main` стартует обычным `start()`. Это отдельная
+# миграция жизненного цикла, а не часть переезда эндпоинта. kore-mcp от kore-core не зависит, так что
+# два числа рядом ничего не делят; свести их в одно — вместе с той миграцией.
+koreMcp = "0.1.14"
 kotlinxCoroutines = "1.11.0"
 kotlinxSerializationJson = "1.11.0"
 kotlinxDatetime = "0.8.0"
@@ -28,6 +34,7 @@ mosaic = "0.18.0"
 [libraries]
 kore-core = { module = "io.github.youndie:kore-core", version.ref = "kore" }
 kore-ktor = { module = "io.github.youndie:kore-ktor", version.ref = "kore" }
+kore-mcp = { module = "io.github.youndie:kore-mcp", version.ref = "koreMcp" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
@@ -48,7 +55,8 @@ koin-core = { module = "io.insert-koin:koin-core" }
 koin-compose = { module = "io.insert-koin:koin-compose" }
 koin-composeViewmodel = { module = "io.insert-koin:koin-compose-viewmodel" }
 # Публикует klib'ы под linuxx64/linuxarm64/macosarm64 — проверено в Central, а не предположено.
-mcp-server = { module = "io.modelcontextprotocol:kotlin-sdk-server", version.ref = "mcpSdk" }
+# Серверной половины SDK здесь нет: её приносит kore-mcp через `api`, и `mcpSdk` обязан совпадать с
+# той версией, на которой kore-mcp опубликован, — клиент и сервер говорят одним SDK.
 mcp-client = { module = "io.modelcontextprotocol:kotlin-sdk-client", version.ref = "mcpSdk" }
 # Интерфейс в терминале на рантайме Compose. Публикует klib'ы под наши нативные таргеты.
 mosaic-runtime = { module = "com.jakewharton.mosaic:mosaic-runtime", version.ref = "mosaic" }

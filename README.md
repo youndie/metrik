@@ -122,9 +122,10 @@ installations that live in the terminal — the API, the alerting and MCP carry 
 Two doors, one token. The MCP endpoint appears only when `METRIK_MCP_TOKEN` is set: no token means
 no route, no secret and no ingress bypass — an absent setting must mean closed, not open.
 
-An agent connects to `https://<host>/mcp` and gets seven read-only tools: which services are
-reporting, an overview, the slow routes, the 5xx, the time series, the deploys and the firing
-alerts. See [docs/api/mcp-tools.md](docs/api/mcp-tools.md).
+An agent connects to `https://<host>/mcp` with `Authorization: Bearer <token>` and gets nine
+read-only tools: which services are reporting, an overview, the slow routes, the 5xx, the time
+series, per-instance system metrics, the deploys, the alert thresholds and the firing alerts. See
+[docs/api/mcp-tools.md](docs/api/mcp-tools.md).
 
 The terminal client speaks the same protocol:
 
@@ -159,8 +160,9 @@ If these headers are missing, metrik returns 401 Unauthorized. **Do not run it w
 proxy** — the dashboard would be open to anyone who reaches the port.
 
 The MCP endpoint is the exception, and deliberately so: a machine cannot fill in a login form, so
-`/mcp` bypasses the proxy and is guarded by its own bearer token instead. The proxy's headers are
-**not** accepted there — anyone reaching that route could claim any identity in them.
+`/mcp` bypasses the proxy and is guarded by its own bearer token instead, sent as
+`Authorization: Bearer <token>` — a bare token without the scheme is refused. The proxy's headers
+are **not** accepted there — anyone reaching that route could claim any identity in them.
 
 `METRIK_ADMINS` narrows the admin routes to a list of emails. Left empty, every authenticated user
 is an admin: an installation belongs to one team.

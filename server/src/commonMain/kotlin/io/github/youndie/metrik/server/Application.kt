@@ -12,6 +12,8 @@ import io.github.youndie.kore.lifecycle.AnnounceNotReady
 import io.github.youndie.kore.lifecycle.ShutdownDeadlines
 import io.github.youndie.kore.lifecycle.ShutdownParticipant
 import io.github.youndie.kore.lifecycle.runUntilSignal
+import io.github.youndie.kore.mcp.KoreMcpConfig
+import io.github.youndie.kore.mcp.installKoreMcp
 import io.github.youndie.metrik.agent.Metrik
 import io.github.youndie.metrik.agent.MetrikCountersKey
 import io.github.youndie.metrik.api.Api
@@ -24,7 +26,7 @@ import io.github.youndie.metrik.server.ingest.AgentStats
 import io.github.youndie.metrik.server.ingest.IngestService
 import io.github.youndie.metrik.server.ingest.UdpReceiver
 import io.github.youndie.metrik.server.mcp.ToolFacade
-import io.github.youndie.metrik.server.mcp.installMcp
+import io.github.youndie.metrik.server.mcp.registerTools
 import io.github.youndie.metrik.server.query.AdminService
 import io.github.youndie.metrik.server.query.QueryService
 import io.github.youndie.metrik.server.query.adminRoutes
@@ -50,6 +52,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -280,10 +283,17 @@ fun Application.module(
     // Доступ для агентов. Без METRIK_MCP_TOKEN не ставится ничего: эндпоинт живёт в обход
     // oauth2-proxy, и «забыли задать токен» не может означать «выставили наружу».
     //
-    // Строго после ContentNegotiation: `mcpStatelessStreamableHttp` ставит его сам, если тот ещё
-    // не стоит, и приложение падало с DuplicatePluginException. Найдя плагин на месте, SDK
-    // ограничивается предупреждением.
-    installMcp(config, ToolFacade(query, alerts, admin))
+    // Транспорт и охрана — kore-mcp, здесь только инструменты. Охрана висит на том узле маршрута,
+    // который отвечает транспортом, поэтому «это запрос к MCP?» решает тот же роутер, что выбирает
+    // обработчик; токен — только `Authorization: Bearer <token>` (docs/api/mcp-tools.md).
+    //
+    // Строго после `install(ContentNegotiation)`: SDK ставит свой, если не находит его, и `install`
+    // приложения, окажись он ниже этой строки, падал бы с DuplicatePluginException.
+    val mcpFacade = ToolFacade(query, alerts, admin)
+    installKoreMcp(
+        KoreMcpConfig(token = config.mcpToken, allowedHosts = config.mcpAllowedHosts),
+        Implementation(name = "metrik", version = "0.1"),
+    ) { registerTools(mcpFacade) }
 
     routing {
         // Дашборд отдаёт сам сервер — отдельного контейнера с nginx нет (M-98). Каталог

@@ -102,7 +102,8 @@ ktlint не чинится автоматически (`standard:kdoc` на ви
 | Репо | Зачем смотреть |
 |---|---|
 | [katcher](https://github.com/youndie/katcher) | тот же стек (Kotlin/Native + Ktor CIO + sqlx4k + Helm). Образец для `:server`: `db/Migrate.kt` (миграции), `Application.kt` (DI и старт), `charts/katcher` |
-| [tracy](https://github.com/youndie/tracy) | MCP из того же стека и `commonMain`. Оттуда взяты и приёмы, и грабли: авторизация перехватчиком вместо `authenticate { }`, `401` кодом вместо страницы входа, «нет токена — нет эндпоинта» |
+| [tracy](https://github.com/youndie/tracy) | MCP из того же стека и `commonMain`. Оттуда взяты приёмы: `401` кодом вместо страницы входа, «нет токена — нет эндпоинта». Авторизацию перехватчиком оттуда тоже брали, и она оказалась ошибкой (M-113) |
+| [kore](https://github.com/youndie/kore) | жизненный цикл бинаря (остановка, пробы, `/version`) и, отдельным модулем `kore-mcp`, MCP-эндпоинт с охраной — общий с tracy и katcher. Правило охраны меняется там, а не здесь |
 
 ## Правило, которое стоит соблюдать
 

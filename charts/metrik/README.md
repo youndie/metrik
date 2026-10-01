@@ -77,7 +77,9 @@ telegram:
 # comes into existence: no route, no secret, no ingress bypass. That guard matters more here than
 # elsewhere — /mcp goes around the authenticating proxy, so "forgot to set a token" must not turn
 # into "published it". Pass it with --set, like the others.
-# allowedHosts guards against DNS rebinding; empty means traefik.hostname is used.
+# Clients send the token as `Authorization: Bearer <token>`; a bare token is refused.
+# allowedHosts guards against DNS rebinding; empty means traefik.hostname is used. An entry that is
+# not a host name (host or host:port) stops the server at start rather than refusing every call.
 mcp:
   token: ""
   allowedHosts: ""
@@ -154,7 +156,8 @@ packet only stops accidents. It belongs inside the cluster.
   — the `.gz` files are produced once at image build, because there is no compression plugin for
   native either.
 * **The MCP route bypasses the auth middleware, and only exists with a token.** A machine cannot
-  fill in a login form, so `/mcp` is guarded by a bearer token instead of the proxy. Leave
+  fill in a login form, so `/mcp` is guarded by a bearer token instead of the proxy — clients send
+  `Authorization: Bearer <token>`, and a bare token without the scheme gets `401`. Leave
   `mcp.token` empty and the route, the secret and the bypass are all absent — an unset value has to
   mean closed.
 * **Small by design, but do not squeeze the memory limit.** Requests of 30m CPU and 32Mi are plenty
