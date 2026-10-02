@@ -29,9 +29,17 @@ import kotlin.test.assertTrue
  *
  * Тест общий, а не jvm-only, намеренно: ломается отправка именно на нативных таргетах, и ловить
  * это обязан тот же тест, что гоняется на JVM.
+ *
+ * **Порт слушателя выбирает система** (бинд на `0` и чтение назад), а не тест. Те же классы из
+ * `commonTest` гоняют `jvmTest` и `linuxX64Test`, и в одном вызове Gradle они идут **одновременно**:
+ * зашитые 19317–19319 два процесса делили между собой, и кто биндил вторым, падал на занятом порту.
  */
 class UdpSenderTest {
-    private val port = 19_317
+    /** Слушатель на свободном порту петли и сам этот порт — его адрес и уходит отправителю. */
+    private suspend fun listen(selector: SelectorManager): Pair<BoundDatagramSocket, Int> {
+        val listener = aSocket(selector).udp().bind(InetSocketAddress("127.0.0.1", 0))
+        return listener to (listener.localAddress as InetSocketAddress).port
+    }
 
     /**
      * runBlocking, а не runTest: тест ждёт настоящий сокет и настоящее время. В runTest время
@@ -43,7 +51,7 @@ class UdpSenderTest {
         runBlocking {
             // Given — слушатель на локальном порту.
             val selector = SelectorManager(newSingleThreadContext("udp-test-listener"))
-            val listener: BoundDatagramSocket = aSocket(selector).udp().bind(InetSocketAddress("127.0.0.1", port))
+            val (listener, port) = listen(selector)
             val scope = CoroutineScope(coroutineContext + Job())
             val received: Deferred<String> =
                 scope.async {
@@ -78,7 +86,7 @@ class UdpSenderTest {
         runBlocking {
             // Given
             val selector = SelectorManager(newSingleThreadContext("udp-test-listener-2"))
-            val listener = aSocket(selector).udp().bind(InetSocketAddress("127.0.0.1", port + 1))
+            val (listener, port) = listen(selector)
             val scope = CoroutineScope(coroutineContext + Job())
             val received: Deferred<String> =
                 scope.async {
@@ -93,7 +101,7 @@ class UdpSenderTest {
                 MetrikConfig().apply {
                     service = "native-probe"
                     apiKey = "probe-key"
-                    endpoint = "127.0.0.1:${port + 1}"
+                    endpoint = "127.0.0.1:$port"
                     instanceId = "probe-instance"
                     windowMs = 200
                     systemMetrics = false
@@ -134,7 +142,7 @@ class UdpSenderTest {
         runBlocking {
             // Given
             val selector = SelectorManager(newSingleThreadContext("udp-test-listener-3"))
-            val listener = aSocket(selector).udp().bind(InetSocketAddress("127.0.0.1", port + 2))
+            val (listener, port) = listen(selector)
             val scope = CoroutineScope(coroutineContext + Job())
             val received: Deferred<String> =
                 scope.async {
@@ -146,7 +154,7 @@ class UdpSenderTest {
             delay(200)
 
             // When — имя, а не адрес.
-            val sender = UdpSender("localhost:${port + 2}")
+            val sender = UdpSender("localhost:$port")
             sender.send("""{"hello":"by-name"}""")
 
             // Then
