@@ -485,7 +485,8 @@ FIRING не повторяется на каждом тике, шумному с
       * запись в `METRIK_MCP_ALLOWED_HOSTS`, которая не разбирается как имя хоста, роняет старт;
       * `initialize` объявляет `tools.listChanged: false` — раньше поля не было.
 
-      **kore остаётся на 0.1.4, `kore-mcp` идёт своим числом 0.1.14 — намеренно.** Поднять весь
+      **kore остаётся на 0.1.4, `kore-mcp` идёт своим числом 0.1.14 — намеренно** (сведено в одно
+      число в M-114). Поднять весь
       kore значит перевести старт на `startForKore()`: в 0.1.14 `EngineDrain` отказывается
       строиться рядом с включённым shutdown hook Ktor, а `main` стартует обычным `start()`. Это
       миграция жизненного цикла, а не часть переезда эндпоинта. `kore-mcp` от `kore-core` не
@@ -497,6 +498,47 @@ FIRING не повторяется на каждом тике, шумному с
       зелёный. Тесты правил самой охраны (схема `Bearer`, неверный токен, заголовки браузерного
       контура) отсюда убраны: их держит `kore-mcp`. Оставлены те, что проверяют проводку
       настроек metrik: нет токена — нет роута, заданные хосты доходят до охраны.
+
+- [x] **M-114** kore целиком на 0.1.14: одна ссылка в каталоге и проводка жизненного цикла 0.1.9+
+      ([#56](https://github.com/youndie/metrik/issues/56)).
+
+      До этого `kore-core`, `kore-ktor` и плагин `kore.build` стояли на 0.1.4, а `kore-mcp` — своим
+      числом (M-113). Теперь одна ссылка `kore`, `koreMcp` снят. В `Application.kt`:
+
+      * `startForKore()` вместо `start(wait = false)`. На JVM `start` оставлял включённым хук
+        остановки Ktor, и тот гасил движок по SIGTERM посреди announce
+        ([kore#90](https://github.com/youndie/kore/issues/90)); на Kotlin/Native SIGTERM сразу
+        после старта мог подвесить процесс (kore B-63). `EngineDrain` 0.1.14 рядом с включённым
+        хуком строиться отказывается;
+      * отказ `503` читает `DrainGate`, общий с `EngineDrain`, а не readiness. Прежний начинался
+        вместе с announce, то есть отвечал `503` ровно тем запросам, ради которых announce ждёт
+        две секунды (kore B-61);
+      * `reuseAddress = true` на движке и проверка HTTP-порта до старта: занятый
+        `METRIK_HTTP_PORT` — одна строка с именем переменной и код 1, а не авария нативного
+        процесса (kore B-59, B-62);
+      * `MetrikProbes.stop()` ждёт проверку, которая уже идёт (`stopAndJoin`,
+        [kore#79](https://github.com/youndie/kore/issues/79)).
+
+      **Проверка.** `jvmTest` и `linuxX64Test` зелёные, deprecation-предупреждений kore нет (они
+      здесь ошибки). Ktor не сдвинулся: каждая `io.ktor` в `:server:dependencies` разрешается в
+      3.6.0, как и до бампа. Собранный образ остановлен `docker stop` под нагрузкой
+      (`/api/services` каждые 50 мс), рядом — образ с main до правки (`sha-d7031e2`):
+
+      | | от SIGTERM до слива (announce, 2 с) | после слива | выход |
+      |---|---|---|---|
+      | до | `503` — 33 запроса подряд | соединение отвергнуто | сам, код 0 |
+      | после | `200` на всё, ни одного `503` | соединение отвергнуто | сам, код 0 |
+
+      Транскрипт после: SIGNAL, ANNOUNCE (2,0 с), DRAIN, RELEASE_CONSUMERS, RELEASE_POOLS,
+      RELEASE_TELEMETRY, EXIT — все `COMPLETED`, процесс вышел сам задолго до grace period.
+      Второй процесс в том же сетевом пространстве, что и первый: до — `Uncaught Kotlin exception
+      … AddressAlreadyInUseException` и код 139; после — `METRIK_HTTP_PORT: 8080 cannot be
+      listened on` и код 1.
+
+      **Не закрыто — порт приёма.** `UdpReceiver` биндит UDP в своей корутине, и занятый
+      `METRIK_UDP_PORT` при свободном HTTP-порте по-прежнему роняет процесс тем же
+      `AddressAlreadyInUseException` с кодом 139: проверка kore — только про TCP
+      ([#57](https://github.com/youndie/metrik/issues/57)).
 
 ## M9 — рефакторинг дашборда ✅
 
