@@ -4,6 +4,8 @@ import io.github.youndie.metrik.wire.Frame
 import io.github.youndie.metrik.wire.MetrikJson
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -11,12 +13,20 @@ import kotlin.test.assertTrue
 
 private const val OVERFLOW = 7
 
+/**
+ * Пакеты под замком. Поднятый агент шлёт из собственного потока, а тест читает список из своего —
+ * голый `mutableListOf` здесь ронял тест `ConcurrentModificationException` на JVM: итерация по
+ * списку, в который в ту же секунду дописывают. Читать — только копией из [snapshot].
+ */
 private class CollectingSender : MetrikSender {
-    val packets = mutableListOf<String>()
+    private val lock = Mutex()
+    private val packets = mutableListOf<String>()
 
     override suspend fun send(packet: String) {
-        packets += packet
+        lock.withLock { packets += packet }
     }
+
+    suspend fun snapshot(): List<String> = lock.withLock { packets.toList() }
 
     override fun close() = Unit
 }
@@ -56,7 +66,7 @@ class AgentLossReportingTest {
             agent.stopAndFlush()
 
             // Then
-            val frame = sender.packets.frames().first()
+            val frame = sender.snapshot().frames().first()
             assertEquals(OVERFLOW, frame.agent?.dropped, "потери не доехали до сервера")
         }
 
@@ -75,7 +85,7 @@ class AgentLossReportingTest {
             // When — поднятый агент закрывает окна и отправляет их.
             agent.start()
             withTimeout(20_000) {
-                while (sender.packets.frames().sumOf { it.agent?.dropped ?: 0 } < counted) delay(10)
+                while (sender.snapshot().frames().sumOf { it.agent?.dropped ?: 0 } < counted) delay(10)
             }
 
             // Then — следующие окна те же потери не повторяют.
@@ -85,7 +95,7 @@ class AgentLossReportingTest {
             }
             assertEquals(
                 counted,
-                sender.packets.frames().sumOf { it.agent?.dropped ?: 0 },
+                sender.snapshot().frames().sumOf { it.agent?.dropped ?: 0 },
                 "потери уехали повторно: сервер удвоит их",
             )
 

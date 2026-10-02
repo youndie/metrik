@@ -13,27 +13,37 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/**
+ * Пакеты под замком: агент шлёт из собственного потока, тест читает из своего, и голый список
+ * здесь — `ConcurrentModificationException` на JVM (так падал соседний `AgentLossReportingTest`).
+ * Читать — только копией из [snapshot].
+ */
 private class RecordingSender(
     private val failEveryTime: Boolean = false,
 ) : MetrikSender {
-    val packets = mutableListOf<String>()
+    private val lock = Mutex()
+    private val packets = mutableListOf<String>()
 
     override suspend fun send(packet: String) {
         if (failEveryTime) throw IllegalStateException("metrik-server is unreachable")
-        packets += packet
+        lock.withLock { packets += packet }
     }
+
+    suspend fun snapshot(): List<String> = lock.withLock { packets.toList() }
 
     override fun close() = Unit
 }
 
 class MetrikPluginTest {
-    private fun frames(sender: RecordingSender): List<Frame> =
-        sender.packets.map { MetrikJson.decodeFromString<Frame>(it) }
+    private suspend fun frames(sender: RecordingSender): List<Frame> =
+        sender.snapshot().map { MetrikJson.decodeFromString<Frame>(it) }
 
     /**
      * Ждёт, пока в отправленных окнах наберётся нужное число запросов по [route].
