@@ -42,7 +42,7 @@ involved_services: [metrik-cli, metrik-server]
 
 ```
 metrik            # список сервисов
-metrik hub        # сразу карточка сервиса
+metrik orders-api # сразу карточка сервиса
 metrik --help
 ```
 
