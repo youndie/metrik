@@ -3,12 +3,19 @@ package io.github.youndie.metrik.server
 import io.github.smyrgeorge.sqlx4k.ConnectionPool
 import io.github.smyrgeorge.sqlx4k.sqlite.ISQLite
 import io.github.smyrgeorge.sqlx4k.sqlite.sqlite
+import io.github.youndie.kore.config.ConfigKey
+import io.github.youndie.kore.config.ConfigSchema
+import io.github.youndie.kore.config.ConfigurationException
+import io.github.youndie.kore.config.Environment
 import io.github.youndie.kore.generated.KoreBuildIdentity
 import io.github.youndie.kore.ktor.EngineDrain
 import io.github.youndie.kore.ktor.installKoreProbes
 import io.github.youndie.kore.ktor.installKoreVersion
 import io.github.youndie.kore.ktor.installShutdownRefusal
+import io.github.youndie.kore.ktor.requireListenable
+import io.github.youndie.kore.ktor.startForKore
 import io.github.youndie.kore.lifecycle.AnnounceNotReady
+import io.github.youndie.kore.lifecycle.DrainGate
 import io.github.youndie.kore.lifecycle.ShutdownDeadlines
 import io.github.youndie.kore.lifecycle.ShutdownParticipant
 import io.github.youndie.kore.lifecycle.runUntilSignal
@@ -83,13 +90,30 @@ private val DEADLINES =
         gracePeriod = 30.seconds,
     )
 
+/**
+ * `SO_REUSEADDR` движка — и той же проверки порта перед стартом, одним значением на оба места.
+ *
+ * CIO по умолчанию ставит `false`, и на двух платформах это значит разное: JVM флаг игнорирует (JDK
+ * открывает каждый серверный сокет с ним), а Kotlin/Native записывает в сокет явный ноль. Нативный
+ * процесс, перезапущенный на месте, упирается в `TIME_WAIT` предшественника и не может забиндиться
+ * (kore B-62). Флаг нужен **обоим** процессам, так что первый перезапуск после его включения ещё
+ * может упереться. Проверка порта обязана биндить с тем же флагом, что движок: с `true` у неё и
+ * `false` у движка она пропустит `TIME_WAIT`, который движок потом не возьмёт.
+ */
+private const val REUSE_ADDRESS = true
+
 fun main() {
     val config = ServerConfig.fromEnv()
+    requireHttpPortListenable(config.httpPort)
 
     // Миграции накатываются здесь, до того как что-нибудь начнёт отвечать и до открытия защёлки.
     val db = openDatabase(config.dbPath, config.dbMaxConnections)
     val probes = MetrikProbes(db)
     val runtime = ServerRuntime()
+    // Одна защёлка на отказ и на слив. Отказ раньше смотрел на readiness, а та падает в начале
+    // announce — то есть `503` получали ровно те запросы, ради которых announce ждёт (kore B-61).
+    // `EngineDrain` открывает её первым своим действием.
+    val draining = DrainGate()
 
     val server =
         embeddedServer(
@@ -105,15 +129,22 @@ fun main() {
                 // секунда, а это короче очень многих настоящих запросов.
                 shutdownGracePeriod = DEADLINES.drain.inWholeMilliseconds
                 shutdownTimeout = (DEADLINES.drain + 5.seconds).inWholeMilliseconds
+                reuseAddress = REUSE_ADDRESS
             },
-            module = { module(config, db, probes, runtime) },
+            module = { module(config, db, probes, runtime, draining) },
         )
 
     // НЕ `wait = true`. Главный поток обязан дойти до ожидания ниже, иначе сигнал приходит в
     // процесс, которому нечего исполнять: движок остановит собственный хук Ktor, а всё остальное —
     // приёмник UDP, рабочие циклы, пул — не закроет никто. Снаружи это неотличимо от чистой
     // остановки.
-    server.start(wait = false)
+    //
+    // И не `start(wait = false)`: на JVM он оставляет включённым собственный shutdown hook Ktor,
+    // JVM исполняет хуки параллельно, и тот останавливает движок прямо по сигналу, посреди announce
+    // (kore#90); на Kotlin/Native между `start` и обработчиком kore успевает встать обработчик Ktor,
+    // и SIGTERM в этом окне подвешивает процесс (kore B-63). `EngineDrain` рядом с включённым хуком
+    // строиться отказывается.
+    server.startForKore()
 
     val checksScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     probes.start(checksScope)
@@ -128,7 +159,7 @@ fun main() {
             onFinished = { run -> println(run.transcript) },
         ) {
             announce(AnnounceNotReady(probes.readiness))
-            drain(EngineDrain(server, DEADLINES.drain, DEADLINES.drain + 5.seconds))
+            drain(EngineDrain(server, DEADLINES.drain, DEADLINES.drain + 5.seconds, draining))
 
             // Приёмник UDP — потребитель: он перестаёт принимать после того, как HTTP слился, а не
             // до. Рабочие циклы гасятся здесь же: им незачем начинать новый проход, когда процесс
@@ -152,6 +183,41 @@ fun main() {
                 },
             )
         }
+    }
+}
+
+/**
+ * Занятый HTTP-порт — отказ старта одной строкой с именем переменной, а не `SIGABRT` (kore B-59).
+ *
+ * CIO биндит порт в собственной корутине уже после того, как `start` вернул управление, и на
+ * Kotlin/Native ошибка бинда доходит до корня этой корутины без обработчика: процесс кончается
+ * `SIGABRT` и полусотней строк стека, а переменную, которую надо поменять, не называет никто. kore
+ * биндит порт один раз заранее, с тем же адресом и тем же `SO_REUSEADDR`, что и движок, и отвечает
+ * `ConfigurationException`. Сужает случай, а не закрывает: порт могут занять между этой проверкой
+ * и биндом движка.
+ *
+ * **Схема из одного ключа, и читает она не окружение процесса.** Проверка — метод `Configuration`
+ * kore, а metrik читает окружение сам (`ServerConfig`). Схема kore отвергает любую необъявленную
+ * переменную под своим префиксом, а под `METRIK_` в поде лежат и чужие: kubelet кладёт в окружение
+ * `<SERVICE>_PORT` и `<SERVICE>_SERVICE_HOST` каждого сервиса namespace, а сервисы чарта
+ * называются `<release>-metrik…` — при релизе `metrik` это `METRIK_METRIK_PORT` и соседи. Поэтому
+ * схеме отдаётся только уже прочитанный порт; перевод всего конфига на схему kore — отдельная
+ * задача.
+ */
+internal fun checkHttpPortListenable(port: Int) {
+    val key = ConfigKey.int("HTTP_PORT")
+    ConfigSchema("METRIK", listOf(key))
+        .read(Environment.of(mapOf("METRIK_HTTP_PORT" to port.toString())))
+        .requireListenable(key, reuseAddress = REUSE_ADDRESS)
+}
+
+/** [checkHttpPortListenable] с выходом: сообщение — и код 1, без стека поверх него. */
+private fun requireHttpPortListenable(port: Int) {
+    try {
+        checkHttpPortListenable(port)
+    } catch (refusal: ConfigurationException) {
+        println(refusal.message)
+        endProcess(1)
     }
 }
 
@@ -224,12 +290,16 @@ fun Application.module(
     db: ISQLite,
     probes: MetrikProbes = MetrikProbes(db),
     runtime: ServerRuntime = ServerRuntime(),
+    draining: DrainGate = DrainGate(),
 ) {
     // ДО маршрутов. Перехватчик, поставленный позже, пропустил бы всё, что пришло раньше него, а
-    // единственный запрос, который нельзя пропустить, — первый после того, как readiness ушла в
-    // false. Собственные маршруты kore не отвергаются: `503` от пробы живости — это провал пробы,
-    // то есть перезапуск пода посреди остановки, о которой он и сообщает.
-    installShutdownRefusal(isShuttingDown = { probes.readiness.isShuttingDown })
+    // единственный запрос, который нельзя пропустить, — первый после начала слива. Читает защёлку
+    // слива, а НЕ readiness: та падает в начале announce, а announce существует, чтобы ещё
+    // **отвечать**, пока новость расходится по узлам (kore B-61). Тот же экземпляр, что у
+    // `EngineDrain`, иначе отказ не откроется никогда. Собственные маршруты kore не отвергаются:
+    // `503` от пробы живости — это провал пробы, то есть перезапуск пода посреди остановки, о
+    // которой он и сообщает.
+    installShutdownRefusal(draining)
     installKoreProbes(probes.startup, probes.readiness, probes.liveness)
 
     // Версия и коммит, вкомпилированные плагином: у Kotlin/Native нет ни ресурсов, ни манифеста.

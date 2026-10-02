@@ -4,17 +4,17 @@
 # Compose Multiplatform version that moves with it, so neither has a version in this file to drift
 # from the rest of the portfolio.
 sborka = "0.4.0.111"
-# kore: жизненный цикл серверного бинарника — упорядоченная остановка, три пробы, /version.
-# Одно число на библиотеки и на Gradle-плагин идентичности сборки: они публикуются вместе, и
-# плагин одной версии с библиотекой другой сойдётся при компиляции и разойдётся в объекте,
-# который генерирует.
-kore = "0.1.4"
-# kore-mcp — охраняемый MCP-эндпоинт из той же библиотеки, но своим числом, и это намеренно. Поднять
-# весь kore до 0.1.14 значит перевести старт на `startForKore()`: `EngineDrain` там отказывается
-# строиться рядом с включённым shutdown hook Ktor, а `main` стартует обычным `start()`. Это отдельная
-# миграция жизненного цикла, а не часть переезда эндпоинта. kore-mcp от kore-core не зависит, так что
-# два числа рядом ничего не делят; свести их в одно — вместе с той миграцией.
-koreMcp = "0.1.14"
+# kore: жизненный цикл серверного бинарника — упорядоченная остановка, три пробы, /version — и
+# охраняемый MCP-эндпоинт (kore-mcp). Одно число на все модули и на Gradle-плагин идентичности
+# сборки: они публикуются вместе, и плагин одной версии с библиотекой другой сойдётся при
+# компиляции и разойдётся в объекте, который генерирует.
+#
+# kore-ktor отдаёт `ktor-server-core` через `api`, поэтому бамп kore может поднять ОДИН модуль Ktor
+# мимо остальных — сборка зелёная, а в рантайме `IrLinkageError`. После бампа каждая `io.ktor:` в
+# `./gradlew :server:dependencies --configuration linuxX64CompileKlibraries` обязана разрешаться в
+# Ktor из каталога sborka. Стрелка вверх ДО него — норма (MCP SDK собран на 3.5.1, у нас 3.6.0);
+# стрелка выше него — та самая ловушка.
+kore = "0.1.14"
 kotlinxCoroutines = "1.11.0"
 kotlinxSerializationJson = "1.11.0"
 kotlinxDatetime = "0.8.0"
@@ -34,7 +34,7 @@ mosaic = "0.18.0"
 [libraries]
 kore-core = { module = "io.github.youndie:kore-core", version.ref = "kore" }
 kore-ktor = { module = "io.github.youndie:kore-ktor", version.ref = "kore" }
-kore-mcp = { module = "io.github.youndie:kore-mcp", version.ref = "koreMcp" }
+kore-mcp = { module = "io.github.youndie:kore-mcp", version.ref = "kore" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }

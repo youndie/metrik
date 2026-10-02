@@ -84,3 +84,11 @@ class ServerConfig(
  * отсюда expect/actual.
  */
 expect fun readEnv(name: String): String?
+
+/**
+ * Завершает процесс с кодом [code].
+ *
+ * `expect`/`actual` для того, что есть на обеих платформах: `kotlin.system.exitProcess` объявлен для
+ * JVM и для Kotlin/Native, но не в common, и `commonMain` его не видит.
+ */
+expect fun endProcess(code: Int): Nothing
