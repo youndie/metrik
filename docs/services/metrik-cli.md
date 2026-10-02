@@ -49,7 +49,7 @@ metrik --help
 | переменная | смысл |
 |---|---|
 | `METRIK_URL` | базовый адрес, например `https://metrik.example.com` (обязателен) |
-| `METRIK_TOKEN` | тот же токен, что у сервера в `METRIK_MCP_TOKEN` (обязателен) |
+| `METRIK_TOKEN` | тот же токен, что у сервера в `METRIK_MCP_TOKEN` (обязателен); уходит заголовком `Authorization: Bearer` |
 | `METRIK_WINDOW` | сколько минут истории на графике, по умолчанию 60 |
 | `METRIK_REFRESH` | период обновления в секундах, по умолчанию 30 |
 | `NO_COLOR` | любое значение выключает цвет |

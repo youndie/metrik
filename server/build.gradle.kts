@@ -77,7 +77,9 @@ kotlin {
             implementation(ktorLibs.client.core)
             implementation(libs.sqlx4k.sqlite)
             implementation(libs.okio)
-            implementation(libs.mcp.server)
+            // MCP-эндпоинт: транспорт, охрана по токену и `Host` — из kore-mcp; здесь остаются
+            // только инструменты. SDK приезжает через его `api`, своей зависимости на него нет.
+            implementation(libs.kore.mcp)
         }
         jvmMain.dependencies {
             // На JVM у CIO с TLS всё в порядке.
