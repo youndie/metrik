@@ -25,7 +25,6 @@ import kotlin.time.measureTime
 
 private const val KEY = "udp-test-key"
 private const val WINDOW = 1_754_049_600_000L
-private const val PORT = 19_313
 
 class UdpReceiverTest {
     private val database = TestDatabase("udp")
@@ -73,18 +72,21 @@ class UdpReceiverTest {
     // runBlocking, а не runTest: тест ждёт настоящий сокет и настоящее время. В runTest время
     // виртуальное, delay пропускается мгновенно, и withTimeout «истекает» раньше, чем датаграмма
     // успевает долететь — на быстрой машине гонка выигрывалась, на загруженном раннере нет.
+    //
+    // Порт выбирает система (`0`), а не тест: `jvmTest` и `linuxX64Test` гоняют этот класс
+    // одновременно, и зашитый порт два процесса делили бы между собой.
     @Test
     fun `a datagram sent over the wire should reach storage`() =
         runBlocking {
             // Given
             val scope = CoroutineScope(coroutineContext + Job())
-            val receiver = UdpReceiver(PORT, ingest, host = "127.0.0.1")
+            val endpoint = IngestSocket.bind(0, host = "127.0.0.1")
+            val receiver = UdpReceiver(endpoint, ingest)
             receiver.start(scope)
-            delay(200)
 
             // When
             val selector = SelectorManager()
-            val socket = aSocket(selector).udp().connect(InetSocketAddress("127.0.0.1", PORT))
+            val socket = aSocket(selector).udp().connect(InetSocketAddress("127.0.0.1", endpoint.port))
             val payload = MetrikJson.encodeToString(frame("wire-service", "pod-a")).encodeToByteArray()
             socket.send(Datagram(Buffer().also { it.write(payload) }, socket.remoteAddress))
 

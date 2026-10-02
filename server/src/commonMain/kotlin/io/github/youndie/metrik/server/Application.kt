@@ -4,6 +4,7 @@ import io.github.smyrgeorge.sqlx4k.ConnectionPool
 import io.github.smyrgeorge.sqlx4k.sqlite.ISQLite
 import io.github.smyrgeorge.sqlx4k.sqlite.sqlite
 import io.github.youndie.kore.config.ConfigKey
+import io.github.youndie.kore.config.ConfigProblem
 import io.github.youndie.kore.config.ConfigSchema
 import io.github.youndie.kore.config.ConfigurationException
 import io.github.youndie.kore.config.Environment
@@ -31,6 +32,7 @@ import io.github.youndie.metrik.server.alert.TelegramNotifier
 import io.github.youndie.metrik.server.db.migrateDb
 import io.github.youndie.metrik.server.ingest.AgentStats
 import io.github.youndie.metrik.server.ingest.IngestService
+import io.github.youndie.metrik.server.ingest.IngestSocket
 import io.github.youndie.metrik.server.ingest.UdpReceiver
 import io.github.youndie.metrik.server.mcp.ToolFacade
 import io.github.youndie.metrik.server.mcp.registerTools
@@ -60,6 +62,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -104,7 +107,9 @@ private const val REUSE_ADDRESS = true
 
 fun main() {
     val config = ServerConfig.fromEnv()
-    requireHttpPortListenable(config.httpPort)
+    // Оба порта — до миграций и до движка: занятый порт — ошибка конфигурации, и сообщить о ней
+    // надо раньше, чем процесс что-нибудь изменит на диске.
+    val ingestSocket = requirePorts(config)
 
     // Миграции накатываются здесь, до того как что-нибудь начнёт отвечать и до открытия защёлки.
     val db = openDatabase(config.dbPath, config.dbMaxConnections)
@@ -131,7 +136,7 @@ fun main() {
                 shutdownTimeout = (DEADLINES.drain + 5.seconds).inWholeMilliseconds
                 reuseAddress = REUSE_ADDRESS
             },
-            module = { module(config, db, probes, runtime, draining) },
+            module = { module(config, db, probes, runtime, draining, ingestSocket) },
         )
 
     // НЕ `wait = true`. Главный поток обязан дойти до ожидания ниже, иначе сигнал приходит в
@@ -211,14 +216,52 @@ internal fun checkHttpPortListenable(port: Int) {
         .requireListenable(key, reuseAddress = REUSE_ADDRESS)
 }
 
-/** [checkHttpPortListenable] с выходом: сообщение — и код 1, без стека поверх него. */
-private fun requireHttpPortListenable(port: Int) {
+/**
+ * Занятый UDP-порт приёма — тот же отказ, что у HTTP, с именем `METRIK_UDP_PORT` (#57).
+ *
+ * Не проверка, а сам бинд: сокет, привязанный здесь, и принимает потом датаграммы, поэтому порт не
+ * могут занять между проверкой и приёмом — см. [IngestSocket]. До этого приёмник биндил в
+ * собственной корутине уже после старта движка, и на Kotlin/Native занятый порт кончал процесс
+ * `Uncaught Kotlin exception` и аварийным кодом.
+ */
+internal fun bindIngestPort(port: Int): IngestSocket =
     try {
-        checkHttpPortListenable(port)
-    } catch (refusal: ConfigurationException) {
-        println(refusal.message)
-        endProcess(1)
+        IngestSocket.bind(port)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (failure: Exception) {
+        val reason = failure.message ?: failure::class.simpleName ?: "unknown failure"
+        throw ConfigurationException(
+            "METRIK",
+            listOf(ConfigProblem("METRIK_UDP_PORT", "$port cannot be bound: $reason")),
+        )
     }
+
+/**
+ * Оба порта с выходом: сообщение — и код 1, без стека поверх него.
+ *
+ * Оба отказа сразу, а не первый: процесс, падающий на первой ошибке, заставляет чинить их по одной,
+ * перезапуском на каждую (так же kore собирает проблемы конфигурации). На успехе — привязанный
+ * UDP-сокет, его забирает модуль.
+ */
+private fun requirePorts(config: ServerConfig): IngestSocket {
+    val problems = mutableListOf<ConfigProblem>()
+    try {
+        checkHttpPortListenable(config.httpPort)
+    } catch (refusal: ConfigurationException) {
+        problems += refusal.problems
+    }
+    val socket =
+        try {
+            bindIngestPort(config.udpPort)
+        } catch (refusal: ConfigurationException) {
+            problems += refusal.problems
+            null
+        }
+    if (socket != null && problems.isEmpty()) return socket
+    socket?.close()
+    println(ConfigurationException("METRIK", problems).message)
+    endProcess(1)
 }
 
 /**
@@ -291,6 +334,9 @@ fun Application.module(
     probes: MetrikProbes = MetrikProbes(db),
     runtime: ServerRuntime = ServerRuntime(),
     draining: DrainGate = DrainGate(),
+    // `main` биндит порт сам, до движка, и передаёт сокет сюда. Умолчание — для тестов, которые
+    // поднимают модуль без `main`.
+    ingestSocket: IngestSocket = bindIngestPort(config.udpPort),
 ) {
     // ДО маршрутов. Перехватчик, поставленный позже, пропустил бы всё, что пришло раньше него, а
     // единственный запрос, который нельзя пропустить, — первый после начала слива. Читает защёлку
@@ -306,7 +352,7 @@ fun Application.module(
     installKoreVersion(KoreBuildIdentity)
 
     val ingest = IngestService(db, config.ingestKey)
-    val receiver = UdpReceiver(config.udpPort, ingest)
+    val receiver = UdpReceiver(ingestSocket, ingest)
     val query = QueryService(db, minuteRetentionMs = config.retentionHours * 60 * 60 * 1000)
     val admin = AdminService(db)
     val notifier: AlertNotifier =

@@ -538,7 +538,35 @@ FIRING не повторяется на каждом тике, шумному с
       **Не закрыто — порт приёма.** `UdpReceiver` биндит UDP в своей корутине, и занятый
       `METRIK_UDP_PORT` при свободном HTTP-порте по-прежнему роняет процесс тем же
       `AddressAlreadyInUseException` с кодом 139: проверка kore — только про TCP
+      ([#57](https://github.com/youndie/metrik/issues/57)). Закрыто в M-115.
+
+- [x] **M-115** Занятый UDP-порт приёма — отказ конфигурации, а не авария процесса
       ([#57](https://github.com/youndie/metrik/issues/57)).
+
+      `main` биндит `METRIK_UDP_PORT` сам, до миграций и до движка, и отдаёт привязанный сокет
+      (`IngestSocket`) модулю; `UdpReceiver` только принимает с него. Отказ бинда — та же
+      `ConfigurationException`, что у HTTP-порта, с именем `METRIK_UDP_PORT`, и код 1. Оба порта
+      проверяются до выхода, так что при занятых обоих названы оба.
+
+      **Почему не UDP-вариант `requireListenable` в kore.** Проверка биндит и закрывает, а
+      настоящий бинд идёт потом: между ними порт могут занять, а на Kotlin/Native `close()` сокета
+      `ktor-network` освобождает порт позже, чем возвращается, — проверка сама становится отказом.
+      Для HTTP другого пути нет, сокет открывает CIO. UDP-сокет открывает metrik, поэтому его не
+      проверяют, а держат: гонки нет вовсе, и класть в kore нечего. `SO_REUSEADDR` на нём не
+      ставится: у UDP нет `TIME_WAIT`, а на Linux два UDP-сокета с этим флагом делят один порт —
+      второй metrik молча делил бы приём с первым.
+
+      **Проверка.** `UdpPortCheckTest` (порт держит другой сокет — отказ с `METRIK_UDP_PORT` и
+      номером; свободный берётся и держится) и `UdpReceiverTest` на привязанном сокете — зелёные на
+      JVM и linuxX64 в одном вызове Gradle. Порты в обоих выбирает система: зашитый 19313
+      `UdpReceiverTest` делили бы `jvmTest` и `linuxX64Test`, идущие одновременно. Нативный бинарь,
+      UDP-порт занят другим процессом, HTTP свободен: до — `Uncaught Kotlin exception:
+      …AddressAlreadyInUseException: EADDRINUSE (98)`, 72 строки и аварийный код (134 на
+      отладочной сборке); после — две строки
+      `the METRIK configuration is not usable: / - METRIK_UDP_PORT: 39125 cannot be bound: EADDRINUSE
+      (98): Address already in use` и код 1, файл базы не создан. Контроль на свободных портах:
+      `/health/live` — `200`, порт приёма держит сервер, по SIGTERM транскрипт до EXIT
+      `COMPLETED`.
 
 ## M9 — рефакторинг дашборда ✅
 

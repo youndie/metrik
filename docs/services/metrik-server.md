@@ -37,7 +37,7 @@ Kotlin/Native + Ktor CIO + sqlx4k + Helm, те же грабли уже прой
 |---|---|
 | `server/src/commonMain/.../Application.kt` | сборка модуля, DI (`ktor-server-di`), запуск воркеров |
 | `server/src/commonMain/.../db/Migrate.kt` | список миграций + `PRAGMA user_version` |
-| `server/src/commonMain/.../ingest/UdpReceiver.kt` | `aSocket(selector).udp().bind()`, разбор, запись |
+| `server/src/commonMain/.../ingest/UdpReceiver.kt` | `IngestSocket` — бинд UDP в `main` до движка; `UdpReceiver` — приём с готового сокета, разбор, запись |
 | `server/src/commonMain/.../query/` | эндпоинты дашборда |
 | `server/src/commonMain/.../alert/` | правила, машина состояний, Telegram |
 | `server/src/commonMain/.../retention/` | роллапы и удаление старых данных |
@@ -110,7 +110,7 @@ SQLite, sqlx4k. Сырых запросов **нет** — агент присы
 | `METRIK_WEB_ROOT` | задан в образе | каталог со статикой дашборда; **пусто = дашборд не раздаётся** |
 | `METRIK_DB_MAX_CONNECTIONS` | `2` | размер пула к SQLite; поднимать не стоит — см. ниже |
 | `METRIK_HTTP_PORT` | `8080` | HTTP API; занятый порт — отказ старта с именем переменной и код 1 (M-114) |
-| `METRIK_UDP_PORT` | `9999` | ingest |
+| `METRIK_UDP_PORT` | `9999` | ingest; занятый порт — отказ старта с именем переменной и код 1 (M-115); при занятых обоих портах названы оба |
 | `METRIK_INGEST_KEY` | — | **обязателен**, один на инсталляцию; сервер не стартует без него |
 | `METRIK_TELEGRAM_TOKEN` | — | без него алерты только в UI |
 | `METRIK_TELEGRAM_CHAT_ID` | — | чат по умолчанию; на сервис можно переопределить |
