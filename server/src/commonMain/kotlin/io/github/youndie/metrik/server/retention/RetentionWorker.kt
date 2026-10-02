@@ -9,6 +9,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -64,9 +65,14 @@ class RetentionWorker(
             }
     }
 
-    fun stop() {
-        job?.cancel()
+    /**
+     * Останавливает цикл и ЖДЁТ проход, который уже идёт. `cancel()` без `join` возвращался, пока
+     * проход ещё был в запросе к базе, и тот доезжал до стадии, закрывающей пул.
+     */
+    suspend fun stop() {
+        val running = job
         job = null
+        running?.cancelAndJoin()
     }
 
     suspend fun tick() {
