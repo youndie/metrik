@@ -28,7 +28,7 @@ androidxLifecycle = "2.11.0"
 navigation3Ui = "1.1.1"
 navigation3Browser = "1.1.0"
 koin = "4.2.2"
-mcpSdk = "0.15.0"
+mcpSdk = "0.16.0"
 mosaic = "0.18.0"
 
 [libraries]
