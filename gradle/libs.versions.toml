@@ -14,7 +14,7 @@ sborka = "0.4.0.111"
 # `./gradlew :server:dependencies --configuration linuxX64CompileKlibraries` обязана разрешаться в
 # Ktor из каталога sborka. Стрелка вверх ДО него — норма (MCP SDK собран на 3.5.1, у нас 3.6.0);
 # стрелка выше него — та самая ловушка.
-kore = "0.1.14"
+kore = "0.1.15"
 kotlinxCoroutines = "1.11.0"
 kotlinxSerializationJson = "1.11.0"
 kotlinxDatetime = "0.8.0"
