@@ -2,6 +2,7 @@ package io.github.youndie.metrik.web.feature.alerts.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.youndie.metrik.api.AlertDelivery
 import io.github.youndie.metrik.api.AlertRuleView
 import io.github.youndie.metrik.api.AlertView
 import io.github.youndie.metrik.api.ServiceSummary
@@ -10,6 +11,7 @@ import io.github.youndie.metrik.web.core.domain.NoParams
 import io.github.youndie.metrik.web.core.domain.REFRESH_MS
 import io.github.youndie.metrik.web.core.domain.TimeSource
 import io.github.youndie.metrik.web.feature.alerts.domain.GetActiveAlertsUseCase
+import io.github.youndie.metrik.web.feature.alerts.domain.GetAlertDeliveryUseCase
 import io.github.youndie.metrik.web.feature.alerts.domain.GetAlertHistoryUseCase
 import io.github.youndie.metrik.web.feature.alerts.domain.GetAlertRulesUseCase
 import io.github.youndie.metrik.web.feature.alerts.domain.MuteAlertRuleUseCase
@@ -57,6 +59,8 @@ data class AlertsUiState(
     val savingRuleIds: Set<String> = emptySet(),
     val testState: TestAlertState = TestAlertState.Idle,
     val nowMs: Long = 0,
+    /** `null` — ещё не знаем; подпись канала тогда не рисуется вовсе, а не выдумывается (M-132). */
+    val delivery: AlertDelivery? = null,
 )
 
 sealed interface AlertsUiAction {
@@ -108,6 +112,7 @@ class AlertsViewModel(
     private val unmuteAlertRule: UnmuteAlertRuleUseCase,
     private val sendTestAlert: SendTestAlertUseCase,
     private val timeSource: TimeSource,
+    private val getAlertDelivery: GetAlertDeliveryUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AlertsUiState(nowMs = timeSource.nowMs()))
     val uiState = _uiState.asStateFlow()
@@ -234,6 +239,7 @@ class AlertsViewModel(
 
         val alerts = getActiveAlerts(NoParams).getOrNull()
         val history = getAlertHistory(NoParams)
+        val delivery = getAlertDelivery(NoParams).getOrNull()
 
         // Панель «Пороги» привязана к сервису, а экран «Алерты» верхнеуровневый — берём тот, где
         // сейчас что-то горит, иначе первый по списку: иначе панели было бы нечего показывать.
@@ -255,6 +261,7 @@ class AlertsViewModel(
                             .coerceAtLeast(list.count { it.isFiring })
                     } ?: state.totalRules,
                 history = history.getOrNull() ?: state.history,
+                delivery = delivery ?: state.delivery,
                 historyError = history.exceptionOrNull()?.let { it.message ?: "could not fetch the history" },
                 rulesService = rulesService,
                 rules = rulesResult?.getOrNull() ?: state.rules,

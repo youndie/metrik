@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.youndie.metrik.api.AlertDelivery
 import io.github.youndie.metrik.api.AlertRuleView
 import io.github.youndie.metrik.api.AlertView
 import io.github.youndie.metrik.api.ServiceSummary
@@ -111,6 +112,7 @@ fun AlertsContent(
         verticalArrangement = Arrangement.spacedBy(if (compact) Spacing.md else Spacing.xl),
     ) {
         if (compact) {
+            deliveryLabel(uiState.delivery)?.let { DeliveryLabel(it) }
             Text(
                 "Alerts",
                 style = MaterialTheme.typography.displaySmall,
@@ -124,15 +126,7 @@ fun AlertsContent(
                 verticalAlignment = Alignment.Bottom,
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Text(
-                        // Кулдаун — 30 минут (`AlertWorker.cooldownMs`), в подписи стояло 15.
-                        // Цифра в интерфейсе, разошедшаяся с кодом, врёт ровно так же, как
-                        // неверная метрика: её читают и на неё полагаются.
-                        "TELEGRAM · 30 MIN COOLDOWN",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = MetrikMono,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
+                    deliveryLabel(uiState.delivery)?.let { DeliveryLabel(it) }
                     Text(
                         "Alerts",
                         style = MaterialTheme.typography.displayLarge,
@@ -961,3 +955,24 @@ private fun ThresholdInputField(
 }
 
 private fun formatThreshold(value: Double): String = format(value)
+
+/**
+ * Подпись доставки над заголовком (M-132) — то, что сервер настроил, а не константа: «TELEGRAM · 30 MIN
+ * COOLDOWN» стояло всегда и при ненастроенном Telegram обещало доставку, которой нет. Кулдаун — тоже
+ * с сервера: однажды в подписи уже стояло 15 при 30 в коде. `null` — ещё не знаем, подписи нет.
+ */
+internal fun deliveryLabel(delivery: AlertDelivery?): String? =
+    delivery?.let {
+        val channel = it.channel?.uppercase() ?: return@let "NO DELIVERY · ALERTS SHOW HERE ONLY"
+        "$channel · ${it.cooldownMinutes} MIN COOLDOWN"
+    }
+
+@Composable
+private fun DeliveryLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelSmall,
+        fontFamily = MetrikMono,
+        color = MaterialTheme.colorScheme.outline,
+    )
+}

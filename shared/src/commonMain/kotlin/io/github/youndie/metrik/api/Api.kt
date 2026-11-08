@@ -87,6 +87,13 @@ public class Api {
         public class History(
             public val parent: Alerts = Alerts(),
         )
+
+        /** Куда уходят уведомления и как часто напоминают (M-132). */
+        @Resource("delivery")
+        @Serializable
+        public class Delivery(
+            public val parent: Alerts = Alerts(),
+        )
     }
 
     /** Внутренние счётчики приёма: без них потери и отброшенные пакеты невидимы. */

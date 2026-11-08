@@ -180,6 +180,18 @@ public data class TestNotificationResult(
     val delivered: Boolean,
 )
 
+/**
+ * Доставка алертов, как её настроил сервер (M-132): дашборд писал «TELEGRAM · 30 MIN COOLDOWN» всегда,
+ * и при ненастроенном Telegram подпись обещала доставку, которой нет.
+ *
+ * [channel] — `"telegram"`, или `null`, когда уведомителя нет и правила горят только в UI.
+ */
+@Serializable
+public data class AlertDelivery(
+    val channel: String?,
+    val cooldownMinutes: Long,
+)
+
 /** Порог правила: либо дефолт инсталляции, либо переопределение сервиса. */
 @Serializable
 public data class AlertRuleView(

@@ -3,6 +3,7 @@ package io.github.youndie.metrik.web.feature.alerts
 import io.github.youndie.metrik.web.feature.alerts.data.AlertsRepositoryImpl
 import io.github.youndie.metrik.web.feature.alerts.domain.AlertsRepository
 import io.github.youndie.metrik.web.feature.alerts.domain.GetActiveAlertsUseCase
+import io.github.youndie.metrik.web.feature.alerts.domain.GetAlertDeliveryUseCase
 import io.github.youndie.metrik.web.feature.alerts.domain.GetAlertHistoryUseCase
 import io.github.youndie.metrik.web.feature.alerts.domain.GetAlertRulesUseCase
 import io.github.youndie.metrik.web.feature.alerts.domain.MuteAlertRuleUseCase
@@ -21,10 +22,11 @@ val alertsModule =
         singleOf(::AlertsRepositoryImpl).bind<AlertsRepository>()
         factoryOf(::GetActiveAlertsUseCase)
         factoryOf(::GetAlertHistoryUseCase)
+        factoryOf(::GetAlertDeliveryUseCase)
         factoryOf(::GetAlertRulesUseCase)
         factoryOf(::UpdateAlertRuleUseCase)
         factoryOf(::MuteAlertRuleUseCase)
         factoryOf(::UnmuteAlertRuleUseCase)
         factoryOf(::SendTestAlertUseCase)
-        viewModel { AlertsViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+        viewModel { AlertsViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     }

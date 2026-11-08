@@ -1,5 +1,6 @@
 package io.github.youndie.metrik.web.feature.alerts.domain
 
+import io.github.youndie.metrik.api.AlertDelivery
 import io.github.youndie.metrik.api.AlertRuleView
 import io.github.youndie.metrik.api.AlertView
 
@@ -9,6 +10,9 @@ interface AlertsRepository {
 
     /** Записанные переходы FIRING/OK, последние 100 — это и есть «история», а не срез активных. */
     suspend fun history(): List<AlertView>
+
+    /** Как настроена доставка на сервере: канал или его отсутствие, кулдаун (M-132). */
+    suspend fun delivery(): AlertDelivery
 
     /**
      * Пороги правил сервиса. Админский эндпоинт: без `METRIK_ADMINS` доступен всем, кто прошёл

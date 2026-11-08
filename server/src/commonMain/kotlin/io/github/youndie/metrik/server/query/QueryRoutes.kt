@@ -203,4 +203,9 @@ fun Route.alertRoutes(alerts: AlertWorker) {
         authenticated() ?: return@get
         call.respond(alerts.history())
     }
+
+    get<Api.Alerts.Delivery> {
+        authenticated() ?: return@get
+        call.respond(alerts.delivery())
+    }
 }

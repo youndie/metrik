@@ -39,6 +39,7 @@ contract_source: :shared (io.github.youndie.metrik.api)
 | GET | `/api/services/{id}/deploys` | user | отметки деплоев за период — накладываются на графики |
 | GET | `/api/alerts` | user | алерты, горящие сейчас (`state = FIRING`), с отметкой заглушения |
 | GET | `/api/alerts/history` | user | записанные переходы правил FIRING↔OK, последние 100, свежие первыми |
+| GET | `/api/alerts/delivery` | user | как настроена доставка: `{"channel": "telegram" \| null, "cooldownMinutes": 30}`; `null` — уведомителя нет, правила горят только в UI (M-132) |
 | GET | `/api/admin/services/{id}/alerts` | admin | пороги правил: дефолты инсталляции и переопределения сервиса |
 | PUT | `/api/admin/services/{id}/alerts` | admin | переопределить пороги и telegram-чат для сервиса |
 | PUT | `/api/admin/services/{id}/alerts/{rule}/mute` | admin | заглушить уведомления по правилу на `?minutes` (по умолчанию 60) |

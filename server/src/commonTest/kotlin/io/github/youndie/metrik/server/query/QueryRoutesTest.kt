@@ -1,10 +1,13 @@
 package io.github.youndie.metrik.server.query
 
+import io.github.youndie.metrik.api.AlertDelivery
 import io.github.youndie.metrik.server.ServerConfig
 import io.github.youndie.metrik.server.TestDatabase
 import io.github.youndie.metrik.server.module
+import io.github.youndie.metrik.wire.MetrikJson
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import kotlin.test.AfterTest
@@ -18,14 +21,19 @@ class QueryRoutesTest {
     @AfterTest
     fun cleanup() = database.close()
 
-    private fun config(admins: Set<String> = emptySet()) =
-        ServerConfig(
-            httpPort = 0,
-            udpPort = 0,
-            dbPath = database.path,
-            ingestKey = "key",
-            admins = admins,
-        )
+    private fun config(
+        admins: Set<String> = emptySet(),
+        telegramToken: String? = null,
+        telegramChatId: String? = null,
+    ) = ServerConfig(
+        httpPort = 0,
+        udpPort = 0,
+        dbPath = database.path,
+        ingestKey = "key",
+        admins = admins,
+        telegramToken = telegramToken,
+        telegramChatId = telegramChatId,
+    )
 
     @Test
     fun `reading without the proxy header should be rejected`() =
@@ -51,6 +59,40 @@ class QueryRoutesTest {
 
             // Then
             assertEquals(HttpStatusCode.OK, response.status)
+        }
+
+    /** M-132: дашборд писал «TELEGRAM» всегда — канал теперь говорит сервер, который его настроил. */
+    @Test
+    fun `alert delivery should name no channel when telegram is not configured`() =
+        testApplication {
+            // Given — ни токена, ни чата: уведомителя нет.
+            application { module(config(), db) }
+
+            // When
+            val response = client.get("/api/alerts/delivery") { header("X-Auth-Request-User", "alice") }
+
+            // Then
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals(
+                AlertDelivery(channel = null, cooldownMinutes = 30),
+                MetrikJson.decodeFromString(response.bodyAsText()),
+            )
+        }
+
+    @Test
+    fun `alert delivery should name telegram when it is configured`() =
+        testApplication {
+            // Given
+            application { module(config(telegramToken = "token", telegramChatId = "42"), db) }
+
+            // When
+            val response = client.get("/api/alerts/delivery") { header("X-Auth-Request-User", "alice") }
+
+            // Then
+            assertEquals(
+                AlertDelivery(channel = "telegram", cooldownMinutes = 30),
+                MetrikJson.decodeFromString(response.bodyAsText()),
+            )
         }
 
     @Test
