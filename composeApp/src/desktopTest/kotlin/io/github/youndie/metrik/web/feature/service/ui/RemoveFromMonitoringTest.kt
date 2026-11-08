@@ -2,7 +2,6 @@ package io.github.youndie.metrik.web.feature.service.ui
 
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -33,13 +32,16 @@ class RemoveFromMonitoringTest {
         }
     }
 
+    /**
+     * Сравнение по необрезанным позициям: `getBoundsInRoot` отдаёт для узла за краем экрана нулевой
+     * прямоугольник, и проверка «ниже последней строки» была истинной при любом порядке.
+     */
     private fun ComposeUiTest.assertBelowTheTab() {
-        val section = onNodeWithTag(REMOVE_SECTION_TAG).performScrollTo().getBoundsInRoot()
-        val lastRoute = onNodeWithText("/last").getBoundsInRoot()
-        assertTrue(
-            section.top >= lastRoute.bottom,
-            "the section at ${section.top}, the tab's last row ends at ${lastRoute.bottom}",
-        )
+        val section = onNodeWithTag(REMOVE_SECTION_TAG).fetchSemanticsNode()
+        val lastRoute = onNodeWithText("/last").fetchSemanticsNode()
+        val sectionTop = section.positionInRoot.y
+        val lastBottom = lastRoute.positionInRoot.y + lastRoute.size.height
+        assertTrue(sectionTop >= lastBottom, "the section at $sectionTop, the tab's last row ends at $lastBottom")
     }
 
     @Test
