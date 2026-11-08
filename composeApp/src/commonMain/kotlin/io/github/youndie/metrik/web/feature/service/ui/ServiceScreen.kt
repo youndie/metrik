@@ -1,6 +1,7 @@
 package io.github.youndie.metrik.web.feature.service.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -262,11 +264,6 @@ private fun ServiceContentBody(
                 }
                 RangeSelector(uiState.range, onRange)
             }
-            // Отдельной строкой во всю ширину, а не в шапке: подтверждение удаления — это текст
-            // плюс две кнопки, и в тесной шапке оно выдавливало кнопки за край окна.
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                RemoveFromMonitoring(uiState, onAction)
-            }
         }
 
         ServiceTabBar(uiState.tab, { tab -> onAction(ServiceUiAction.SelectTab(tab)) }, compact)
@@ -277,8 +274,15 @@ private fun ServiceContentBody(
             ServiceTab.SLOW -> SlowTab(uiState.slow, uiState.loaded, uiState.nowMs, zone, compact)
             ServiceTab.SYSTEM -> SystemTab(uiState.system, uiState.loaded, compact)
         }
+
+        // Внизу страницы, а не под переключателем периода (M-128): там единственное разрушительное
+        // действие дашборда стояло в одном движении мыши от самого частого нажатия. На телефоне
+        // его не было вовсе.
+        if (service != null) RemoveFromMonitoring(uiState, onAction)
     }
 }
+
+const val REMOVE_SECTION_TAG: String = "remove-from-monitoring"
 
 /**
  * Убрать сервис из наблюдения.
@@ -294,17 +298,38 @@ private fun RemoveFromMonitoring(
     uiState: ServiceUiState,
     onAction: (ServiceUiAction) -> Unit,
 ) {
-    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = Spacing.xl)
+            .clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(horizontal = Spacing.xl, vertical = Spacing.lg)
+            .testTag(REMOVE_SECTION_TAG),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Text(
+            "REMOVE FROM MONITORING",
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = MetrikMono,
+            color = MaterialTheme.colorScheme.outline,
+        )
+        Text(
+            "For a service that was moved or renamed: its old entry stays silent and keeps the absent " +
+                "rule firing. Removing it deletes all its history; an agent that reports again creates it anew.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         if (uiState.deleteRequested) {
+            Text(
+                "Delete it along with all its history?",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Text(
-                    "Delete it along with all its history?",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 Box(
                     Modifier
                         .height(32.dp)
@@ -341,6 +366,7 @@ private fun RemoveFromMonitoring(
                 Modifier
                     .height(32.dp)
                     .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
                     .clickable { onAction(ServiceUiAction.RequestDelete) }
                     .padding(horizontal = Spacing.md),
                 contentAlignment = Alignment.Center,
@@ -348,7 +374,7 @@ private fun RemoveFromMonitoring(
                 Text(
                     "Remove from monitoring",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MetrikExtra.dim,
+                    color = MaterialTheme.colorScheme.error,
                 )
             }
         }
