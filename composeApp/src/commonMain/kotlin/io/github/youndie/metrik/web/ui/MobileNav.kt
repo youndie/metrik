@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.youndie.metrik.api.ServiceSummary
+import io.github.youndie.metrik.web.navigation.Route
 
 /** Раздел, на который сейчас указывает нижняя навигация мобильной раскладки. */
 enum class MobileTab { OVERVIEW, ALERTS, SERVICES }
@@ -64,6 +65,7 @@ fun BottomNavBar(
             activeFg = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.weight(1f),
             onClick = { onSelect(MobileTab.OVERVIEW) },
+            link = Route.Overview,
         )
         BottomNavItem(
             label = "Alerts",
@@ -74,6 +76,7 @@ fun BottomNavBar(
             badgeCount = firingAlertCount.takeIf { it > 0 && selected != MobileTab.ALERTS },
             modifier = Modifier.weight(1f),
             onClick = { onSelect(MobileTab.ALERTS) },
+            link = Route.Alerts,
         )
         BottomNavItem(
             label = "Services",
@@ -83,6 +86,7 @@ fun BottomNavBar(
             activeFg = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.weight(1f),
             onClick = { onSelect(MobileTab.SERVICES) },
+            link = Route.Services,
         )
     }
 }
@@ -95,6 +99,7 @@ private fun BottomNavItem(
     activeBg: Color,
     activeFg: Color,
     onClick: () -> Unit,
+    link: Route,
     modifier: Modifier = Modifier,
     badgeCount: Int? = null,
 ) {
@@ -105,6 +110,7 @@ private fun BottomNavItem(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(28.dp))
                 .background(if (active) activeBg else Color.Transparent)
+                .offersLink(link)
                 .clickable(onClick = onClick),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,

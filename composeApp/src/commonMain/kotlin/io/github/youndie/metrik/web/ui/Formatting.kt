@@ -3,6 +3,7 @@ package io.github.youndie.metrik.web.ui
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import io.github.youndie.metrik.wire.STATUS_NO_RESPONSE
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.ExperimentalTime
@@ -74,6 +75,17 @@ fun alertStateLabel(state: String): String =
         "firing", "active" -> "firing"
         "resolved", "ok" -> "resolved"
         else -> state
+    }
+
+/**
+ * Подпись закодированного статуса (M-125): провод хранит 1xx–3xx классом (`2`), 4xx/5xx — точным кодом,
+ * `0` — ответа не было (`encodeStatus`). Чип «2» никто не читает как «успешные ответы».
+ */
+fun statusLabel(status: Int): String =
+    when {
+        status == STATUS_NO_RESPONSE -> "no resp."
+        status < 100 -> "${status}xx"
+        else -> status.toString()
     }
 
 /**

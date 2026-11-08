@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,15 +37,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.youndie.metrik.api.AlertView
 import io.github.youndie.metrik.api.ServiceSummary
 import io.github.youndie.metrik.web.core.domain.Range
+import io.github.youndie.metrik.web.navigation.Route
 import io.github.youndie.metrik.web.ui.ChartPoint
 import io.github.youndie.metrik.web.ui.EmptyState
 import io.github.youndie.metrik.web.ui.LoadingState
+import io.github.youndie.metrik.web.ui.LocalChartWindow
 import io.github.youndie.metrik.web.ui.MetrikExtra
 import io.github.youndie.metrik.web.ui.MetrikMono
+import io.github.youndie.metrik.web.ui.PageTitle
 import io.github.youndie.metrik.web.ui.RangeSelector
 import io.github.youndie.metrik.web.ui.Spacing
 import io.github.youndie.metrik.web.ui.Sparkline
 import io.github.youndie.metrik.web.ui.format
+import io.github.youndie.metrik.web.ui.offersLink
 import io.github.youndie.metrik.web.ui.plural
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -83,8 +88,24 @@ fun OverviewContent(
     onOpenAlerts: () -> Unit = {},
     onSelect: (ServiceSummary) -> Unit,
 ) {
+    // Графики экрана рисуют ось по запрошенному периоду, а не по размаху точек (M-123).
+    CompositionLocalProvider(LocalChartWindow provides uiState.window) {
+        OverviewContentBody(uiState, onAction, compact, contentPadding, onOpenAlerts, onSelect)
+    }
+}
+
+@Composable
+private fun OverviewContentBody(
+    uiState: OverviewUiState,
+    onAction: (OverviewUiAction) -> Unit,
+    compact: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    onOpenAlerts: () -> Unit = {},
+    onSelect: (ServiceSummary) -> Unit,
+) {
     val services = uiState.services
     val firing = uiState.firingAlerts
+    PageTitle("Overview")
 
     Column(
         // Паддинг применяется ПОСЛЕ verticalScroll и потому едет вместе с контентом. Если
@@ -149,11 +170,16 @@ fun OverviewContent(
         if (compact) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 services.forEach { service ->
-                    MobileServiceRow(service, firing, uiState.sparklines[service.id]) { onSelect(service) }
+                    MobileServiceRow(
+                        service,
+                        firing,
+                        uiState.sparklines[service.id],
+                        uiState.range.label,
+                    ) { onSelect(service) }
                 }
             }
         } else {
-            ServiceGrid(services, firing, uiState.sparklines, onSelect)
+            ServiceGrid(services, firing, uiState.sparklines, uiState.range.label, onSelect)
         }
     }
 }
@@ -170,6 +196,7 @@ private fun ServiceGrid(
     services: List<ServiceSummary>,
     alerts: List<AlertView>,
     sparklines: Map<Long, List<ChartPoint>>,
+    rangeLabel: String,
     onSelect: (ServiceSummary) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
@@ -177,7 +204,7 @@ private fun ServiceGrid(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                 row.forEach { service ->
                     Box(Modifier.weight(1f)) {
-                        ServiceGridCard(service, alerts, sparklines[service.id]) { onSelect(service) }
+                        ServiceGridCard(service, alerts, sparklines[service.id], rangeLabel) { onSelect(service) }
                     }
                 }
                 repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
@@ -275,6 +302,7 @@ private fun AlertsHeroCompact(
                     .height(34.dp)
                     .clip(RoundedCornerShape(17.dp))
                     .background(MaterialTheme.colorScheme.onErrorContainer)
+                    .offersLink(Route.Alerts)
                     .clickable(onClick = onOpenAlerts)
                     .padding(horizontal = Spacing.lg),
                 contentAlignment = Alignment.Center,
@@ -379,6 +407,7 @@ private fun ServiceGridCard(
     service: ServiceSummary,
     alerts: List<AlertView>,
     sparkline: List<ChartPoint>?,
+    rangeLabel: String,
     onClick: () -> Unit,
 ) {
     val firing = service.firingAlerts.isNotEmpty()
@@ -446,6 +475,7 @@ private fun ServiceGridCard(
             .heightIn(min = 214.dp)
             .clip(shape)
             .background(bg)
+            .offersLink(Route.Service(service.id))
             .clickable(onClick = onClick)
             .padding(start = 24.dp, end = 24.dp, top = 22.dp, bottom = 18.dp),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
@@ -497,7 +527,12 @@ private fun ServiceGridCard(
                     fontWeight = FontWeight.Bold,
                     color = fg,
                 )
-                Text("rps", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
+                Text(
+                    "rps · avg $rangeLabel",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = MetrikMono,
+                    color = dim,
+                )
             }
         }
 
@@ -561,6 +596,7 @@ private fun MobileServiceRow(
     service: ServiceSummary,
     alerts: List<AlertView>,
     sparkline: List<ChartPoint>?,
+    rangeLabel: String,
     onClick: () -> Unit,
 ) {
     val firing = service.firingAlerts.isNotEmpty()
@@ -589,6 +625,7 @@ private fun MobileServiceRow(
             .fillMaxWidth()
             .clip(shape)
             .background(bg)
+            .offersLink(Route.Service(service.id))
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.lg + Spacing.xs, vertical = Spacing.md + Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
@@ -621,7 +658,12 @@ private fun MobileServiceRow(
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(rpsLabel, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = fg)
-            Text("rps", style = MaterialTheme.typography.labelSmall, fontFamily = MetrikMono, color = dim)
+            Text(
+                "rps · avg $rangeLabel",
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = MetrikMono,
+                color = dim,
+            )
         }
     }
 }

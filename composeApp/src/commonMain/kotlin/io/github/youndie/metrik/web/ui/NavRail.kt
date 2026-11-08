@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.youndie.metrik.api.ServiceSummary
+import io.github.youndie.metrik.web.navigation.Route
 
 /** Ширина рельса — как в макете: 268px превращены в dp напрямую (плотность макета взята за 1×). */
 private val RAIL_WIDTH = 268.dp
@@ -98,6 +99,7 @@ fun NavRail(
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             NavRailItem(
                 label = "Overview",
+                link = Route.Overview,
                 dotShape = RoundedCornerShape(3.dp),
                 dotColor =
                     if (topRoute == TopRoute.OVERVIEW) {
@@ -110,6 +112,7 @@ fun NavRail(
             )
             NavRailItem(
                 label = "Alerts",
+                link = Route.Alerts,
                 dotShape = CircleShape,
                 dotColor = MaterialTheme.colorScheme.error,
                 active = topRoute == TopRoute.ALERTS,
@@ -127,14 +130,27 @@ fun NavRail(
         // списке, у родителя высота была неограниченной — и при десятке сервисов рельс не
         // прокручивался, а сдавливал содержимое.
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-            Text(
-                "SERVICES · ${services.size}",
-                style = MaterialTheme.typography.labelSmall,
-                fontFamily = MetrikMono,
-                letterSpacing = 1.5.sp,
-                color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.xs),
-            )
+            // Число у сервиса — rps за последние 5 минут (умолчание `/api/services`), а на карточке
+            // обзора — среднее за выбранный период; без подписи два разных числа читались как одно (M-127).
+            Row(
+                Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg + Spacing.xs, bottom = Spacing.xs),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    "SERVICES · ${services.size}",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = MetrikMono,
+                    letterSpacing = 1.5.sp,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+                Text(
+                    "RPS · 5M",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = MetrikMono,
+                    letterSpacing = 1.5.sp,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
             // Обычный Column, не LazyColumn: сервисов на инсталляцию единицы-десятки, а ленивый
             // контейнер растянулся бы на всю доступную высоту и оторвал бы подпись внизу рельса.
             Column(
@@ -173,6 +189,7 @@ fun NavRail(
 @Composable
 private fun NavRailItem(
     label: String,
+    link: Route,
     dotShape: Shape,
     dotColor: Color,
     active: Boolean,
@@ -185,6 +202,7 @@ private fun NavRailItem(
             .height(56.dp)
             .clip(RoundedCornerShape(28.dp))
             .background(if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+            .offersLink(link)
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.xl - Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
@@ -247,6 +265,7 @@ private fun ServiceRailRow(
             .height(44.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+            .offersLink(Route.Service(service.id))
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.lg + Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,

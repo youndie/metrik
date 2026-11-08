@@ -26,11 +26,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.youndie.metrik.api.ServiceSummary
+import io.github.youndie.metrik.web.navigation.Route
 import io.github.youndie.metrik.web.ui.EmptyState
 import io.github.youndie.metrik.web.ui.MetrikExtra
 import io.github.youndie.metrik.web.ui.MetrikMono
+import io.github.youndie.metrik.web.ui.PageTitle
 import io.github.youndie.metrik.web.ui.Spacing
 import io.github.youndie.metrik.web.ui.format
+import io.github.youndie.metrik.web.ui.offersLink
 import io.github.youndie.metrik.web.ui.plural
 
 /**
@@ -46,6 +49,7 @@ fun ServicesListScreen(
     selectedServiceId: Long? = null,
     onSelect: (ServiceSummary) -> Unit,
 ) {
+    PageTitle("Services")
     Column(
         // Паддинг применяется ПОСЛЕ verticalScroll и потому едет вместе с контентом. Если
         // повесить его снаружи (на контейнер шелла), вьюпорт сужается, и контент режется по
@@ -97,6 +101,7 @@ private fun MobileServiceListRow(
             .height(56.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+            .offersLink(Route.Service(service.id))
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.lg),
         verticalAlignment = Alignment.CenterVertically,

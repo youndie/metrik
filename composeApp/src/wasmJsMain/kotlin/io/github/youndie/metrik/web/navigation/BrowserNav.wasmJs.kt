@@ -13,13 +13,7 @@ actual fun BrowserBackStackSync(backStack: NavBackStack<NavKey>) {
     ChronologicalBrowserNavigation(
         backStack = backStack,
         saveKey = { key ->
-            when (key) {
-                is Route.Overview -> buildBrowserHistoryFragment("overview")
-                is Route.Alerts -> buildBrowserHistoryFragment("alerts")
-                is Route.Services -> buildBrowserHistoryFragment("services")
-                is Route.Service -> buildBrowserHistoryFragment("service", mapOf("id" to key.id.toString()))
-                else -> null
-            }
+            (key as? Route)?.let { buildBrowserHistoryFragment(it.historyName, it.historyParameters) }
         },
         restoreKey = { fragment ->
             when (getBrowserHistoryFragmentName(fragment)) {
