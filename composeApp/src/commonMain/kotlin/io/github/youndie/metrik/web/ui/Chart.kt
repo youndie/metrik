@@ -3,16 +3,22 @@ package io.github.youndie.metrik.web.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -23,10 +29,22 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.youndie.metrik.api.DeployMarker
 import io.github.youndie.metrik.api.TimePoint
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.math.abs
+import kotlin.math.roundToInt
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 /** Точка ряда для графика: `value == null` — данных нет, линия обязана разорваться. */
 class ChartPoint(
@@ -71,6 +89,8 @@ fun LineChart(
     showHeader: Boolean = true,
     height: Dp = 140.dp,
     modifier: Modifier = Modifier,
+    /** Единица значения в подписи под указателем: «rps», «ms», «%». */
+    unit: String = "",
 ) {
     Column(modifier.fillMaxWidth().padding(vertical = if (showHeader) Spacing.xs else 0.dp)) {
         if (showHeader) {
@@ -100,40 +120,81 @@ fun LineChart(
         val gapColor = MetrikExtra.chartGapLine
         val surfaceColor = MaterialTheme.colorScheme.surfaceContainerLow
         val fillBrush = Brush.verticalGradient(listOf(color.copy(alpha = 0.40f), color.copy(alpha = 0f)))
+        // Где указатель над холстом (M-124): мышь — пока она над графиком, палец — пока он прижат.
+        var pointerX by remember { mutableStateOf<Float?>(null) }
+        var widthPx by remember { mutableStateOf(0f) }
+        val hovered = pointerX?.let { px -> nearestPoint(points, px, widthPx, minAt, span) }
+        val zone = remember { TimeZone.currentSystemDefault() }
+        val hoverLine = MaterialTheme.colorScheme.onSurfaceVariant
 
-        Canvas(
-            Modifier
-                .fillMaxWidth()
-                .height(height)
-                .padding(top = Spacing.xs)
-                .background(surfaceColor, RoundedCornerShape(16.dp))
-                // Окно минуты начинается до `from` запроса: его точка ложится чуть левее оси.
-                .clipToBounds(),
-        ) {
-            fun x(at: Long) = ((at - minAt).toFloat() / span) * size.width
+        Box(Modifier.fillMaxWidth().height(height).padding(top = Spacing.xs)) {
+            Canvas(
+                Modifier
+                    .matchParentSize()
+                    .background(surfaceColor, RoundedCornerShape(16.dp))
+                    // Окно минуты начинается до `from` запроса: его точка ложится чуть левее оси.
+                    .clipToBounds()
+                    .onSizeChanged { widthPx = it.width.toFloat() }
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.first()
+                                pointerX =
+                                    when {
+                                        event.type == PointerEventType.Exit -> null
 
-            fun y(value: Double) = size.height - (value / maxValue).toFloat() * size.height
+                                        // Палец отпустили — подпись уходит вместе с ним; мышь остаётся над графиком.
+                                        event.type == PointerEventType.Release &&
+                                            change.type == PointerType.Touch -> null
 
-            if (showGrid) {
-                listOf(0.25f, 0.5f, 0.75f).forEach { fraction ->
-                    val gridY = size.height * fraction
-                    drawLine(gridColor, Offset(0f, gridY), Offset(size.width, gridY), strokeWidth = 1f)
+                                        else -> change.position.x
+                                    }
+                            }
+                        }
+                    },
+            ) {
+                fun x(at: Long) = ((at - minAt).toFloat() / span) * size.width
+
+                fun y(value: Double) = size.height - (value / maxValue).toFloat() * size.height
+
+                if (showGrid) {
+                    listOf(0.25f, 0.5f, 0.75f).forEach { fraction ->
+                        val gridY = size.height * fraction
+                        drawLine(gridColor, Offset(0f, gridY), Offset(size.width, gridY), strokeWidth = 1f)
+                    }
+                }
+
+                deploys.forEach { marker ->
+                    val markerX = x(marker.at)
+                    drawLine(
+                        color = markerColor,
+                        start = Offset(markerX, 0f),
+                        end = Offset(markerX, size.height),
+                        strokeWidth = 2f,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(7f, 7f)),
+                    )
+                }
+
+                drawSeries(points, ::x, ::y, color, fillBrush, gapColor)
+                drawRect(gridColor, style = Stroke(width = 1f))
+
+                hovered?.let { point ->
+                    val hx = x(point.at)
+                    drawLine(hoverLine, Offset(hx, 0f), Offset(hx, size.height), strokeWidth = 1f)
+                    point.value?.let { value -> drawCircle(color, radius = 6f, center = Offset(hx, y(value))) }
                 }
             }
-
-            deploys.forEach { marker ->
-                val markerX = x(marker.at)
-                drawLine(
-                    color = markerColor,
-                    start = Offset(markerX, 0f),
-                    end = Offset(markerX, size.height),
-                    strokeWidth = 2f,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(7f, 7f)),
+            hovered?.let { point ->
+                val deploy =
+                    deploys.firstOrNull { marker ->
+                        abs(((marker.at - point.at).toFloat() / span) * widthPx) < DEPLOY_HOVER_PX
+                    }
+                ChartTooltip(
+                    text = hoverLabel(point, unit, deploy, zone),
+                    atX = ((point.at - minAt).toFloat() / span) * widthPx,
                 )
             }
-
-            drawSeries(points, ::x, ::y, color, fillBrush, gapColor)
-            drawRect(gridColor, style = Stroke(width = 1f))
         }
 
         if (showHeader) {
@@ -150,6 +211,75 @@ fun LineChart(
                 )
             }
         }
+    }
+}
+
+/** Отметка деплоя ближе этого к точке под указателем попадает в её подпись. */
+private const val DEPLOY_HOVER_PX = 12f
+
+/** Точка ряда, ближайшая к указателю по оси времени; `null` — ряд пуст или холст ещё не измерен. */
+internal fun nearestPoint(
+    points: List<ChartPoint>,
+    pointerX: Float,
+    widthPx: Float,
+    minAt: Long,
+    span: Long,
+): ChartPoint? {
+    if (widthPx <= 0f) return null
+    return points.minByOrNull { point -> abs(((point.at - minAt).toFloat() / span) * widthPx - pointerX) }
+}
+
+/**
+ * Подпись точки под указателем (M-124): время окна в локальной зоне, значение с единицей, а для
+ * неполного окна — что значения нет, а не ноль: тот же принцип, что разрыв линии.
+ */
+@OptIn(ExperimentalTime::class)
+internal fun hoverLabel(
+    point: ChartPoint,
+    unit: String,
+    deploy: DeployMarker?,
+    zone: TimeZone,
+): String {
+    val at = Instant.fromEpochMilliseconds(point.at).toLocalDateTime(zone)
+    val time = "${MONTHS[at.month.ordinal]} ${at.day}, ${at.hour.pad2()}:${at.minute.pad2()}"
+    val value = point.value?.let { format(it) + if (unit.isEmpty()) "" else " $unit" } ?: "partial window — no value"
+    val release = deploy?.let { " · deploy ${it.release}" }.orEmpty()
+    return "$time · $value$release"
+}
+
+private val MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+private fun Int.pad2(): String = if (this < 10) "0$this" else toString()
+
+const val CHART_TOOLTIP_TAG: String = "chart-tooltip"
+
+/** Подпись над графиком у точки [atX], прижатая к краям холста; не выделяется — это не слова страницы. */
+@Composable
+private fun ChartTooltip(
+    text: String,
+    atX: Float,
+) {
+    DisableSelection {
+        Text(
+            text,
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = MetrikMono,
+            color = MaterialTheme.colorScheme.onSurface,
+            softWrap = false,
+            modifier =
+                Modifier
+                    .testTag(CHART_TOOLTIP_TAG)
+                    .layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints.copy(minWidth = 0))
+                        val x =
+                            (atX - placeable.width / 2f)
+                                .roundToInt()
+                                .coerceIn(0, (constraints.maxWidth - placeable.width).coerceAtLeast(0))
+                        layout(constraints.maxWidth, placeable.height) { placeable.place(x, 0) }
+                    }.padding(top = Spacing.xs)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(8.dp))
+                    .padding(horizontal = Spacing.sm, vertical = Spacing.xxs),
+        )
     }
 }
 
