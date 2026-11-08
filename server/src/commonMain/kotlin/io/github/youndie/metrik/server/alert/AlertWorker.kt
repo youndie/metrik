@@ -5,6 +5,7 @@ import io.github.smyrgeorge.sqlx4k.impl.extensions.asInt
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asLong
 import io.github.smyrgeorge.sqlx4k.impl.extensions.asLongOrNull
 import io.github.smyrgeorge.sqlx4k.sqlite.ISQLite
+import io.github.youndie.metrik.api.AlertDelivery
 import io.github.youndie.metrik.api.AlertView
 import io.github.youndie.metrik.server.query.AdminService
 import kotlinx.coroutines.CancellationException
@@ -45,6 +46,9 @@ class AlertWorker(
     private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
     private var job: Job? = null
+
+    /** Как настроена доставка — тем, кто её показывает (M-132). */
+    fun delivery(): AlertDelivery = AlertDelivery(channel = notifier.channel, cooldownMinutes = cooldownMs / MINUTE_MS)
 
     @Suppress(
         "ktlint:kapkan:swallowed-failure",

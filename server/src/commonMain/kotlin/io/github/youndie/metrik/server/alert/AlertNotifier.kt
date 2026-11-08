@@ -13,6 +13,10 @@ import io.ktor.http.parameters
  * настройки Telegram отвечает бодрое «отправлено» ровно в том случае, ради которого её нажимают.
  */
 interface AlertNotifier {
+    /** Имя канала для дашборда (M-132); `null` — доставки нет. */
+    val channel: String?
+        get() = null
+
     suspend fun notify(
         text: String,
         chatId: String?,
@@ -36,6 +40,8 @@ class TelegramNotifier(
     private val defaultChatId: String,
     private val client: HttpClient = notifierHttpClient(),
 ) : AlertNotifier {
+    override val channel: String = "telegram"
+
     override suspend fun notify(
         text: String,
         chatId: String?,

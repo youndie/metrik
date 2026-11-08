@@ -1,5 +1,6 @@
 package io.github.youndie.metrik.web.feature.alerts.data
 
+import io.github.youndie.metrik.api.AlertDelivery
 import io.github.youndie.metrik.api.AlertRuleView
 import io.github.youndie.metrik.api.AlertView
 import io.github.youndie.metrik.api.Api
@@ -23,6 +24,8 @@ class AlertsRepositoryImpl(
     override suspend fun active(): List<AlertView> = client.get(Api.Alerts()).body()
 
     override suspend fun history(): List<AlertView> = client.get(Api.Alerts.History()).body()
+
+    override suspend fun delivery(): AlertDelivery = client.get(Api.Alerts.Delivery()).body()
 
     override suspend fun rules(serviceId: Long): List<AlertRuleView> = client.get(alertsOf(serviceId)).body()
 
