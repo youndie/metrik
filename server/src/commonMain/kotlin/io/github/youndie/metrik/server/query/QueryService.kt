@@ -26,6 +26,12 @@ private const val MINUTE_MS = 60_000L
 private const val HOUR_MS = 60 * MINUTE_MS
 private const val DAY_MS = 24 * HOUR_MS
 
+/**
+ * Инстанс «живой», если присылал пакет не раньше этого до конца периода (M-111). Окно агента —
+ * минута, и пара минут молчания — норма (пакет в пути, окно на границе), поэтому три, а не одна.
+ */
+internal const val LIVE_INSTANCE_MS = 3 * MINUTE_MS
+
 /** Строка окна, как она лежит в базе: инстансы уже слиты. */
 private class WindowRow(
     val windowStart: Long,
@@ -72,15 +78,20 @@ class QueryService(
             val name = row.get("name").asString()
             val windows = windowRows(id, from, to)
             val merged = merge(windows)
+            // `instances` — живые к концу периода, а не все, кто отчитывался за сутки (M-111): ретенция
+            // чистит инстансы через сутки, и каждый рестарт пода давал ещё один — у одной реплики
+            // стояло «8» рядом со свежим «last seen», и это читали как восемь работающих.
             val instanceRow =
                 rows(
                     Statement
                         .create(
                             """
-                            SELECT COUNT(*) AS c, MAX(last_seen) AS seen, MAX(clock_skew) AS skew
+                            SELECT SUM(CASE WHEN last_seen >= :live THEN 1 ELSE 0 END) AS c,
+                                   MAX(last_seen) AS seen, MAX(clock_skew) AS skew
                             FROM instances WHERE service_id = :id
                             """.trimIndent(),
-                        ).bind("id", id),
+                        ).bind("id", id)
+                        .bind("live", to - LIVE_INSTANCE_MS),
                 ).first()
 
             ServiceSummary(
@@ -90,7 +101,7 @@ class QueryService(
                 errorRate = merged.errorRate,
                 p95Ms = merged.histogram.percentileMs(0.95),
                 lastSeenAt = instanceRow.get("seen").asLongOrNull(),
-                instances = instanceRow.get("c").asInt(),
+                instances = instanceRow.get("c").asLongOrNull()?.toInt() ?: 0,
                 clockSkew = (instanceRow.get("skew").asLongOrNull() ?: 0L) > 0,
                 firingAlerts = firingByService[id].orEmpty(),
             )

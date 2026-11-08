@@ -44,20 +44,30 @@ class QueryServiceTest {
         slow: List<SlowSample>? = null,
         agent: AgentSnapshot? = null,
     ): IngestResult =
-        ingest.accept(
-            MetrikJson.encodeToString(
-                Frame(
-                    apiKey = KEY,
-                    service = "orders-api",
-                    instance = instance,
-                    windowStart = windowStart,
-                    windowSeq = windowSeq,
-                    packetIndex = packetIndex,
-                    packetCount = packetCount,
-                    routes = routes,
-                    slow = slow,
-                    agent = agent,
-                ),
+        ingest.accept(frame(windowStart, instance, packetIndex, packetCount, windowSeq, routes, slow, agent))
+
+    private fun frame(
+        windowStart: Long = WINDOW,
+        instance: String = "pod-a",
+        packetIndex: Int = 0,
+        packetCount: Int = 1,
+        windowSeq: Long = 1,
+        routes: List<RouteSeries> = listOf(okSeries()),
+        slow: List<SlowSample>? = null,
+        agent: AgentSnapshot? = null,
+    ): String =
+        MetrikJson.encodeToString(
+            Frame(
+                apiKey = KEY,
+                service = "orders-api",
+                instance = instance,
+                windowStart = windowStart,
+                windowSeq = windowSeq,
+                packetIndex = packetIndex,
+                packetCount = packetCount,
+                routes = routes,
+                slow = slow,
+                agent = agent,
             ),
         )
 
@@ -122,6 +132,50 @@ class QueryServiceTest {
             assertEquals("orders-api", services.single().name)
             assertEquals(1, services.single().instances)
             assertTrue(services.single().requestsPerSecond > 0)
+        }
+
+    /**
+     * M-111: `instances` считал всех, кто отчитывался за сутки — у одной реплики после восьми рестартов
+     * стояло «8» рядом со свежим «last seen». Считаются живые: присылавшие пакет за последние
+     * [LIVE_INSTANCE_MS] до конца периода.
+     */
+    @Test
+    fun `instances should count the live ones, not every pod of the day`() =
+        runTest {
+            // Given — pod-a отчитался десять минут назад и замолчал (рестарт), pod-b — сейчас.
+            IngestService(db, KEY, nowMs = { now - 10 * MINUTE }).accept(frame(instance = "pod-a"))
+            send(windowStart = now - MINUTE, instance = "pod-b")
+
+            // When
+            val summary = query.services().single()
+
+            // Then
+            assertEquals(1, summary.instances)
+            assertEquals(now, summary.lastSeenAt)
+        }
+
+    @Test
+    fun `a service that went silent should have no live instances but keep its last seen`() =
+        runTest {
+            // Given
+            IngestService(db, KEY, nowMs = { now - 10 * MINUTE }).accept(frame(instance = "pod-a"))
+
+            // When
+            val summary = query.services().single()
+
+            // Then — «0 инстансов» и время последнего пакета: молчание видно, а не выдано за «1 работает».
+            assertEquals(0, summary.instances)
+            assertEquals(now - 10 * MINUTE, summary.lastSeenAt)
+        }
+
+    @Test
+    fun `an instance silent for under three minutes should still count`() =
+        runTest {
+            // Given — пакет в пути, окно на границе: две минуты тишины у минутного окна — норма.
+            IngestService(db, KEY, nowMs = { now - 2 * MINUTE }).accept(frame(instance = "pod-a"))
+
+            // When / Then
+            assertEquals(1, query.services().single().instances)
         }
 
     /**
