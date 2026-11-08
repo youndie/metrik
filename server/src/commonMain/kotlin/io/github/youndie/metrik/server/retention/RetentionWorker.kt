@@ -78,13 +78,17 @@ class RetentionWorker(
     suspend fun tick() {
         val now = nowMs()
 
-        rollup(GRANULARITY_HOUR, HOUR_MS, now)
-        rollup(GRANULARITY_DAY, DAY_MS, now)
+        rollup(GRANULARITY_HOUR, HOUR_MS, now, MINUTE_WINDOWS)
+        // Сутки — из часов этого же прохода, а не из минуток. Выборка начинается с последних готовых
+        // суток, так что из минуток каждый час перечитывались вчерашние и сегодняшние окна целиком:
+        // к вечеру до 48 часов строк одним `fetchAll`, и на стенде проход упирался в лимит пода
+        // (255 МиБ из 256, OOMKilled на старте). Из часов — 24 строки на маршрут за сутки вместо 1440.
+        rollup(GRANULARITY_DAY, DAY_MS, now, HOUR_ROLLUPS)
         purge(now)
     }
 
     /**
-     * Сворачивает минутные окна в бакеты [bucketMs].
+     * Сворачивает строки [source] в бакеты [bucketMs].
      *
      * Окна моложе пяти минут не трогаются: в них ещё долетают пакеты отстающих инстансов, и
      * свернуть такое окно значило бы потерять то, что придёт следом.
@@ -93,6 +97,7 @@ class RetentionWorker(
         granularity: String,
         bucketMs: Long,
         now: Long,
+        source: RollupSource,
     ) {
         val safeUntil = now - 5 * MINUTE_MS
         val alreadyDone =
@@ -113,9 +118,9 @@ class RetentionWorker(
                     Statement
                         .create(
                             """
-                            SELECT service_id, window_start, method, route, status, count, sum_ms, max_ms, buckets
-                            FROM route_windows
-                            WHERE window_start >= :from AND window_start < :until
+                            SELECT service_id, ${source.timeColumn} AS at, method, route, status, count, sum_ms, max_ms, buckets
+                            FROM ${source.table}
+                            WHERE ${source.timeColumn} >= :from AND ${source.timeColumn} < :until ${source.filter}
                             """.trimIndent(),
                         ).bind("from", alreadyDone)
                         .bind("until", safeUntil),
@@ -126,7 +131,7 @@ class RetentionWorker(
             .groupBy { row ->
                 RollupKey(
                     serviceId = row.get("service_id").asLong(),
-                    bucketStart = row.get("window_start").asLong().let { it - it % bucketMs },
+                    bucketStart = row.get("at").asLong().let { it - it % bucketMs },
                     method = row.get("method").asString(),
                     route = row.get("route").asString(),
                     status = row.get("status").asLong(),
@@ -195,6 +200,18 @@ class RetentionWorker(
     }
 
     private suspend fun currentlyActive(): Boolean = kotlin.coroutines.coroutineContext.isActive
+
+    /** Откуда берутся строки свёртки: у минуток и у часов одни и те же столбцы, кроме времени. */
+    private class RollupSource(
+        val table: String,
+        val timeColumn: String,
+        val filter: String = "",
+    )
+
+    private companion object {
+        val MINUTE_WINDOWS = RollupSource("route_windows", "window_start")
+        val HOUR_ROLLUPS = RollupSource("route_rollups", "bucket_start", "AND granularity = '$GRANULARITY_HOUR'")
+    }
 
     private class RollupKey(
         val serviceId: Long,

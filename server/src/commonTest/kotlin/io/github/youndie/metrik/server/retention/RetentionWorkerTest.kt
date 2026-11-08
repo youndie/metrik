@@ -90,6 +90,32 @@ class RetentionWorkerTest {
             assertEquals(30, scalar("SELECT count FROM route_rollups WHERE granularity = 'hour'"))
         }
 
+    /**
+     * M-134: сутки сворачиваются из часов, а не из минуток. Из минуток проход каждый час перечитывал
+     * все окна вчерашних и сегодняшних суток одним запросом — к вечеру до 48 часов строк, и под
+     * стенда упирался в лимит. Здесь минутки живут два часа, как и в остальных тестах: сутки,
+     * собранные из минуток, увидели бы только последние два часа.
+     */
+    @Test
+    fun `a day should roll up from its hours`() =
+        runTest {
+            val day = clock - clock % (24 * HOUR) + 24 * HOUR
+            for (hour in 0 until 24) {
+                ingest(day + hour * HOUR, hour + 1L)
+                clock = day + (hour + 1) * HOUR + 10 * MINUTE
+                worker().tick()
+            }
+
+            assertEquals(
+                24,
+                scalar("SELECT COUNT(*) FROM route_rollups WHERE granularity = 'hour' AND bucket_start >= $day"),
+            )
+            assertEquals(
+                240,
+                scalar("SELECT count FROM route_rollups WHERE granularity = 'day' AND bucket_start = $day"),
+            )
+        }
+
     @Test
     fun `fresh windows should not be rolled up`() =
         runTest {
