@@ -7,7 +7,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.runComposeUiTest
@@ -84,6 +83,35 @@ class ChartHoverTest {
             onNodeWithTag(CHART).performMouseInput { moveTo(Offset(-50f, -50f)) }
             waitForIdle()
             onNodeWithTag(CHART_TOOLTIP_TAG).assertDoesNotExist()
+        }
+
+    /**
+     * M-123: ряд короче периода стоит на своём времени. Ось по размаху точек растягивала две последние
+     * минуты на всю ширину, и под тремя четвертями ширины оказывалась последняя точка, а не минута 3.
+     */
+    @Test
+    fun `a series shorter than the period sits at its own time`() =
+        runComposeUiTest {
+            setContent {
+                MetrikTheme {
+                    CompositionLocalProvider(LocalChartWindow provides TimeWindow(FROM, FROM + 4 * MINUTE)) {
+                        LineChart(
+                            title = "",
+                            points = listOf(ChartPoint(FROM + 3 * MINUTE, 1.0), ChartPoint(FROM + 4 * MINUTE, 2.0)),
+                            showHeader = false,
+                            unit = "rps",
+                            modifier = Modifier.width(WIDTH.dp).testTag(CHART),
+                        )
+                    }
+                }
+            }
+            hover(3)
+            val text =
+                onNodeWithTag(CHART_TOOLTIP_TAG)
+                    .fetchSemanticsNode()
+                    .config[androidx.compose.ui.semantics.SemanticsProperties.Text]
+                    .joinToString()
+            assert(text.endsWith("· 1.0 rps")) { text }
         }
 
     @Test
