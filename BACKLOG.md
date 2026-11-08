@@ -955,13 +955,19 @@ FIRING не повторяется на каждом тике, шумному с
       **Сделано (08.11):** `PageTitle` на каждом экране; на стенде `document.title` —
       «Overview · metrik», «metrik-server · metrik».
 
-- [ ] **M-132** Подпись канала алертов — настоящая.
-
-      **В работе** (ветка `feat/m-132-alert-channel`, 08.11).
+- [x] **M-132** Подпись канала алертов — настоящая.
 
       Шапка экрана алертов всегда пишет «TELEGRAM · 30 MIN COOLDOWN», даже когда Telegram не
       настроен и доставка идёт в `NoopNotifier` (видно на стенде). Сервер знает, какой
       уведомитель у него стоит; дашборду его не сообщают — нужен признак в API.
+
+      **Сделано (08.11):** `GET /api/alerts/delivery` → `AlertDelivery(channel, cooldownMinutes)`;
+      канал называет уведомитель (`AlertNotifier.channel`: `"telegram"` или `null`), кулдаун —
+      `AlertWorker`. Шапка экрана алертов показывает «TELEGRAM · 30 MIN COOLDOWN» или «NO DELIVERY ·
+      ALERTS SHOW HERE ONLY», до ответа — ничего; на телефоне подпись тоже есть (её не было).
+      Тесты: `QueryRoutesTest` (2 новых, JVM; нативный прогон — в CI), `AlertDeliveryLabelTest`
+      (4). Мутации «сервер всегда telegram» и «подпись — константа» — красные. На стенде без
+      Telegram — «NO DELIVERY».
 
 - [ ] **M-133** Выделение на телефоне — пройти руками.
 
