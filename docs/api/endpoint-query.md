@@ -30,7 +30,7 @@ contract_source: :shared (io.github.youndie.metrik.api)
 
 | Метод | Путь | Auth | Что делает |
 |---|---|---|---|
-| GET | `/api/services` | user | список сервисов: имя, состояние алертов, RPS/error rate/p95. Период — `?from`/`?to`, по умолчанию последние 5 минут |
+| GET | `/api/services` | user | список сервисов: имя, состояние алертов, RPS/error rate/p95, `instances` — живые: присылавшие пакет за последние 3 минуты до `?to` (M-111), не все за сутки. Период — `?from`/`?to`, по умолчанию последние 5 минут |
 | GET | `/api/services/{id}/overview` | user | сводка за период: `?from`, `?to`, `?step=1m\|1h\|1d` |
 | GET | `/api/services/{id}/timeseries` | user | ряды RPS / p50 / p95 / max / error rate; те же параметры периода |
 | GET | `/api/services/{id}/routes` | user | таблица маршрутов за период: count, error rate, p50, p95, max |
