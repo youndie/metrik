@@ -1261,9 +1261,191 @@ private fun SlowTab(
             MaterialTheme.colorScheme.surfaceContainerLow,
             MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            slow.forEach { row -> SlowRowItem(row, maxDuration, nowMs, zone, compact) }
+        if (compact) {
+            // Шесть колонок на 390dp нечитаемы (как у маршрутов, M-89) — на телефоне карточка на запрос.
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                slow.forEach { row -> SlowRowItem(row, maxDuration, nowMs, zone) }
+            }
+        } else {
+            // Таблица, а не карточка на запрос (M-129): карточка в два этажа вмещала семь запросов на
+            // экран, и длительности не сравнивались глазами по столбцу.
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+            ) {
+                SlowHeaderRow()
+                slow.forEachIndexed { index, row ->
+                    SlowTableRow(row, maxDuration, nowMs, zone, routeRowShape(index, slow.size))
+                }
+            }
         }
+    }
+}
+
+private const val SLOW_ROUTE_WEIGHT = 3.2f
+private const val SLOW_STATUS_WEIGHT = 0.7f
+private const val SLOW_AT_WEIGHT = 1.1f
+private const val SLOW_DURATION_WEIGHT = 2.2f
+
+const val SLOW_ROW_TAG: String = "slow-row"
+
+@Composable
+private fun SlowHeaderRow() {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = Spacing.lg + Spacing.sm, vertical = Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xl - Spacing.xs),
+    ) {
+        listOf(
+            "ROUTE" to SLOW_ROUTE_WEIGHT,
+            "STATUS" to SLOW_STATUS_WEIGHT,
+            "AT" to SLOW_AT_WEIGHT,
+            "DURATION, MS" to SLOW_DURATION_WEIGHT,
+        ).forEach { (title, weight) ->
+            Text(
+                title,
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = MetrikMono,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.weight(weight),
+            )
+        }
+    }
+}
+
+/** Одна строка таблицы медленных запросов: метод и маршрут, статус, время, полоса и длительность. */
+@Composable
+private fun SlowTableRow(
+    row: SlowRow,
+    maxDuration: Int,
+    nowMs: Long,
+    zone: TimeZone,
+    shape: Shape,
+) {
+    val hot = row.durationMs >= 3000
+    val warm = row.durationMs >= 1500
+    val barColor =
+        when {
+            hot -> MaterialTheme.colorScheme.error
+            warm -> MaterialTheme.colorScheme.tertiary
+            else -> MaterialTheme.colorScheme.primary
+        }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .testTag(SLOW_ROW_TAG)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(horizontal = Spacing.lg + Spacing.sm, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xl - Spacing.xs),
+    ) {
+        Row(
+            Modifier.weight(SLOW_ROUTE_WEIGHT),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            MethodChip(row.method)
+            Text(
+                row.route,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = MetrikMono,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Box(Modifier.weight(SLOW_STATUS_WEIGHT)) { SlowStatusChip(row.status) }
+        Text(
+            // Абсолютное время (M-83): период выбираемый (M-85), «N назад» на многодневном диапазоне
+            // честности не добавляет.
+            absoluteAgo(nowMs, row.at, zone),
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = MetrikMono,
+            color = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.weight(SLOW_AT_WEIGHT),
+        )
+        Row(
+            Modifier.weight(SLOW_DURATION_WEIGHT),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth((row.durationMs.toFloat() / maxDuration).coerceIn(0.02f, 1f))
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(barColor),
+                )
+            }
+            Text(
+                row.durationMs.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                fontFamily = MetrikMono,
+                fontWeight = FontWeight.Bold,
+                color = if (hot) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+@Composable
+private fun MethodChip(method: String) {
+    val post = method == "POST"
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                if (post) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+            ).padding(horizontal = 9.dp, vertical = 3.dp),
+    ) {
+        Text(
+            method,
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = MetrikMono,
+            fontWeight = FontWeight.Bold,
+            color =
+                if (post) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                },
+        )
+    }
+}
+
+@Composable
+private fun SlowStatusChip(status: Int) {
+    val bg =
+        when {
+            status >= 500 -> MaterialTheme.colorScheme.errorContainer
+            status >= 400 -> MaterialTheme.colorScheme.tertiaryContainer
+            else -> MetrikExtra.healthyContainer
+        }
+    val fg =
+        when {
+            status >= 500 -> MaterialTheme.colorScheme.onErrorContainer
+            status >= 400 -> MaterialTheme.colorScheme.onTertiaryContainer
+            else -> MetrikExtra.onHealthyContainer
+        }
+    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(bg).padding(horizontal = 9.dp, vertical = 3.dp)) {
+        Text(
+            statusLabel(status),
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = MetrikMono,
+            fontWeight = FontWeight.Bold,
+            color = fg,
+        )
     }
 }
 
@@ -1273,7 +1455,6 @@ private fun SlowRowItem(
     maxDuration: Int,
     nowMs: Long,
     zone: TimeZone,
-    compact: Boolean = false,
 ) {
     val hot = row.durationMs >= 3000
     val warm = row.durationMs >= 1500
@@ -1322,114 +1503,62 @@ private fun SlowRowItem(
             .padding(horizontal = Spacing.lg + Spacing.xs, vertical = Spacing.md + Spacing.xs),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        if (compact) {
-            // На узкой ширине метод+маршрут и статус+время не помещаются в одну строку без
-            // обрезания — разносим на две, порядок элементов внутри строк тот же, что на десктопе.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        // На узкой ширине метод+маршрут и статус+время не помещаются в одну строку без
+        // обрезания — разносим на две, порядок элементов внутри строк тот же, что на десктопе.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Box(
+                Modifier
+                    .clip(
+                        RoundedCornerShape(8.dp),
+                    ).background(methodBg)
+                    .padding(horizontal = 9.dp, vertical = 3.dp),
             ) {
-                Box(
-                    Modifier
-                        .clip(
-                            RoundedCornerShape(8.dp),
-                        ).background(methodBg)
-                        .padding(horizontal = 9.dp, vertical = 3.dp),
-                ) {
-                    Text(
-                        row.method,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = MetrikMono,
-                        fontWeight = FontWeight.Bold,
-                        color = methodFg,
-                    )
-                }
                 Text(
-                    row.route,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = MetrikMono,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                Box(
-                    Modifier
-                        .clip(
-                            RoundedCornerShape(8.dp),
-                        ).background(statusBg)
-                        .padding(horizontal = 9.dp, vertical = 3.dp),
-                ) {
-                    Text(
-                        statusLabel(row.status),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = MetrikMono,
-                        fontWeight = FontWeight.Bold,
-                        color = statusFg,
-                    )
-                }
-                Text(
-                    at,
+                    row.method,
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = MetrikMono,
-                    color = MaterialTheme.colorScheme.outline,
+                    fontWeight = FontWeight.Bold,
+                    color = methodFg,
                 )
             }
-        } else {
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            Text(
+                row.route,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = MetrikMono,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Box(
+                Modifier
+                    .clip(
+                        RoundedCornerShape(8.dp),
+                    ).background(statusBg)
+                    .padding(horizontal = 9.dp, vertical = 3.dp),
             ) {
-                Box(
-                    Modifier
-                        .clip(
-                            RoundedCornerShape(8.dp),
-                        ).background(methodBg)
-                        .padding(horizontal = 9.dp, vertical = 3.dp),
-                ) {
-                    Text(
-                        row.method,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = MetrikMono,
-                        fontWeight = FontWeight.Bold,
-                        color = methodFg,
-                    )
-                }
                 Text(
-                    row.route,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = MetrikMono,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-                Box(
-                    Modifier
-                        .clip(
-                            RoundedCornerShape(8.dp),
-                        ).background(statusBg)
-                        .padding(horizontal = 9.dp, vertical = 3.dp),
-                ) {
-                    Text(
-                        statusLabel(row.status),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = MetrikMono,
-                        fontWeight = FontWeight.Bold,
-                        color = statusFg,
-                    )
-                }
-                Text(
-                    at,
+                    statusLabel(row.status),
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = MetrikMono,
-                    color = MaterialTheme.colorScheme.outline,
+                    fontWeight = FontWeight.Bold,
+                    color = statusFg,
                 )
             }
+            Text(
+                at,
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = MetrikMono,
+                color = MaterialTheme.colorScheme.outline,
+            )
         }
         Row(
             Modifier.fillMaxWidth(),
