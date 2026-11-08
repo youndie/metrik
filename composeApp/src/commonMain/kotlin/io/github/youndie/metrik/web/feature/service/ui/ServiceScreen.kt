@@ -497,6 +497,7 @@ private fun ChartsTab(
                     showGrid = true,
                     showHeader = false,
                     height = heroHeight,
+                    unit = "rps",
                 )
                 DeployLabelsOverlay(rpsPoints, series.deploys, Modifier.matchParentSize())
             }
@@ -642,7 +643,15 @@ private fun SmallMetricChart(
             )
             Text(unit, style = MaterialTheme.typography.bodySmall, color = MetrikExtra.dim)
         }
-        LineChart(title = "", points = points, deploys = deploys, color = color, showHeader = false, height = 96.dp)
+        LineChart(
+            title = "",
+            points = points,
+            deploys = deploys,
+            color = color,
+            showHeader = false,
+            height = 96.dp,
+            unit = unit,
+        )
     }
 }
 
