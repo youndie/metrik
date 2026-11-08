@@ -727,6 +727,8 @@ FIRING не повторяется на каждом тике, шумному с
 - [ ] **M-111** `instances` в списке сервисов читается как «сколько работает», а означает
       «сколько отчитывалось за сутки».
 
+      **В работе** (ветка `fix/m-111-live-instances`, 08.11).
+
       `QueryService.services()` считает `COUNT(*) FROM instances WHERE service_id = :id` — без
       условия на `last_seen`. Ретенция чистит инстансы, молчащие дольше суток
       (`RetentionWorker.instanceRetentionMs = DAY_MS`), так что цифра не растёт бесконечно, но
