@@ -1,0 +1,13 @@
+plugins { alias(wip.plugins.kotlinMultiplatform) }
+kotlin {
+    linuxArm64 {
+        binaries.executable {
+            entryPoint = "main"
+            binaryOption("fixedBlockPageSize", "16")
+        }
+    }
+    sourceSets.commonMain.dependencies {
+        implementation(ktorLibs.server.core)
+        implementation(ktorLibs.server.cio)
+    }
+}
