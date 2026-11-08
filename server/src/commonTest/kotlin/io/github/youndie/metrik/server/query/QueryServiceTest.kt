@@ -140,7 +140,7 @@ class QueryServiceTest {
      * [LIVE_INSTANCE_MS] до конца периода.
      */
     @Test
-    fun `instances should count the live ones, not every pod of the day`() =
+    fun `instances should count the live ones and not every pod of the day`() =
         runTest {
             // Given — pod-a отчитался десять минут назад и замолчал (рестарт), pod-b — сейчас.
             IngestService(db, KEY, nowMs = { now - 10 * MINUTE }).accept(frame(instance = "pod-a"))
