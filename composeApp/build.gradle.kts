@@ -76,6 +76,14 @@ kotlin {
                 implementation(ktorLibs.client.cio)
             }
         }
+        // Тесты UI — на desktop: тот же commonMain, а Compose ui-test на нём быстрый и без браузера.
+        getByName("desktopTest").dependencies {
+            implementation(kotlin("test"))
+            implementation(compose.desktop.currentOs)
+            implementation(
+                "org.jetbrains.compose.ui:ui-test:${org.jetbrains.compose.ComposeBuildConfig.composeVersion}",
+            )
+        }
         wasmJsMain.dependencies {
             implementation(ktorLibs.client.js)
             // Кнопки «назад/вперёд» и адресная строка — часть интерфейса дашборда, а не украшение.

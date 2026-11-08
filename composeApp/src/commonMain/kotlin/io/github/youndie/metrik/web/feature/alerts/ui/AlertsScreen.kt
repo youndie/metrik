@@ -44,6 +44,7 @@ import io.github.youndie.metrik.web.ui.EmptyState
 import io.github.youndie.metrik.web.ui.LoadingState
 import io.github.youndie.metrik.web.ui.MetrikExtra
 import io.github.youndie.metrik.web.ui.MetrikMono
+import io.github.youndie.metrik.web.ui.PageTitle
 import io.github.youndie.metrik.web.ui.Spacing
 import io.github.youndie.metrik.web.ui.absoluteAgo
 import io.github.youndie.metrik.web.ui.alertStateLabel
@@ -97,6 +98,7 @@ fun AlertsContent(
 ) {
     val zone = remember { TimeZone.currentSystemDefault() }
     val nowMs = uiState.nowMs
+    PageTitle("Alerts")
     val firing = uiState.firing
     val onMute: (AlertView, Long) -> Unit = { alert, minutes -> onAction(AlertsUiAction.MuteAlert(alert, minutes)) }
     val onUnmute: (AlertView) -> Unit = { alert -> onAction(AlertsUiAction.UnmuteAlert(alert)) }

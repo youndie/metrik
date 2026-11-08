@@ -52,6 +52,7 @@ reverse proxy; `:cli` — в `/mcp` по токену, потому что фо�
 ./gradlew :server:macosArm64Test       # тесты сервера (native — единственный настоящий таргет)
 ./gradlew :shared:jvmTest              # быстрый прогон общего кода
 ./gradlew :composeApp:run              # дашборд на desktop — быстрый цикл по UI
+./gradlew :composeApp:desktopTest      # тесты дашборда: выделение, меню правой кнопки, подписи
 ./gradlew :composeApp:wasmJsBrowserDistribution   # прод-бандл дашборда
 ./gradlew :cli:linkDebugExecutableMacosArm64      # бинарь клиента для терминала
 ```

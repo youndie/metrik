@@ -16,6 +16,7 @@ import io.github.youndie.metrik.web.feature.service.domain.GetSystemPointsUseCas
 import io.github.youndie.metrik.web.feature.service.domain.GetTimeSeriesUseCase
 import io.github.youndie.metrik.web.feature.services.domain.DeleteServiceUseCase
 import io.github.youndie.metrik.web.feature.services.domain.GetServicesUseCase
+import io.github.youndie.metrik.web.ui.TimeWindow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -46,6 +47,8 @@ data class ServiceUiState(
     val tab: ServiceTab = ServiceTab.CHARTS,
     val range: Range = Range.HOUR,
     val series: TimeSeries? = null,
+    /** `from..to`, с которым просили [series]: ось графиков (M-123). */
+    val window: TimeWindow? = null,
     val routes: List<RouteRow> = emptyList(),
     val slow: List<SlowRow> = emptyList(),
     val system: List<SystemPoint> = emptyList(),
@@ -206,6 +209,7 @@ class ServiceViewModel(
             state.copy(
                 service = service ?: state.service,
                 series = series ?: state.series,
+                window = if (series != null) TimeWindow(from, to) else state.window,
                 routes = routes ?: state.routes,
                 slow = slow ?: state.slow,
                 system = system ?: state.system,

@@ -1,5 +1,9 @@
 package io.github.youndie.metrik.web
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,11 +48,16 @@ import io.github.youndie.metrik.web.navigation.routeSavedStateConfig
 import io.github.youndie.metrik.web.ui.AppShellUiState
 import io.github.youndie.metrik.web.ui.AppShellViewModel
 import io.github.youndie.metrik.web.ui.BottomNavBar
+import io.github.youndie.metrik.web.ui.BrowserActions
+import io.github.youndie.metrik.web.ui.LocalBrowserActions
 import io.github.youndie.metrik.web.ui.MetrikTheme
 import io.github.youndie.metrik.web.ui.MobileTab
 import io.github.youndie.metrik.web.ui.NavRail
+import io.github.youndie.metrik.web.ui.Selectable
+import io.github.youndie.metrik.web.ui.SelectionArea
 import io.github.youndie.metrik.web.ui.Spacing
 import io.github.youndie.metrik.web.ui.TopRoute
+import io.github.youndie.metrik.web.ui.platformBrowserActions
 import io.ktor.client.HttpClient
 import org.koin.compose.KoinApplication
 import org.koin.compose.viewmodel.koinViewModel
@@ -70,6 +80,10 @@ private val MOBILE_MAX_WIDTH: Dp = 760.dp
  * Передаются внутрь прокрутки, а не вешаются на контейнер: снаружи они сужают вьюпорт, и контент
  * обрезается по внутренней границе вместо того, чтобы уезжать под край.
  */
+private const val SCREEN_FADE_OUT_MS = 90
+private val ScreenFadeOut = fadeOut(tween(SCREEN_FADE_OUT_MS))
+private val ScreenFadeIn = fadeIn(tween(durationMillis = 120, delayMillis = SCREEN_FADE_OUT_MS))
+
 private val DesktopContentPadding = PaddingValues(horizontal = Spacing.xxl, vertical = Spacing.xl)
 private val MobileContentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.lg)
 
@@ -82,13 +96,20 @@ private val MobileContentPadding = PaddingValues(horizontal = Spacing.lg, vertic
  * back stack'у, поэтому «назад» браузера работает одинаково.
  */
 @Composable
-fun App(httpClient: HttpClient = metrikHttpClient()) {
+fun App(
+    httpClient: HttpClient = metrikHttpClient(),
+    browserActions: BrowserActions? = platformBrowserActions(),
+) {
     KoinApplication(application = {
         modules(coreModule(httpClient), servicesModule, serviceModule, alertsModule)
     }) {
         MetrikTheme {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surfaceDim) {
-                AppShell()
+                // Всё окно — одна страница: слова выделяются и в рельсе, и на экране, а меню правой
+                // кнопки рисуется поверх обоих (M-121, M-122).
+                CompositionLocalProvider(LocalBrowserActions provides browserActions) {
+                    Selectable { AppShell() }
+                }
             }
         }
     }
@@ -155,6 +176,11 @@ private fun AppShellContent(
                 //
                 // `SaveableStateHolder` идёт первым, потому что его требует сам декоратор
                 // ViewModel-стора: без него он падает на старте.
+                // Старый экран уходит раньше, чем появляется новый: при кроссфейде по умолчанию на кадре
+                // перехода вкладки сервиса рисовались поверх карточек обзора (M-130).
+                transitionSpec = { ScreenFadeIn togetherWith ScreenFadeOut },
+                popTransitionSpec = { ScreenFadeIn togetherWith ScreenFadeOut },
+                predictivePopTransitionSpec = { ScreenFadeIn togetherWith ScreenFadeOut },
                 entryDecorators =
                     listOf(
                         rememberSaveableStateHolderNavEntryDecorator(),
@@ -231,21 +257,23 @@ private fun DesktopShell(
     content: @Composable () -> Unit,
 ) {
     Row(Modifier.fillMaxSize()) {
-        NavRail(
-            services = uiState.services,
-            firingAlertCount = uiState.firingAlertCount,
-            updatedAgoLabel = uiState.updatedAgoLabel,
-            topRoute =
-                when (current) {
-                    Route.Overview -> TopRoute.OVERVIEW
-                    Route.Alerts -> TopRoute.ALERTS
-                    else -> null
-                },
-            selectedServiceId = (current as? Route.Service)?.id,
-            onOverview = { onSelectTab(Route.Overview) },
-            onAlerts = { onSelectTab(Route.Alerts) },
-            onSelectService = { service -> onSelectService(service.id) },
-        )
+        SelectionArea {
+            NavRail(
+                services = uiState.services,
+                firingAlertCount = uiState.firingAlertCount,
+                updatedAgoLabel = uiState.updatedAgoLabel,
+                topRoute =
+                    when (current) {
+                        Route.Overview -> TopRoute.OVERVIEW
+                        Route.Alerts -> TopRoute.ALERTS
+                        else -> null
+                    },
+                selectedServiceId = (current as? Route.Service)?.id,
+                onOverview = { onSelectTab(Route.Overview) },
+                onAlerts = { onSelectTab(Route.Alerts) },
+                onSelectService = { service -> onSelectService(service.id) },
+            )
+        }
 
         Column(
             Modifier
@@ -257,7 +285,7 @@ private fun DesktopShell(
             if (uiState.error != null) {
                 Box(Modifier.padding(horizontal = Spacing.xxl, vertical = Spacing.md)) { ErrorBanner(uiState.error) }
             }
-            Box(Modifier.weight(1f).fillMaxWidth()) { content() }
+            SelectionArea(Modifier.weight(1f).fillMaxWidth()) { content() }
         }
     }
 }
@@ -274,7 +302,7 @@ private fun MobileShell(
             if (uiState.error != null) {
                 Box(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) { ErrorBanner(uiState.error) }
             }
-            Box(Modifier.weight(1f).fillMaxWidth()) { content() }
+            SelectionArea(Modifier.weight(1f).fillMaxWidth()) { content() }
         }
 
         BottomNavBar(

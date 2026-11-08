@@ -26,10 +26,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,8 +60,10 @@ import io.github.youndie.metrik.web.ui.EmptyState
 import io.github.youndie.metrik.web.ui.HonestyChip
 import io.github.youndie.metrik.web.ui.LineChart
 import io.github.youndie.metrik.web.ui.LoadingState
+import io.github.youndie.metrik.web.ui.LocalChartWindow
 import io.github.youndie.metrik.web.ui.MetrikExtra
 import io.github.youndie.metrik.web.ui.MetrikMono
+import io.github.youndie.metrik.web.ui.PageTitle
 import io.github.youndie.metrik.web.ui.RangeSelector
 import io.github.youndie.metrik.web.ui.Spacing
 import io.github.youndie.metrik.web.ui.Sparkline
@@ -68,6 +72,7 @@ import io.github.youndie.metrik.web.ui.absoluteAgo
 import io.github.youndie.metrik.web.ui.format
 import io.github.youndie.metrik.web.ui.plural
 import io.github.youndie.metrik.web.ui.statusColor
+import io.github.youndie.metrik.web.ui.statusLabel
 import io.github.youndie.metrik.web.ui.toChart
 import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
@@ -163,11 +168,26 @@ fun ServiceContent(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     onBack: () -> Unit = {},
 ) {
+    // Графики экрана рисуют ось по запрошенному периоду, а не по размаху точек (M-123).
+    CompositionLocalProvider(LocalChartWindow provides uiState.window) {
+        ServiceContentBody(uiState, onAction, compact, contentPadding, onBack)
+    }
+}
+
+@Composable
+private fun ServiceContentBody(
+    uiState: ServiceUiState,
+    onAction: (ServiceUiAction) -> Unit,
+    compact: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    onBack: () -> Unit = {},
+) {
     val zone = remember { TimeZone.currentSystemDefault() }
     val service = uiState.service
     val firingCount = service?.firingAlerts?.size ?: 0
     val instances = service?.instances ?: 0
     val onRange: (Range) -> Unit = { range -> onAction(ServiceUiAction.SelectRange(range)) }
+    PageTitle(service?.name)
 
     // Один скролл на весь экран: заголовок и вкладки едут вместе с содержимым вкладки, а не
     // остаются прибитыми над отдельно прокручиваемой областью.
@@ -724,6 +744,25 @@ private fun RoutesTab(
 
     val maxCount = routes.maxOf { it.count }.coerceAtLeast(1)
     val maxP95 = routes.maxOf { it.p95Ms }.coerceAtLeast(1.0)
+    // Сортировка по любой колонке (metrik-web §4, M-126): по умолчанию — как пришло с сервера.
+    var sort by rememberSaveable { mutableStateOf<RouteSort?>(null) }
+    var descending by rememberSaveable { mutableStateOf(true) }
+    val sorted =
+        remember(routes, sort, descending) {
+            sort?.let { column ->
+                val ascending = routes.sortedWith(column.comparator)
+                if (descending) ascending.reversed() else ascending
+            } ?: routes
+        }
+    val onSort: (RouteSort) -> Unit = { column ->
+        if (sort == column) {
+            descending = !descending
+        } else {
+            sort = column
+            // Имя и статус читают по алфавиту, числа — с самого большого.
+            descending = column.numeric
+        }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         if (compact) {
@@ -760,7 +799,7 @@ private fun RoutesTab(
             // Шесть колонок таблицы на 390dp нечитаемы (M-89) — карточка на маршрут: метод+путь
             // первой строкой, статус и цифры второй, бары длительности как на десктопе.
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                routes.forEach { row -> RouteCardItem(row, maxCount, maxP95) }
+                sorted.forEach { row -> RouteCardItem(row, maxCount, maxP95) }
             }
         } else {
             Column(
@@ -771,9 +810,9 @@ private fun RoutesTab(
                     .padding(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
             ) {
-                RouteHeaderRow()
-                routes.forEachIndexed { index, row ->
-                    RouteRowItem(row, maxCount, maxP95, routeRowShape(index, routes.size))
+                RouteHeaderRow(sort, descending, onSort)
+                sorted.forEachIndexed { index, row ->
+                    RouteRowItem(row, maxCount, maxP95, routeRowShape(index, sorted.size))
                 }
             }
         }
@@ -869,7 +908,7 @@ private fun RouteCardItem(
                     .padding(horizontal = 10.dp, vertical = 3.dp),
             ) {
                 Text(
-                    row.status.toString(),
+                    statusLabel(row.status),
                     style = MaterialTheme.typography.labelMedium,
                     fontFamily = MetrikMono,
                     fontWeight = FontWeight.Bold,
@@ -956,32 +995,51 @@ private fun routeRowShape(
         }
     }
 
+/** Колонка, по которой отсортирована таблица маршрутов; [comparator] — по возрастанию. */
+internal enum class RouteSort(
+    val title: String,
+    val weight: Float,
+    val numeric: Boolean,
+    val comparator: Comparator<RouteRow>,
+) {
+    ROUTE("ROUTE", 2.6f, false, compareBy<RouteRow>({ it.route }, { it.method })),
+    STATUS("STATUS", 0.7f, false, compareBy { it.status }),
+    COUNT("COUNT", 1.6f, true, compareBy { it.count }),
+    P50("P50, MS", 0.7f, true, compareBy { it.p50Ms }),
+    P95("P95, MS", 1.8f, true, compareBy { it.p95Ms }),
+    MAX("MAX, MS", 0.7f, true, compareBy { it.maxMs }),
+}
+
 @Composable
-private fun RouteHeaderRow() {
+private fun RouteHeaderRow(
+    sort: RouteSort?,
+    descending: Boolean,
+    onSort: (RouteSort) -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = Spacing.lg + Spacing.sm, vertical = Spacing.sm),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xl - Spacing.xs),
     ) {
-        RouteHeaderCell("ROUTE", 2.6f)
-        RouteHeaderCell("STATUS", 0.7f)
-        RouteHeaderCell("COUNT", 1.6f)
-        RouteHeaderCell("P50", 0.7f)
-        RouteHeaderCell("P95", 1.8f)
-        RouteHeaderCell("MAX", 0.7f)
+        RouteSort.entries.forEach { column ->
+            RouteHeaderCell(column, active = sort == column, descending = descending, onSort = onSort)
+        }
     }
 }
 
 @Composable
 private fun RowScope.RouteHeaderCell(
-    text: String,
-    weight: Float,
+    column: RouteSort,
+    active: Boolean,
+    descending: Boolean,
+    onSort: (RouteSort) -> Unit,
 ) {
     Text(
-        text,
+        if (active) column.title + if (descending) " ↓" else " ↑" else column.title,
         style = MaterialTheme.typography.labelSmall,
         fontFamily = MetrikMono,
-        color = MaterialTheme.colorScheme.outline,
-        modifier = Modifier.weight(weight),
+        fontWeight = if (active) FontWeight.Bold else null,
+        color = if (active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
+        modifier = Modifier.weight(column.weight).clickable { onSort(column) },
     )
 }
 
@@ -1070,7 +1128,7 @@ private fun RouteRowItem(
                     .padding(horizontal = 10.dp, vertical = 3.dp),
             ) {
                 Text(
-                    row.status.toString(),
+                    statusLabel(row.status),
                     style = MaterialTheme.typography.labelMedium,
                     fontFamily = MetrikMono,
                     fontWeight = FontWeight.Bold,
@@ -1273,7 +1331,7 @@ private fun SlowRowItem(
                         .padding(horizontal = 9.dp, vertical = 3.dp),
                 ) {
                     Text(
-                        row.status.toString(),
+                        statusLabel(row.status),
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = MetrikMono,
                         fontWeight = FontWeight.Bold,
@@ -1323,7 +1381,7 @@ private fun SlowRowItem(
                         .padding(horizontal = 9.dp, vertical = 3.dp),
                 ) {
                     Text(
-                        row.status.toString(),
+                        statusLabel(row.status),
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = MetrikMono,
                         fontWeight = FontWeight.Bold,

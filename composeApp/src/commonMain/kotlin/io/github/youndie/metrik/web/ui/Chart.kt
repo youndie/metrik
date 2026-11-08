@@ -12,7 +12,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -30,6 +33,22 @@ class ChartPoint(
     val at: Long,
     val value: Double?,
 )
+
+/**
+ * Запрошенный период графика: ось времени идёт от [from] до [to], а не от первой точки ряда до
+ * последней (M-123). Сервер отдаёт точки только за отчитавшиеся окна, и у сервиса с пятью минутами
+ * данных линия растягивалась на весь «− 1h … now» — читалось как час ровной нагрузки.
+ */
+class TimeWindow(
+    val from: Long,
+    val to: Long,
+)
+
+/**
+ * Период, в котором рисуют графики экрана; `null` — по размаху самих точек (превью, снимки). Экран
+ * кладёт сюда тот же `from..to`, с которым просил ряды.
+ */
+val LocalChartWindow: ProvidableCompositionLocal<TimeWindow?> = staticCompositionLocalOf { null }
 
 /**
  * Линия с заливкой-градиентом, разрывами на неполных окнах и отметками деплоев.
@@ -72,8 +91,9 @@ fun LineChart(
         // Именно последняя точка ряда, а не последнее известное значение: если сейчас разрыв,
         // это надо показать как «нет данных», а не подсовывать устаревшее число под видом свежего.
         val lastValue = points.last().value
-        val minAt = points.minOf { it.at }
-        val maxAt = points.maxOf { it.at }
+        val window = LocalChartWindow.current
+        val minAt = window?.from ?: points.minOf { it.at }
+        val maxAt = window?.to ?: points.maxOf { it.at }
         val span = (maxAt - minAt).coerceAtLeast(1)
         val markerColor = MaterialTheme.colorScheme.tertiary
         val gridColor = if (showGrid) MetrikExtra.chartGridLine else MaterialTheme.colorScheme.outlineVariant
@@ -86,7 +106,9 @@ fun LineChart(
                 .fillMaxWidth()
                 .height(height)
                 .padding(top = Spacing.xs)
-                .background(surfaceColor, RoundedCornerShape(16.dp)),
+                .background(surfaceColor, RoundedCornerShape(16.dp))
+                // Окно минуты начинается до `from` запроса: его точка ложится чуть левее оси.
+                .clipToBounds(),
         ) {
             fun x(at: Long) = ((at - minAt).toFloat() / span) * size.width
 
@@ -144,13 +166,14 @@ fun Sparkline(
     if (points.isEmpty()) return
 
     val maxValue = (points.mapNotNull { it.value }.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
-    val minAt = points.minOf { it.at }
-    val maxAt = points.maxOf { it.at }
+    val window = LocalChartWindow.current
+    val minAt = window?.from ?: points.minOf { it.at }
+    val maxAt = window?.to ?: points.maxOf { it.at }
     val span = (maxAt - minAt).coerceAtLeast(1)
     val fillBrush = Brush.verticalGradient(listOf(color.copy(alpha = 0.38f), color.copy(alpha = 0f)))
     val gapColor = color.copy(alpha = 0.35f)
 
-    Canvas(modifier.fillMaxWidth()) {
+    Canvas(modifier.fillMaxWidth().clipToBounds()) {
         fun x(at: Long) = ((at - minAt).toFloat() / span) * size.width
 
         fun y(value: Double) = size.height - (value / maxValue).toFloat() * size.height

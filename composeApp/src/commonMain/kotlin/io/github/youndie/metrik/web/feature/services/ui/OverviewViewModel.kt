@@ -13,6 +13,7 @@ import io.github.youndie.metrik.web.feature.alerts.domain.GetActiveAlertsUseCase
 import io.github.youndie.metrik.web.feature.service.domain.GetTimeSeriesUseCase
 import io.github.youndie.metrik.web.feature.services.domain.GetServicesUseCase
 import io.github.youndie.metrik.web.ui.ChartPoint
+import io.github.youndie.metrik.web.ui.TimeWindow
 import io.github.youndie.metrik.web.ui.toChart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -28,6 +29,8 @@ data class OverviewUiState(
     val services: List<ServiceSummary> = emptyList(),
     val firingAlerts: List<AlertView> = emptyList(),
     val sparklines: Map<Long, List<ChartPoint>> = emptyMap(),
+    /** `from..to`, с которым просили [sparklines]: ось спарклайнов (M-123). */
+    val window: TimeWindow? = null,
     /**
      * Не сбрасывается при смене диапазона: иначе экран на мгновение схлопывался бы в спиннер
      * вместо того, чтобы держать старые цифры до прихода новых.
@@ -115,6 +118,7 @@ class OverviewViewModel(
                 services = services ?: state.services,
                 firingAlerts = alerts?.filter { it.isFiring } ?: state.firingAlerts,
                 sparklines = sparklines ?: state.sparklines,
+                window = if (sparklines != null) TimeWindow(from, to) else state.window,
                 loaded = true,
             )
         }
