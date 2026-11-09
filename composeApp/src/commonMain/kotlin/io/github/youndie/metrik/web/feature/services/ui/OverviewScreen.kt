@@ -49,6 +49,7 @@ import io.github.youndie.metrik.web.ui.RangeSelector
 import io.github.youndie.metrik.web.ui.Spacing
 import io.github.youndie.metrik.web.ui.Sparkline
 import io.github.youndie.metrik.web.ui.format
+import io.github.youndie.metrik.web.ui.handOverWords
 import io.github.youndie.metrik.web.ui.offersLink
 import io.github.youndie.metrik.web.ui.plural
 import org.koin.compose.viewmodel.koinViewModel
@@ -303,6 +304,7 @@ private fun AlertsHeroCompact(
                     .clip(RoundedCornerShape(17.dp))
                     .background(MaterialTheme.colorScheme.onErrorContainer)
                     .offersLink(Route.Alerts)
+                    .handOverWords()
                     .clickable(onClick = onOpenAlerts)
                     .padding(horizontal = Spacing.lg),
                 contentAlignment = Alignment.Center,
@@ -476,6 +478,7 @@ private fun ServiceGridCard(
             .clip(shape)
             .background(bg)
             .offersLink(Route.Service(service.id))
+            .handOverWords()
             .clickable(onClick = onClick)
             .padding(start = 24.dp, end = 24.dp, top = 22.dp, bottom = 18.dp),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
@@ -626,6 +629,7 @@ private fun MobileServiceRow(
             .clip(shape)
             .background(bg)
             .offersLink(Route.Service(service.id))
+            .handOverWords()
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.lg + Spacing.xs, vertical = Spacing.md + Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,

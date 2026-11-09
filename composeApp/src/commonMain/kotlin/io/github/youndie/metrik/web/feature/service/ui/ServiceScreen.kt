@@ -72,6 +72,7 @@ import io.github.youndie.metrik.web.ui.Sparkline
 import io.github.youndie.metrik.web.ui.StatTile
 import io.github.youndie.metrik.web.ui.absoluteAgo
 import io.github.youndie.metrik.web.ui.format
+import io.github.youndie.metrik.web.ui.handOverWords
 import io.github.youndie.metrik.web.ui.plural
 import io.github.youndie.metrik.web.ui.statusColor
 import io.github.youndie.metrik.web.ui.statusLabel
@@ -105,6 +106,7 @@ private fun ServiceTabBar(
                     .height(if (compact) 38.dp else 42.dp)
                     .clip(RoundedCornerShape(if (compact) 19.dp else 21.dp))
                     .background(if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+                    .handOverWords()
                     .clickable { onSelect(tab) }
                     .padding(horizontal = if (compact) 18.dp else 24.dp),
                 contentAlignment = Alignment.Center,
@@ -210,6 +212,7 @@ private fun ServiceContentBody(
                         .size(40.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .handOverWords()
                         .clickable(onClick = onBack),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -335,6 +338,7 @@ private fun RemoveFromMonitoring(
                         .height(32.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.error)
+                        .handOverWords(enabled = !uiState.deleting)
                         .clickable(enabled = !uiState.deleting) { onAction(ServiceUiAction.ConfirmDelete) }
                         .padding(horizontal = Spacing.md),
                     contentAlignment = Alignment.Center,
@@ -350,6 +354,7 @@ private fun RemoveFromMonitoring(
                     Modifier
                         .height(32.dp)
                         .clip(RoundedCornerShape(16.dp))
+                        .handOverWords(enabled = !uiState.deleting)
                         .clickable(enabled = !uiState.deleting) { onAction(ServiceUiAction.CancelDelete) }
                         .padding(horizontal = Spacing.md),
                     contentAlignment = Alignment.Center,
@@ -367,6 +372,7 @@ private fun RemoveFromMonitoring(
                     .height(32.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+                    .handOverWords()
                     .clickable { onAction(ServiceUiAction.RequestDelete) }
                     .padding(horizontal = Spacing.md),
                 contentAlignment = Alignment.Center,
@@ -1074,7 +1080,7 @@ private fun RowScope.RouteHeaderCell(
         fontFamily = MetrikMono,
         fontWeight = if (active) FontWeight.Bold else null,
         color = if (active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
-        modifier = Modifier.weight(column.weight).clickable { onSort(column) },
+        modifier = Modifier.weight(column.weight).handOverWords().clickable { onSort(column) },
     )
 }
 

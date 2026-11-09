@@ -111,6 +111,7 @@ private fun BottomNavItem(
                 .clip(RoundedCornerShape(28.dp))
                 .background(if (active) activeBg else Color.Transparent)
                 .offersLink(link)
+                .handOverWords()
                 .clickable(onClick = onClick),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,

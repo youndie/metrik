@@ -33,6 +33,7 @@ import io.github.youndie.metrik.web.ui.MetrikMono
 import io.github.youndie.metrik.web.ui.PageTitle
 import io.github.youndie.metrik.web.ui.Spacing
 import io.github.youndie.metrik.web.ui.format
+import io.github.youndie.metrik.web.ui.handOverWords
 import io.github.youndie.metrik.web.ui.offersLink
 import io.github.youndie.metrik.web.ui.plural
 
@@ -102,6 +103,7 @@ private fun MobileServiceListRow(
             .clip(RoundedCornerShape(20.dp))
             .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
             .offersLink(Route.Service(service.id))
+            .handOverWords()
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.lg),
         verticalAlignment = Alignment.CenterVertically,
