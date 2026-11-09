@@ -401,6 +401,7 @@ private fun MenuCard(
                 modifier =
                     Modifier
                         .fillMaxWidth()
+                        .handOverWords()
                         .clickable {
                             onClose()
                             entry.onPress()

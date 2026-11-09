@@ -50,6 +50,7 @@ import io.github.youndie.metrik.web.ui.Spacing
 import io.github.youndie.metrik.web.ui.absoluteAgo
 import io.github.youndie.metrik.web.ui.alertStateLabel
 import io.github.youndie.metrik.web.ui.format
+import io.github.youndie.metrik.web.ui.handOverWords
 import io.github.youndie.metrik.web.ui.relativeAgo
 import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
@@ -207,6 +208,7 @@ private fun TestAlertButton(
                 .height(36.dp)
                 .clip(RoundedCornerShape(18.dp))
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
+                .handOverWords(enabled = state != TestAlertState.Sending)
                 .clickable(enabled = state != TestAlertState.Sending, onClick = onSend)
                 .padding(horizontal = Spacing.lg),
             contentAlignment = Alignment.Center,
@@ -274,6 +276,7 @@ private fun MuteControl(
                         .height(28.dp)
                         .clip(RoundedCornerShape(14.dp))
                         .background(background)
+                        .handOverWords()
                         .clickable(onClick = onUnmute)
                         .padding(horizontal = Spacing.md),
                     contentAlignment = Alignment.Center,
@@ -296,6 +299,7 @@ private fun MuteControl(
                             .height(28.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .background(background)
+                            .handOverWords()
                             .clickable {
                                 pickerOpen = false
                                 onMute(minutes)
@@ -319,6 +323,7 @@ private fun MuteControl(
                     .height(36.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .background(background)
+                    .handOverWords()
                     .clickable { pickerOpen = true }
                     .padding(horizontal = Spacing.lg),
                 contentAlignment = Alignment.Center,
@@ -517,6 +522,7 @@ private fun FiringRuleRowCompact(
                     .height(32.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.onErrorContainer)
+                    .handOverWords()
                     .clickable(onClick = if (muted) onUnmute else onMute)
                     .padding(horizontal = Spacing.md + Spacing.xs),
                 contentAlignment = Alignment.Center,
@@ -848,6 +854,7 @@ private fun ThresholdCard(
                     .size(width = 52.dp, height = 32.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(trackColor)
+                    .handOverWords()
                     .clickable { enabled = !enabled }
                     .padding(3.dp),
                 contentAlignment = if (enabled) Alignment.CenterEnd else Alignment.CenterStart,
@@ -902,6 +909,7 @@ private fun ThresholdCard(
                         .height(32.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.primary)
+                        .handOverWords(enabled = !saving)
                         .clickable(enabled = !saving) { save() }
                         .padding(horizontal = Spacing.lg),
                     contentAlignment = Alignment.Center,

@@ -39,6 +39,7 @@ fun RangeSelector(
                     .height(40.dp)
                     .clip(RoundedCornerShape(20.dp))
                     .background(if (active) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .handOverWords()
                     .clickable { onSelect(range) }
                     .padding(horizontal = 22.dp),
                 contentAlignment = Alignment.Center,

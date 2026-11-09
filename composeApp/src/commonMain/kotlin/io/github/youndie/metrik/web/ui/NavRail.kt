@@ -203,6 +203,7 @@ private fun NavRailItem(
             .clip(RoundedCornerShape(28.dp))
             .background(if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
             .offersLink(link)
+            .handOverWords()
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.xl - Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
@@ -266,6 +267,7 @@ private fun ServiceRailRow(
             .clip(RoundedCornerShape(22.dp))
             .background(if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
             .offersLink(Route.Service(service.id))
+            .handOverWords()
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.lg + Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
