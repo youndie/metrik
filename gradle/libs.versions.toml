@@ -3,7 +3,7 @@
 # and so does the compiler — the `wip` catalog this release publishes carries `kotlin` and the
 # Compose Multiplatform version that moves with it, so neither has a version in this file to drift
 # from the rest of the portfolio.
-sborka = "0.5.0.135"
+sborka = "0.5.0.136"
 # kore: жизненный цикл серверного бинарника — упорядоченная остановка, три пробы, /version — и
 # охраняемый MCP-эндпоинт (kore-mcp). Одно число на все модули и на Gradle-плагин идентичности
 # сборки: они публикуются вместе, и плагин одной версии с библиотекой другой сойдётся при
@@ -14,9 +14,9 @@ sborka = "0.5.0.135"
 # `./gradlew :server:dependencies --configuration linuxX64CompileKlibraries` обязана разрешаться в
 # Ktor из каталога sborka. Стрелка вверх ДО него — норма (MCP SDK собран на 3.5.1, у нас 3.6.0);
 # стрелка выше него — та самая ловушка.
-kore = "0.1.15"
+kore = "0.1.17"
 kotlinxCoroutines = "1.11.0"
-kotlinxSerializationJson = "1.12.0"
+kotlinxSerializationJson = "1.13.0"
 kotlinxDatetime = "0.8.0"
 okio = "3.18.2"
 sqlx4k = "1.18.0"
